@@ -1,0 +1,88 @@
+#!/bin/csh
+#
+# Filename:  setup_run_dir
+#
+# Usage:
+#            setup_run_dir directory [model]
+# where
+#            directory is the name of a directory that
+#            may or may not exist.
+#
+#            model is a standard configuration supported in the release
+#            current options are "test" and "sector";
+#            the default is "test".
+#
+if ($1 == "") then
+    echo "Directory name argument must be supplied"
+    echo "Usage:  setup_run_dir directory [model]"
+    echo "directory is the name of a directory that"
+    echo "   may or may not exist."
+    echo "model is a standard configuration supported in the release"
+    echo "   current options are test and sector;"
+    echo "   the default is test."
+    exit 1
+else
+    set workdir = $1
+    echo "Directory set to $workdir"
+endif
+
+if ($2 == "") then
+    echo "Model name argument defaulting to test"
+    set model = "test"
+else
+    set model = $2
+    echo "Model set to $model"
+endif
+
+# Check for valid POP directory
+
+if (-e $POPDIR) then
+  # catch relative path case by checking whether build dir exists
+  if (-e $POPDIR/build) then
+    echo "Using HYPOP distribution in $POPDIR"
+  else
+    echo "The value $POPDIR for POPDIR is not a valid HYPOP distribution"
+    exit 2
+  endif
+else
+  echo "The value $POPDIR for POPDIR is not a valid HYPOP distribution"
+  exit 2
+endif
+
+# Make the requested working directory tree
+
+if (-e $workdir) then
+  echo "Directory $workdir exists"
+else
+  echo "Directory $workdir does not exist; creating"
+  mkdir $workdir
+  chmod 0775 $workdir
+endif
+
+# Copy makefile into the working directory
+
+if ($?POPDIR) then
+  echo "Copying makefile from $POPDIR/build"
+  if (-e $POPDIR/build/GNUmakefile) then
+     cp $POPDIR/build/GNUmakefile $workdir
+  else
+     echo "ERROR copying makefile: could not fine $POPDIR/build/GNUmakefile"
+  endif
+else
+  echo "POPDIR environment not yet specified; must setenv POPDIR"
+  exit 3
+endif
+
+# Copy sample contents files
+
+cp $POPDIR/input_templates/sample_* $workdir
+
+# Copy model dependent input files
+
+foreach name ( POP_DomainSizeMod.F90 domain_size.F90 pop_in pop_sgi.log )
+  if (-e $POPDIR/input_templates/$name.$model) then
+    echo "Copying $name"
+    cp $POPDIR/input_templates/$name.$model $workdir/$name
+  endif
+end
+
