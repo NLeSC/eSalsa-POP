@@ -1212,7 +1212,7 @@ function create_distrb_predefined(nprocs, distribution_file)
 
     if (my_task == master_task) then
         open(nu, file=distribution_file,status='old',form='unformatted', &
-                  access='direct', recl=reclength, iostat=ioerr)
+                  access='direct', recl=4, iostat=ioerr)
     endif
 
     call broadcast_scalar(ioerr, master_task)
@@ -1243,7 +1243,7 @@ function create_distrb_predefined(nprocs, distribution_file)
         write(*,*) 'POP_masterTask: distribution file numBlockLocs', numBlockLocs
 
         do i=1,numBlockLocs
-           read(nu, rec=(8+i), iostat=ioerr) newDistrb%blockLocation(i)
+           read(nu, rec=(8+i), iostat=ioerr) dist%proc(i)
         enddo
 
 !        read(nu, rec=1, iostat=ioerr) dist%proc
