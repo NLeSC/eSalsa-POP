@@ -1242,8 +1242,8 @@ function create_distrb_predefined(nprocs, distribution_file)
         write(*,*) 'POP_masterTask: distribution file numProcessorsY', numProcessorsY
         write(*,*) 'POP_masterTask: distribution file numBlockLocs', numBlockLocs
 
-        do i=1,numBlockLocs
-           read(nu, rec=(8+i), iostat=ioerr) dist%proc(i)
+        do n=1,numBlockLocs
+           read(nu, rec=(8+n), iostat=ioerr) dist%proc(n)
         enddo
 
 !        read(nu, rec=1, iostat=ioerr) dist%proc
