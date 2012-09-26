@@ -1,0 +1,44 @@
+#!/bin/sh
+# SGE default annotations:
+#$ -l h_rt=4:00:00
+#$ -cwd
+#$ -S /bin/sh
+
+# overwrite
+cp pointer.restart_good pointer.restart
+
+# Sanity checks to make sure we are running under prun/SGE:
+if [ "X$JOB_ID" = X ]; then
+    echo "No JOB_ID in environment; not running under SGE?" >&2
+    exit 1
+fi
+if [ "X$PRUN_PE_HOSTS" = X ]; then
+    echo "No PRUN_PE_HOSTS in environment; not running under prun?" >&2
+    exit 1
+fi
+
+# Construct host file for OpenMPI's mpirun:
+NODEFILE=$TMPDIR/hosts
+
+PRUN_CPUS_PER_NODE=1
+
+# Configure specified number of CPUs per node:
+( for i in $PRUN_PE_HOSTS; do
+    echo $i slots=$PRUN_CPUS_PER_NODE
+  done
+) > $NODEFILE
+
+( for i in $PRUN_PE_HOSTS; do
+    echo $i slots=$PRUN_CPUS_PER_NODE
+  done
+) > $NODEFILE
+
+
+# Need to disable SGE's PE_HOSTFILE, or OpenMPI will use it instead or the
+# constructed nodefile based on prun's info:
+unset PE_HOSTFILE
+
+export GMON_OUT_PREFIX='gmon.out-'`/bin/uname -n`
+
+$MPI_RUN -v $OMPI_OPTS --hostfile $NODEFILE $PRUN_PROG $PRUN_PROGARGS
+
