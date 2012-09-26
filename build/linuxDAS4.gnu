@@ -36,13 +36,13 @@ MPI = yes
 #NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
 
 #intel compiler
-NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
-NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
+#NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
+#NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
 
 
 #with -mcmodel=medium
-#NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
-#NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
+NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
+NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
 
 
 
@@ -71,8 +71,8 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
-  CFLAGS := $(CFLAGS) -O 
-#  CFLAGS := $(CFLAGS) -g
+#  CFLAGS := $(CFLAGS) -O 
+  CFLAGS := $(CFLAGS) -g
 else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
 endif
@@ -102,8 +102,9 @@ endif
 
 #DAS4 specific
 FFLAGS := $(FFLAGS) -convert  big_endian
-FFLAGS := $(FFLAGS)
-FFLAGS := $(FFLAGS) 
+FFLAGS := $(FFLAGS) -mcmodel=medium
+#-i-dynamic
+#FFLAGS := $(FFLAGS) 
  
 #----------------------------------------------------------------------------
 #
