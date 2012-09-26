@@ -1,0 +1,16 @@
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/domain.f90
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/POP_KindsMod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/POP_ErrorMod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/POP_IOUnitsMod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/POP_DomainSizeMod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/POP_BlocksMod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/POP_DistributionMod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/POP_HaloMod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/constants.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/communicate.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/broadcast.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/blocks.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/distribution.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/exit_mod.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/io_types.o
+/home/bwn200/esalsa-pop/run_test/compile/domain.o: /home/bwn200/esalsa-pop/run_test/compile/domain_size.o

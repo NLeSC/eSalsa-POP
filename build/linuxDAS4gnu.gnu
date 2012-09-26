@@ -7,12 +7,10 @@
 #  modules.
 #
 #-----------------------------------------------------------------------
-MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
-
-F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl
-CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc 
+F77 = mpif90 -p -O3
+F90 = mpif90 -p -O3
+LD = mpif90 -p -O3 -lcurl
+CC = gcc -p -O3
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
@@ -35,14 +33,11 @@ MPI = yes
 #NETCDFINC = -I/cm/shared/apps/netcdf/gcc/64/4.1.1/include
 #NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
 
-#intel compiler
-#NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
-#NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
-
-
 #with -mcmodel=medium
 NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
 NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
+
+
 
 
 
@@ -72,12 +67,11 @@ CFLAGS = $(ABI)
 
 ifeq ($(OPTIMIZE),yes)
 #  CFLAGS := $(CFLAGS) -O 
-  CFLAGS := $(CFLAGS) -g
 else
-  CFLAGS := $(CFLAGS) -g -check all -ftrapuv
+  CFLAGS := $(CFLAGS) -check all -ftrapuv
 endif
 
-CFLAGS := $(CFLAGS)
+CFLAGS := $(CFLAGS) -mcmodel=medium
 CFLAGS := $(CFLAGS) 
  
 #----------------------------------------------------------------------------
@@ -94,17 +88,16 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) -O3
-#  FFLAGS = $(FBASE) -g
+#  FFLAGS = $(FBASE) -O3
+  FFLAGS = $(FBASE)
 else
-  FFLAGS = $(FBASE) -g -check bounds
+  FFLAGS = $(FBASE) -check bounds
 endif
 
 #DAS4 specific
-FFLAGS := $(FFLAGS) -convert  big_endian
+FFLAGS := $(FFLAGS) -fconvert=swap
 FFLAGS := $(FFLAGS) -mcmodel=medium
-#-i-dynamic
-#FFLAGS := $(FFLAGS) 
+FFLAGS := $(FFLAGS) 
  
 #----------------------------------------------------------------------------
 #
@@ -117,8 +110,7 @@ LDFLAGS = $(ABI)
 LIBS = $(NETCDFLIB) -lnetcdf
  
 ifeq ($(MPI),yes)
-#  LIBS := $(LIBS) $(MPI_LD_FLAGS) -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/ -lmpi 
-  LIBS := $(LIBS) -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/ -lmpi 
+  LIBS := $(LIBS) $(MPI_LD_FLAGS) -lmpi 
 endif
 
 ifeq ($(TRAP_FPE),yes)
