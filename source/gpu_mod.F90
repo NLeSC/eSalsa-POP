@@ -1,0 +1,148 @@
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+  module gpu_mod
+
+!BOP
+! !MODULE: gpu_mod
+! !DESCRIPTION:
+!  This module contains the routines for computing several functions
+!  on GPU accelerators
+!
+! !REVISION HISTORY:
+!  gpu_mod.F90 2012-10-11 19:30:26Z B. van Werkhoven
+
+! !USES:
+
+   implicit none
+   private
+   save
+
+! !PUBLIC MEMBER FUNCTIONS:
+
+   public :: init_gpu_mod
+!,                    &
+!             vmix_coeffs,                          &
+!             vdifft, vdiffu,                       &
+!             impvmixt, impvmixt_correct, impvmixu, &
+!             convad
+
+! !PUBLIC DATA MEMBERS:
+
+   logical (log_kind), public :: &
+      use_gpu_state   ! flag for computing density functions on gpu
+
+!EOP
+!BOC
+
+!EOC
+!***********************************************************************
+
+ contains
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_vertical_mix
+! !INTERFACE:
+
+ subroutine init_gpu_mod
+
+! !DESCRIPTION:
+!  Initializes various mixing quantities and calls initialization
+!  routines for specific parameterizations.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::  &
+      k,                  &! vertical level index
+      nu,                 &! i/o unit
+      nml_error            ! namelist i/o error flag
+
+   character (char_len) :: &
+      vmix_choice          ! input choice for desired parameterization
+
+   character (char_len) :: &
+      convection_type      ! input choice for method for convection
+
+   namelist /gpu_mod_nml/ gpu_state
+
+!-----------------------------------------------------------------------
+!
+!  read input namelist and set mixing type
+!
+!-----------------------------------------------------------------------
+
+   use_gpu_state = .true.
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=gpu_mod_nml, iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call exit_POP(sigAbort, &
+                    'ERROR reading gpu_mod_nml')
+   endif
+
+   if (my_task == master_task) then
+      write(stdout,blank_fmt)
+      write(stdout,ndelim_fmt)
+      write(stdout,blank_fmt)
+      write(stdout,'(a27)') 'GPU Accelerator options'
+      write(stdout,blank_fmt)
+      write(stdout,delim_fmt)
+
+      if (use_gpu_state) then
+         write(stdout,'(a33)') ' GPU usage for density computations enabled'
+      else
+         write(stdout,'(a34)') ' GPU usage for density computations disabled'
+      endif
+
+   endif
+
+   call broadcast_scalar(use_gpu_state, master_task)
+
+!-----------------------------------------------------------------------
+!
+!  allocate arrays
+!
+!-----------------------------------------------------------------------
+
+
+
+!-----------------------------------------------------------------------
+!
+!  set up coefficients (such as state() constants)
+!
+!-----------------------------------------------------------------------
+
+
+
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine init_gpu_mod
+
+
+ end module gpu_mod
+
+!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
