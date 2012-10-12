@@ -13,6 +13,10 @@
 
 ! !USES:
 
+   use kinds_mod
+   use io
+   use exit_mod
+
    implicit none
    private
    save
