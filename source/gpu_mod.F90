@@ -76,7 +76,7 @@
    character (char_len) :: &
       convection_type      ! input choice for method for convection
 
-   namelist /gpu_mod_nml/ gpu_state
+   namelist /gpu_mod_nml/ use_gpu_state
 
 !-----------------------------------------------------------------------
 !
