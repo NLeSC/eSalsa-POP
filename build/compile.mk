@@ -106,6 +106,7 @@ endif
 
 $(POPEXEDIR)/$(TARGETX): $(OBJS)
 	@echo "  GNUmakefile is making target '$(TARGETX)'"
+	@echo "  @$(LD) -o $(TARGETX) $(LDFLAGS) $(OBJS) $(LDLIBS)"
 	@$(LD) -o $(TARGETX) $(LDFLAGS) $(OBJS) $(LDLIBS) 
 
 #----------------------------------------------------------------------------

@@ -7,12 +7,14 @@
 #  modules.
 #
 #-----------------------------------------------------------------------
-MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
+#
+# MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
+# MPIINC = -I/cm/shared/apps/openmpi/intel/64/1.4.4/include/
 
-F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl
-CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc 
+F77 = mpif77
+F90 = mpif90
+LD = mpif90 -lcurl -shared-intel -mcmodel=medium -lirc
+CC = cc
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
@@ -26,25 +28,12 @@ MPI = yes
 # Adjust these to point to where netcdf is installed
 
 # These have been loaded as a module so no values necessary
-#NETCDFINC = -I/netcdf_include_path
-#NETCDFLIB = -L/netcdf_library_path
-#NETCDFINC = -I/usr/projects/climate/maltrud/local/include_coyote
-#NETCDFLIB = -L/usr/projects/climate/maltrud/local/lib_coyote
-
-#default DAS4
-#NETCDFINC = -I/cm/shared/apps/netcdf/gcc/64/4.1.1/include
-#NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
-
-#intel compiler
-NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
-NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
-
 
 #with -mcmodel=medium
-#NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
-#NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
-
-
+NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
+#/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/include
+NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
+#/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/lib
 
 #  Enable trapping and traceback of floating point exceptions, yes/no.
 #  Note - Requires 'setenv TRAP_FPE "ALL=ABORT,TRACE"' for traceback.
@@ -56,9 +45,16 @@ TRAP_FPE = no
 #------------------------------------------------------------------
 
 #DCOUPL              = -Dcoupled
+DHIRES               = -D_HIRES
+#PRINT                = -DJASON_PRINT
+#PRINT_HALO           = -DJASON_PRINT_HALO
+#PRINT_REDIST         = -DJASON_PRINT_REDIST
+#PRINT_LOOP           = -DJASON_PRINT_LOOP
+#TIMER                = -DJASON_TIMER
+LOG_FILE             = -DJASON_SIMPLE_LOG_FILENAME
 
 Cpp_opts =   \
-      $(DCOUPL)
+      $(DCOUPL) $(DHIRES) $(TIMER) $(PRINT) $(PRINT_LOOP) $(LOG_FILE)
 
 Cpp_opts := $(Cpp_opts) -DPOSIX 
  
@@ -71,7 +67,7 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
-  CFLAGS := $(CFLAGS) -O 
+  CFLAGS := $(CFLAGS) -O2
 #  CFLAGS := $(CFLAGS) -g
 else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
@@ -94,16 +90,16 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) -O3
-#  FFLAGS = $(FBASE) -g
+#  FFLAGS = $(FBASE) -O3
+  FFLAGS = $(FBASE) -O2
 else
   FFLAGS = $(FBASE) -g -check bounds
 endif
 
 #DAS4 specific
-FFLAGS := $(FFLAGS) -convert  big_endian
-FFLAGS := $(FFLAGS)
-FFLAGS := $(FFLAGS) 
+FFLAGS := $(FFLAGS) -convert big_endian
+FFLAGS := $(FFLAGS) -check bounds -shared-intel -mcmodel=medium
+FFLAGS := $(FFLAGS) -heap-arrays 1024
  
 #----------------------------------------------------------------------------
 #
@@ -113,11 +109,11 @@ FFLAGS := $(FFLAGS)
  
 LDFLAGS = $(ABI) 
  
-LIBS = $(NETCDFLIB) -lnetcdf
+LIBS = $(NETCDFLIB) -lnetcdf -lirc
  
 ifeq ($(MPI),yes)
 #  LIBS := $(LIBS) $(MPI_LD_FLAGS) -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/ -lmpi 
-  LIBS := $(LIBS) -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/ -lmpi 
+  LIBS := $(LIBS) -lmpi -lirc
 endif
 
 ifeq ($(TRAP_FPE),yes)

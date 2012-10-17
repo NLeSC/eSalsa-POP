@@ -868,6 +868,10 @@
    if (my_task == master_task) then
       write(stdout,blank_fmt)
       write(stdout,delim_fmt)
+
+#ifdef JASON_FLUSH
+      flush(stdout)
+#endif
    endif
 !-----------------------------------------------------------------------
 !EOC

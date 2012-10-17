@@ -40,10 +40,20 @@ TRAP_FPE = no
 #------------------------------------------------------------------
 
 #DCOUPL              = -Dcoupled
-DHIRES                =-D_HIRES
+DHIRES               = -D_HIRES
+#PRINT                = -DJASON_PRINT 
+#PRINT_HALO           = -DJASON_PRINT_HALO
+#PRINT_REDIST         = -DJASON_PRINT_REDIST
+#PRINT_LOOP           = -DJASON_PRINT_LOOP
+#TIMER                = -DJASON_TIMER 
+FIX_DATA             = -DJASON_FIX_DATA
+LOG_FILE             = -DJASON_SIMPLE_LOG_FILENAME
+FLOW                 = -D_USE_FLOW_CONTROL
+#SEND                 = -DJASON_PRINT_SEND  
+FLUSH                = -DJASON_FLUSH
 
 Cpp_opts =   \
-      $(DCOUPL) $(DHIRES)
+      $(DCOUPL) $(DHIRES) $(TIMER) $(PRINT) $(PRINT_LOOP) $(LOG_FILE) $(FLOW) $(FIX_DATA) $(SEND) $(FLUSH)
 
 Cpp_opts := $(Cpp_opts) -DPOSIX 
  
@@ -56,7 +66,8 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
-  CFLAGS := $(CFLAGS) -O3 
+  CFLAGS := $(CFLAGS) -O3
+# -mcmodel=medium
 else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
 endif
@@ -75,7 +86,9 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) -O3 -fconvert=swap
+  FFLAGS = $(FBASE) -O3 -fconvert=swap 
+#-fmax-stack-var-size=536870912
+#-mcmodel=medium
 else
   FFLAGS = $(FBASE) -g -check bounds -fconvert=swap
 endif

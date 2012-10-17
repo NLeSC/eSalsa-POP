@@ -36,29 +36,25 @@
 ! !PUBLIC DATA MEMBERS:
 
 #ifdef JASON_FIX_DATA
-   real (r8), dimension(:,:,:,:,:,:), allocatable, &
-      target :: &
+   real (r8), dimension(:,:,:,:,:,:), allocatable, target :: &
       TRACER     ! 3d tracer fields for all blocks at 3 time levels
 
    type (tracer_field), dimension(nt) :: &
       tracer_d   ! descriptors for each tracer
 
-   real (r8), dimension(:,:,:,:,:), allocatable, &
-      target :: &
+   real (r8), dimension(:,:,:,:,:), allocatable, target :: &
       UVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls
       VVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls
       RHO        ! 3d density fields,     for all blocks at 3 time lvls
 
-   real (r8), dimension(:,:,:,:), allocatable, &
-      target :: &
+   real (r8), dimension(:,:,:,:), allocatable, target :: &
       PSURF,    &! surface pressure for all blocks at 3 time levels
       GRADPX,   &! surface-pressure gradient for all blocks at
       GRADPY,   &!   3 time levels
       UBTROP,   &! barotropic velocities for all blocks at
       VBTROP     !   3 time levels
 
-   real (r8), dimension(:,:,:), allocatable, &
-      target :: &
+   real (r8), dimension(:,:,:), allocatable, target :: &
       PGUESS     ! next guess for surface pressure
 
 #else
@@ -138,7 +134,7 @@
                  UBTROP (nx_block,ny_block,3,max_blocks_clinic), &
                  VBTROP (nx_block,ny_block,3,max_blocks_clinic), &
                  PGUESS (nx_block,ny_block,max_blocks_clinic))
-#elsif
+#endif
 
       oldtime = 1
       curtime = 2

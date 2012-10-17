@@ -3404,11 +3404,15 @@ contains
        char_tmp = trim(log_filename)
        log_filename = char_blank
 
+#ifdef JASON_SIMPLE_LOG_FILENAME
+       log_filename = trim(char_tmp)
+#else
        log_filename = trim(char_tmp)/&
                                      &/'.'/&
                                      &/logdate/&
                                      &/'.'/&
                                      &/logtime
+#endif
 
        open (stdout,file=log_filename,form='formatted',status='unknown')
    end if

@@ -100,6 +100,10 @@
    write(*,*) 'JASON starting main loop: ', cycles2, (cycles2-cycles1)
 #endif
 
+#ifdef JASON_FLUSH
+   flush(stdout)
+#endif
+ 
    do while (.not. check_time_flag(fstop_now) .and. &
              errorCode == POP_Success)
 
