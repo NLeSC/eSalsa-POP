@@ -8,10 +8,11 @@
 #
 #-----------------------------------------------------------------------
 MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
+CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
 
 F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
 F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl
+LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl $(CUDALIB) -lcudart -lstdc++
 CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc
 Cp = /bin/cp
 Cpp = cpp -P
@@ -20,7 +21,9 @@ ABI =
 COMMDIR = mpi
 
 NVCC = nvcc 
- 
+
+
+
 #  Enable MPI library for parallel code, yes/no.
 
 MPI = yes
