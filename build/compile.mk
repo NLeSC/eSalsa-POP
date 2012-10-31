@@ -98,6 +98,12 @@ ifneq (,$(CSRCS))
   DEPENDS := $(addprefix $(DepDir)/, $(notdir $(CSRCS:.c=$(DEPSUF)))) $(DEPENDS)
 endif
 
+CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+ifneq (,$(CSRCS))
+  OBJS    := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CSRCS:.cu=.o))) $(OBJS)
+  DEPENDS := $(addprefix $(DepDir)/, $(notdir $(CSRCS:.cu=$(DEPSUF)))) $(DEPENDS)
+endif
+
 #----------------------------------------------------------------------------
 #
 #  Make the executable.
@@ -129,6 +135,7 @@ include $(DEPENDS)
 %.o : %.f
 %.o : %.f90
 %.o : %.c
+%.o : %.cu
 
 %.o: %.f
 	@echo $(POPARCH) Compiling with implicit rule $(FFLAGS) $<
@@ -142,3 +149,6 @@ include $(DEPENDS)
 	@echo $(POPARCH) Compiling with implicit rule $(Cpp_opts) $(CFLAGS) $<
 	@cd $(POPEXEDIR)/compile && $(CC) $(Cpp_opts) $(CFLAGS) -c $(notdir $<)
 
+%.o: %.cu
+	@echo $(POPARCH) Compiling with implicit rule $(Cpp_opts) $(CUFLAGS) $<
+	@cd $(POPEXEDIR)/compile && $(NVCC) $(Cpp_opts) $(CUFLAGS) -c $(notdir $<)

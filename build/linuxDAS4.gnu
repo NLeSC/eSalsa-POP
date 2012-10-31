@@ -12,12 +12,14 @@ MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
 F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
 F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
 LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl
-CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc 
+CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
+
+NVCC = nvcc 
  
 #  Enable MPI library for parallel code, yes/no.
 
@@ -72,7 +74,7 @@ CFLAGS = $(ABI)
 
 ifeq ($(OPTIMIZE),yes)
 #  CFLAGS := $(CFLAGS) -O 
-  CFLAGS := $(CFLAGS) -g
+  CFLAGS := $(CFLAGS) -O3
 else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
 endif
@@ -105,6 +107,19 @@ FFLAGS := $(FFLAGS) -convert  big_endian
 FFLAGS := $(FFLAGS) -mcmodel=medium
 #-i-dynamic
 #FFLAGS := $(FFLAGS) 
+ 
+
+#----------------------------------------------------------------------------
+#
+#                           CUDA Flags
+#
+#----------------------------------------------------------------------------
+
+CUFLAGS = -Xptxas=-v -arch=sm_20
+
+ifeq ($(OPTIMIZE),yes)
+  CUFLAGS = $(CUFLAGS) -O3
+endif
  
 #----------------------------------------------------------------------------
 #
