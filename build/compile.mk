@@ -99,9 +99,9 @@ ifneq (,$(CSRCS))
 endif
 
 CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
-ifneq (,$(CSRCS))
-  OBJS    := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CSRCS:.cu=.o))) $(OBJS)
-  DEPENDS := $(addprefix $(DepDir)/, $(notdir $(CSRCS:.cu=$(DEPSUF)))) $(DEPENDS)
+ifneq (,$(CUSRCS))
+  OBJS    := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(OBJS)
+  DEPENDS := $(addprefix $(DepDir)/, $(notdir $(CUSRCS:.cu=$(DEPSUF)))) $(DEPENDS)
 endif
 
 #----------------------------------------------------------------------------
