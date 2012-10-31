@@ -18,12 +18,12 @@
    use exit_mod
    use domain_size ! included for use of km
 
-   ! include the interface to the C code
-   #include "gpu_mod.fh"
-
    implicit none
    private
    save
+
+   ! include the interface to the C code
+   #include "gpu_mod.fh"
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
