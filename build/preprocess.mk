@@ -99,7 +99,7 @@ endif
 
 CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(CUSRCS))
-  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
+	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
              $(SOURCES)
 endif
 

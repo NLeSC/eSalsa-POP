@@ -98,10 +98,10 @@ ifneq (,$(CSRCS))
   DEPENDS := $(addprefix $(DepDir)/, $(notdir $(CSRCS:.c=$(DEPSUF)))) $(DEPENDS)
 endif
 
-CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+CUSRCS	= $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(CUSRCS))
-  OBJS    := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(OBJS)
-  DEPENDS := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(DEPENDS)
+	OBJS	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(OBJS)
+	DEPENDS	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(DEPENDS)
 endif
 
 #----------------------------------------------------------------------------
