@@ -98,8 +98,8 @@ endif
 #----------------------------------------------------------------------------
 
 CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
-ifneq (,$(CSRCS))
-  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.cu))) \
+ifneq (,$(CUSRCS))
+  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
              $(SOURCES)
 endif
 
@@ -160,20 +160,21 @@ endif
 #
 #----------------------------------------------------------------------------
 
-.PHONY: bogus
+#.PHONY: bogus
 
-bogus:
-  @echo "sources before adding .cu files: $(SOURCES)"
+#bogus:
+#  @echo "sources before adding .cu files: $(SOURCES)"
 
-LCUSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
-bogus:
-  @echo '.cu files found by wildcard statement: $(LCUSRCS)'
+#LCUSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 
-SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
-           $(SOURCES)
+#bogus:
+#  @echo '.cu files found by wildcard statement: $(LCUSRCS)'
 
-bogus:
-  @echo "sources after adding .cu files: $(SOURCES)"
+#SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
+#           $(SOURCES)
+
+#bogus:
+#  @echo "sources after adding .cu files: $(SOURCES)"
 
 
 #----------------------------------------------------------------------------
