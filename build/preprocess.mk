@@ -59,6 +59,7 @@ VPATH = $(SRCDIRS)
 #
 #----------------------------------------------------------------------------
 
+SOURCES = 
 CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(CUSRCS))
 	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
@@ -72,7 +73,6 @@ endif
 #
 #----------------------------------------------------------------------------
 
-SOURCES = 
 FSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.F)))
 ifneq (,$(FSRCS))
   SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(FSRCS:.F=.f))) \
