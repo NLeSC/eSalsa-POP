@@ -16,6 +16,8 @@ Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
+
+NVCC = nvcc 
  
 #  Enable MPI library for parallel code, yes/no.
 
@@ -99,6 +101,19 @@ FFLAGS := $(FFLAGS) -fconvert=swap
 FFLAGS := $(FFLAGS) -mcmodel=medium
 FFLAGS := $(FFLAGS) 
  
+ 
+#----------------------------------------------------------------------------
+#
+#                           CUDA Flags
+#
+#----------------------------------------------------------------------------
+
+CUFLAGS = -Xptxas=-v -arch=sm_20
+
+ifeq ($(OPTIMIZE),yes)
+  CUFLAGS = $(CUFLAGS) -O3
+endif
+
 #----------------------------------------------------------------------------
 #
 #                           Loader Flags and Libraries
