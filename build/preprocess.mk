@@ -160,16 +160,10 @@ endif
 #
 #----------------------------------------------------------------------------
 
-LCUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
-ifneq (,$(LCUSRCS))
-  ifneq (,$(CUSRCS))
-    LCUSRCS    := $(filter-out $(CUSRCS:.cu=.cu),$(LCUSRCS))
-  endif
-  ifneq (,$(LCSRCS))
-    SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
-               $(SOURCES)
-  endif
-endif
+LCUSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
+           $(SOURCES)
+
 
 #----------------------------------------------------------------------------
 #
