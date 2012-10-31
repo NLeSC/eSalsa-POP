@@ -16,6 +16,10 @@
    use kinds_mod
    use io
    use exit_mod
+   use domain_size ! included for use of km
+
+   ! include the interface to the C code
+   #include "gpu_mod.fh"
 
    implicit none
    private
@@ -24,7 +28,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_gpu_mod
-!,                    &
 !             vmix_coeffs,                          &
 !             vdifft, vdiffu,                       &
 !             impvmixt, impvmixt_correct, impvmixu, &
@@ -125,15 +128,26 @@
 
 !-----------------------------------------------------------------------
 !
+! Initialize CUDA
+!
+!-----------------------------------------------------------------------
+
+   call cuda_init()
+
+
+!-----------------------------------------------------------------------
+!
 !  allocate arrays
 !
 !-----------------------------------------------------------------------
 
 
 
+
 !-----------------------------------------------------------------------
 !
 !  set up coefficients (such as state() constants)
+!  subroutine init_state_coeffs in state_mod must be called first
 !
 !-----------------------------------------------------------------------
 
