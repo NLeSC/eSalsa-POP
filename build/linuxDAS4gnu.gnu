@@ -7,9 +7,12 @@
 #  modules.
 #
 #-----------------------------------------------------------------------
+
+CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
+
 F77 = mpif90 -p -O3
 F90 = mpif90 -p -O3
-LD = mpif90 -p -O3 -lcurl
+LD = mpif90 -p -O3 -lcurl $(CUDALIB) -lcudart -lstdc++
 CC = gcc -p -O3
 Cp = /bin/cp
 Cpp = cpp -P
