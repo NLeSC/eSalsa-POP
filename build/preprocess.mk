@@ -161,23 +161,17 @@ endif
 #----------------------------------------------------------------------------
 
 bogus:
-  @echo "sources before adding .cu files:"
-  @echo '$(SOURCES)'
-  @echo "\n\n"
+  @echo "sources before adding .cu files: $(SOURCES)"
 
 LCUSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 bogus:
-  @echo '.cu files found by wildcard statement'
-  @echo '$(LCUSRCS)'
-  @echo "\n\n"
+  @echo '.cu files found by wildcard statement: $(LCUSRCS)'
 
 SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
            $(SOURCES)
 
 bogus:
-  @echo "sources after adding .cu files:"
-  @echo '$(SOURCES)'
-  @echo "\n\n"
+  @echo "sources after adding .cu files: $(SOURCES)"
 
 
 #----------------------------------------------------------------------------
