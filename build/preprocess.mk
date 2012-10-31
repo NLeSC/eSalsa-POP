@@ -99,7 +99,7 @@ endif
 
 CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(CSRCS))
-  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
+  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.cu))) \
              $(SOURCES)
 endif
 
@@ -163,7 +163,7 @@ endif
 LCUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(LCUSRCS))
   ifneq (,$(CUSRCS))
-    LCUSRCS    := $(filter-out $(CUSRCS),$(LCUSRCS))
+    LCUSRCS    := $(filter-out $(CUSRCS:.cu=.cu),$(LCUSRCS))
   endif
   ifneq (,$(LCSRCS))
     SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
@@ -192,7 +192,6 @@ preprocess: $(SOURCES)
 %.c : %.C
 %.f90 : %.F90
 %.f : %.F
-%.cu : %.cu
 
 
 # Preprocessing rules for Fortran (.F, F90) and C files
