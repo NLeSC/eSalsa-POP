@@ -19,7 +19,7 @@ subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax) bind
   use iso_c_binding
   real (c_double), dimension(45) :: &
     constants		! array used for passing constants to the GPU
-  real (c_double), dimension(km) :: &
+  real (c_double), dimension(:) :: &
     tmin, tmax,        &! valid temperature range for level k
     smin, smax,        &! valid salinity    range for level k
     pressz              ! ref pressure (bars) at each level
