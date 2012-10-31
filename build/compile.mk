@@ -101,7 +101,7 @@ endif
 CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(CUSRCS))
   OBJS    := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(OBJS)
-  DEPENDS := $(addprefix $(DepDir)/, $(notdir $(CUSRCS:.cu=.o))) $(DEPENDS)
+  DEPENDS := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(DEPENDS)
 endif
 
 #----------------------------------------------------------------------------
