@@ -93,6 +93,18 @@ endif
 
 #----------------------------------------------------------------------------
 #
+# Define .cu sources that must be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+ifneq (,$(CSRCS))
+  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CSRCS))) \
+             $(SOURCES)
+endif
+
+#----------------------------------------------------------------------------
+#
 # Define any .f sources that need to be copied into the build directory
 #
 #----------------------------------------------------------------------------
@@ -144,6 +156,23 @@ endif
 
 #----------------------------------------------------------------------------
 #
+# Define .cu sources that need to be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+LCUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+ifneq (,$(LCUSRCS))
+  ifneq (,$(CUSRCS))
+    LCUSRCS    := $(filter-out $(CUSRCS),$(LCUSRCS))
+  endif
+  ifneq (,$(LCSRCS))
+    SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
+               $(SOURCES)
+  endif
+endif
+
+#----------------------------------------------------------------------------
+#
 # Preprocess all source files.  Implicit rules should take care of all cases.
 #
 #----------------------------------------------------------------------------
@@ -163,6 +192,8 @@ preprocess: $(SOURCES)
 %.c : %.C
 %.f90 : %.F90
 %.f : %.F
+%.cu : %.cu
+
 
 # Preprocessing rules for Fortran (.F, F90) and C files
 
@@ -195,5 +226,9 @@ $(POPEXEDIR)/compile/%.f90: %.f90
 $(POPEXEDIR)/compile/%.c: %.c
 	@echo '$(POPARCH) preprocessing ' $<
 	@$(Cp) $< $(POPEXEDIR)/compile/$*.c
+
+$(POPEXEDIR)/compile/%.cu: %.cu
+	@echo '$(POPARCH) preprocessing ' $<
+	@$(Cp) $< $(POPEXEDIR)/compile/$*.cu
 
 #----------------------------------------------------------------------------

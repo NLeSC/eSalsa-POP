@@ -77,6 +77,7 @@
    use shr_ncread_mod
    use shr_map_mod
 #endif
+   use gpu_mod
 
    implicit none
    private
