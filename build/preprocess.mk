@@ -160,6 +160,8 @@ endif
 #
 #----------------------------------------------------------------------------
 
+.PHONY: bogus
+
 bogus:
   @echo "sources before adding .cu files: $(SOURCES)"
 
