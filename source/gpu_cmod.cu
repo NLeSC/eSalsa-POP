@@ -2,7 +2,7 @@
 #include <math.h>
 
 #define KM 42
-
+#define NSTREAMS 42
 
 #define CUDA_CHECK_ERROR(errorMessage) do {                                 \
     cudaError_t err = cudaGetLastError();                                    \
@@ -84,7 +84,7 @@ __constant__ double d_mwjfdens0t0[KM]; __constant__ double d_mwjfdens0t1[KM]; __
 
 //declare streams
 int cuda_state_initialized = 0;
-cudaStream_t stream[KM];
+cudaStream_t stream[NSTREAMS];
 
 void cuda_state_initialize(double *constants, double *pressz,
         double *tmin, double *tmax, double *smin, double *smax) {
