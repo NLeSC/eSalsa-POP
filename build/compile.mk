@@ -135,7 +135,6 @@ include $(DEPENDS)
 %.o : %.f
 %.o : %.f90
 %.o : %.c
-%.o : %.cu
 
 %.o: %.f
 	@echo $(POPARCH) Compiling with implicit rule $(FFLAGS) $<
