@@ -267,6 +267,15 @@
 
 !-----------------------------------------------------------------------
 !
+!  initialize gpu_mod
+!  this must be done after state was initialized
+!
+!-----------------------------------------------------------------------
+
+   call init_gpu_mod
+
+!-----------------------------------------------------------------------
+!
 !  calculate topographic stress (maximum entropy) velocities
 !  initialize horizontal mixing variables
 !
