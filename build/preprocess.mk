@@ -55,6 +55,18 @@ VPATH = $(SRCDIRS)
 
 #----------------------------------------------------------------------------
 #
+# Define .cu sources that must be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+ifneq (,$(CUSRCS))
+	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
+             $(SOURCES)
+endif
+
+#----------------------------------------------------------------------------
+#
 # Define .F sources that must be preprocessed into the build directory as .f
 # and add .f version to list of target source files.
 #
@@ -91,17 +103,7 @@ ifneq (,$(CSRCS))
              $(SOURCES)
 endif
 
-#----------------------------------------------------------------------------
-#
-# Define .cu sources that must be copied into the build directory
-#
-#----------------------------------------------------------------------------
 
-CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
-ifneq (,$(CUSRCS))
-	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
-             $(SOURCES)
-endif
 
 #----------------------------------------------------------------------------
 #
