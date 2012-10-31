@@ -111,7 +111,7 @@ FFLAGS := $(FFLAGS)
 CUFLAGS = -Xptxas=-v -arch=sm_20
 
 ifeq ($(OPTIMIZE),yes)
-  CUFLAGS = $(CUFLAGS) -O3
+  CUFLAGS := $(CUFLAGS) -O3
 endif
 
 #----------------------------------------------------------------------------
