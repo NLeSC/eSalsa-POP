@@ -34,7 +34,7 @@ void cuda_state_initialize(double *constants, double *pressz,
         double *tmin, double *tmax, double *smin, double *smax);
 
 //specific functions
-void mwjf_state_gpu(double *SALTK, double *TEMPK,
+void mwjf_state_gpu(double *TEMPK, double *SALTK,
         		double *DRHODT, double *DRHODS, double *RHOOUT,
         		int *pn_outputs, int *pstart_k, int *pend_k);
 
@@ -198,7 +198,7 @@ void cuda_state_initialize(double *constants, double *pressz,
 }
 
 
-void mwjf_state_gpu(double *SALTK, double *TEMPK,
+void mwjf_state_gpu(double *TEMPK, double *SALTK, 
         		double *DRHODT, double *DRHODS, double *RHOOUT,
         		int *pn_outputs, int *pstart_k, int *pend_k) {
   int n_outputs = *pn_outputs;
@@ -212,6 +212,8 @@ void mwjf_state_gpu(double *SALTK, double *TEMPK,
   grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
   grid.y = (KM);
   
+  
+  /* apparently not needed on Fermi GPUs, who knew?
   //corresponding device pointers
   double *d_SALTK;
   double *d_TEMPK;
@@ -221,19 +223,20 @@ void mwjf_state_gpu(double *SALTK, double *TEMPK,
   double *d_DRHODS = NULL;
   
   //obtain device pointers for host mapped memory
-  err = cudaHostGetDevicePointer(&d_TEMPK, TEMPK, 0);
+  err = cudaHostGetDevicePointer((void**) &d_TEMPK, TEMPK, 0);
   if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-  err = cudaHostGetDevicePointer(&d_SALTK, SALTK, 0);
+  err = cudaHostGetDevicePointer((void**) &d_SALTK, SALTK, 0);
   if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-  err = cudaHostGetDevicePointer(&d_RHOOUT, RHOOUT, 0);
+  err = cudaHostGetDevicePointer((void**) &d_RHOOUT, RHOOUT, 0);
   if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
   
   if (n_outputs == 3) {
-    err = cudaHostGetDevicePointer(&d_DRHODT, DRHODT, 0);
+    err = cudaHostGetDevicePointer((void**) &d_DRHODT, DRHODT, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-    err = cudaHostGetDevicePointer(&d_DRHODS, DRHODS, 0);
+    err = cudaHostGetDevicePointer((void**) &d_DRHODS, DRHODS, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
   }
+  */
   
   //this synchronize is a bit over-protective but currently left in for debugging purposes
   cudaDeviceSynchronize();
