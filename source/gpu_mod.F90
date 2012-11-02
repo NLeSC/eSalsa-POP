@@ -283,6 +283,8 @@
    call mwjf_state_gpu(TEMP, SALT, RHOOUT, DRHODT, DRHODS, n_outputs, start_k, end_k)
 
 
+ end subroutine mwjf_state
+
 
  end module gpu_mod
 
