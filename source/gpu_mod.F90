@@ -101,8 +101,6 @@
                        mwjfdp0s1t3, mwjfdp0sqt0, mwjfdp0sqt2, mwjfdp1s0t0, &
                        mwjfdp2s0t3, mwjfdp3s0t1 /)
 
-
-
    namelist /gpu_mod_nml/ use_gpu_state
 
 !-----------------------------------------------------------------------

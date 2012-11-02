@@ -167,7 +167,7 @@
    !*** these constants will be used to construct the numerator
    !*** factor unit change (kg/m^3 -> g/cm^3) into numerator terms
 
-   real (r8), parameter ::                     &
+   real (r8), parameter, public ::                     &
       mwjfnp0s0t0 =   9.99843699e+2_r8 * p001, &
       mwjfnp0s0t1 =   7.35212840e+0_r8 * p001, &
       mwjfnp0s0t2 =  -5.45928211e-2_r8 * p001, &
@@ -183,7 +183,7 @@
 
    !*** these constants will be used to construct the denominator
 
-   real (kind=r8), parameter ::          &
+   real (kind=r8), parameter, public ::          &
       mwjfdp0s0t0 =   1.0e+0_r8,         &
       mwjfdp0s0t1 =   7.28606739e-3_r8,  &
       mwjfdp0s0t2 =  -4.60835542e-5_r8,  &
