@@ -258,7 +258,7 @@ void state_mwjf_gpu(double *SALTK, double *TEMPK,
  * using device mapped host memory.
  */
 __global__ void mwjf_state_1D(double *SALTK, double *TEMPK,
-		double *RHOFULL, double *DRHODT, double *DRHODS,
+		double *RHOOUT, double *DRHODT, double *DRHODS,
 		int n_outputs, int start_k, int end_k) {
 
   //obtain global ids
@@ -322,7 +322,7 @@ __global__ void mwjf_state_1D(double *SALTK, double *TEMPK,
 	        work3 = // dP_1/dS
 	                 d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
 	
-	        work4 = mwjfdens1t0 +   // dP_2/dS
+	        work4 = d_mwjfdens1t0 +   // dP_2/dS
 	                 tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
 	                 1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
 	
