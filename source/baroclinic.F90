@@ -66,6 +66,8 @@
    use operators, only: zcurl
    use exit_mod, only: sigAbort, exit_pop
 
+   use gpu_mod
+
    implicit none
    private
    save
@@ -1401,16 +1403,23 @@
 !-----------------------------------------------------------------------
 !
 !     compute new density based on new tracers
+!     use GPU acceleration if possible
 !
 !-----------------------------------------------------------------------
+      if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+         call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+                         TRACER(:,:,:,2,newtime,iblock), &
+                         1, POP_km , &
+                         RHOOUT=RHO(:,:,:,newtime,iblock))
 
-      do k = 1,POP_km  ! recalculate new density
+      else
+        do k = 1,POP_km  ! recalculate new density
+          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                         TRACER(:,:,k,2,newtime,iblock), &
+                         this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
 
-         call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                        TRACER(:,:,k,2,newtime,iblock), & 
-                        this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
-
-      enddo
+        enddo
+      endif
 
 !-----------------------------------------------------------------------
 !

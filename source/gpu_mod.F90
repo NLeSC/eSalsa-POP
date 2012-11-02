@@ -16,8 +16,10 @@
    use kinds_mod
    use io
    use exit_mod
-   use domain_size ! included for use of nx_block,ny_block,km,
-   use prognostic  ! include for reference to TRACER
+   use constants
+   use state_mod     ! access to preszz, tmin, tmax, smin, smax, etc
+   use domain_size   ! included for use of nx_block,ny_block,km,
+   use prognostic    ! include for reference to TRACER
    use iso_c_binding
 
    implicit none
@@ -29,7 +31,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_gpu_mod
+   public :: init_gpu_mod, &
+             mwjf_state
 !             vmix_coeffs,                          &
 !             vdifft, vdiffu,                       &
 !             impvmixt, impvmixt_correct, impvmixu, &
@@ -83,6 +86,22 @@
 
    type(c_ptr) :: &
       cptr                  ! ptr used for alllocating arrays
+
+   ! array used for sending constants to the GPU
+   ! this prevents issues with compilers rounding double precision constants
+   ! differently and thus reduces rounding errors
+   real (r8), parameter, dimension(45) :: &
+        constants = (/ c0, c1, c2, c3, c4, c5, c8, c10, c16, c1000, &
+                       c10000, c1p5, p33, p5, p25, p125, p001, eps, &
+                       eps2, bignum, mwjfnp0s0t0, mwjfnp0s0t1, mwjfnp0s0t2, &
+                       mwjfnp0s0t3, mwjfnp0s1t0, mwjfnp0s1t1, mwjfnp0s2t0, &
+                       mwjfnp1s0t0, mwjfnp1s0t2, mwjfnp1s1t0, mwjfnp2s0t0, &
+                       mwjfnp2s0t2, mwjfdp0s0t0, mwjfdp0s0t1, mwjfdp0s0t2, &
+                       mwjfdp0s0t3, mwjfdp0s0t4, mwjfdp0s1t0, mwjfdp0s1t1, &
+                       mwjfdp0s1t3, mwjfdp0sqt0, mwjfdp0sqt2, mwjfdp1s0t0, &
+                       mwjfdp2s0t3, mwjfdp3s0t1 /)
+
+
 
    namelist /gpu_mod_nml/ use_gpu_state
 
@@ -153,8 +172,10 @@
   !-----------------------------------------------------------------------
 
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nt*3*max_blocks_clinic))
-
     call c_f_pointer(cptr, TRACER, (/ nx_block,ny_block,km,nt,3,max_blocks_clinic /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*max_blocks_clinic))
+    call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,max_blocks_clinic /))
 
 
   !-----------------------------------------------------------------------
@@ -164,10 +185,19 @@
   !
   !-----------------------------------------------------------------------
 
+    ! it's important that state_mod has already been initialized
+    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax)
 
-  else !if (use_gpu_mod == .false.)
+
+  else
+  !-----------------------------------------------------------------------
+  !
+  ! if (use_gpu_mod == .false.)
+  ! allocate TRACER in host memory the normal way
+  !
+  !-----------------------------------------------------------------------
     allocate(TRACER(nx_block,ny_block,km,nt,3,max_blocks_clinic))
-
+    allocate(RHO(nx_block,ny_block,km,3,max_blocks_clinic))
 
 
   endif ! use_gpu_state
@@ -176,6 +206,84 @@
 !EOC
 
  end subroutine init_gpu_mod
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: state
+! !INTERFACE:
+
+ subroutine mwjf_state(TEMP, SALT, start_k, end_k, &
+                         RHOOUT, DRHODT, DRHODS)
+
+! !DESCRIPTION:
+!  GPU Accelerated version of MWJF state assumes
+!  state_itype == state_type_mwjf .and.
+!  state_range_iopt == state_range_enforce
+!
+!  Returns the density of water at level k from equation of state
+!  $\rho = \rho(d,\theta,S)$ where $d$ is depth, $\theta$ is
+!  potential temperature, and $S$ is salinity.
+!
+!  This routine also computes derivatives of density with respect
+!  to temperature and salinity at level k from equation of state
+!  if requested (ie the optional arguments are present).
+!
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   integer (int_kind), intent(in) :: &
+      start_k,                    &! loop start (including)
+      end_k                        ! loop end (including)
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      TEMP,             &! temperature at level k
+      SALT               ! salinity    at level k
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km), optional, intent(out) :: &
+      RHOOUT,  &! perturbation density of water
+      DRHODT,  &! derivative of density with respect to temperature
+      DRHODS    ! derivative of density with respect to salinity
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables:
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      n_outputs = 1;
+
+!-----------------------------------------------------------------------
+!
+!  first check for requested functionality
+!
+!-----------------------------------------------------------------------
+
+   if (present(RHOOUT) == .false.) then
+      ! throw an this is currently not support error
+   endif
+
+
+   if (present(DRHODT) .and. present(DRHODS)) then
+      n_outputs = 3
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  call C wrapper function for CUDA kernel
+!
+!-----------------------------------------------------------------------
+
+   call mwjf_state_gpu(TEMP, SALT, RHOOUT, DRHODT, DRHODS, n_outputs, start_k, end_k)
+
 
 
  end module gpu_mod

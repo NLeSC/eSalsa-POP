@@ -6,6 +6,8 @@
 //need to find out how to organize the compile time setting of the domain size
 //such that the size is only set in one location
 #define KM 42
+#define NX_BLOCK 904
+#define NY_BLOCK 604
 
 interface
 
@@ -28,5 +30,21 @@ subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax) bind
     smin, smax,        &! valid salinity    range for level k
     pressz              ! ref pressure (bars) at each level
 end subroutine cuda_state_initialize
+
+
+
+subroutine mwjf_state_gpu(SALT, TEMP, RHOOUT, DRHODT, DRHODS, n_outputs, start_k, end_k)
+        use iso_c_binding
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
+            TEMP,    &! temperature at level k
+            SALT,    &! salinity    at level k
+            RHOOUT,  &! perturbation density of water
+            DRHODT,  &! derivative of density with respect to temperature
+            DRHODS    ! derivative of density with respect to salinity
+        integer (c_int) :: n_outputs, start_k, end_k
+end subroutine mwjf_state_gpu
+
+
+
 
 end interface
