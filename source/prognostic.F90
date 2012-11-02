@@ -40,8 +40,8 @@
 !      target :: &
 !      TRACER     ! 3d tracer fields for all blocks at 3 time levels
 !
-   real (r8), dimension(:,:,:,:,:,:), allocatable, target :: &
-      TRACER     ! 3d tracer fields for all blocks at 3 time levels
+   real (r8), pointer, allocatable :: &
+      TRACER(:,:,:,:,:,:)     ! 3d tracer fields for all blocks at 3 time levels
 
    type (tracer_field), dimension(nt) :: &
       tracer_d   ! descriptors for each tracer
