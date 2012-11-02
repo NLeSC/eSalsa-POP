@@ -152,8 +152,9 @@
   !
   !-----------------------------------------------------------------------
 
-    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nt*3*max_blocks_clinic));
-    call c_f_pointer(cptr, TRACER, (nx_block,ny_block,km,nt,3,max_blocks_clinic))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nt*3*max_blocks_clinic))
+
+    call c_f_pointer(cptr, TRACER, (/ nx_block,ny_block,km,nt,3,max_blocks_clinic /))
 
 
   !-----------------------------------------------------------------------
@@ -164,12 +165,10 @@
   !-----------------------------------------------------------------------
 
 
-  else
+  else !if (use_gpu_mod == .false.)
+    allocate(TRACER(nx_block,ny_block,km,nt,3,max_blocks_clinic))
 
-  ! allocate TRACER array without cudaMallocHost
-      if (use_gpu_mod == .false.) {
-         allocate(TRACER(nx_block,ny_block,km,nt,3,max_blocks_clinic))
-      }
+
 
   endif ! use_gpu_state
 
