@@ -18,6 +18,7 @@
    use domain_size
    use domain
    use constants
+   use gpu_mod
 
    implicit none
    public
@@ -35,8 +36,12 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), dimension(nx_block,ny_block,km,nt,3,max_blocks_clinic), &
-      target :: &
+! made allocatable for gpu extensions
+!   real (r8), dimension(nx_block,ny_block,km,nt,3,max_blocks_clinic), &
+!      target :: &
+!      TRACER     ! 3d tracer fields for all blocks at 3 time levels
+!
+   real (r8), dimension(:,:,:,:,:,:), allocatable :: &
       TRACER     ! 3d tracer fields for all blocks at 3 time levels
 
    type (tracer_field), dimension(nt) :: &
@@ -90,6 +95,13 @@
 
 !EOP
 !BOC
+
+! allocate TRACER array if not already done by gpu_mod
+      if (use_gpu_mod == .false.) {
+         allocate(TRACER(nx_block,ny_block,km,nt,3,max_blocks_clinic))
+      }
+
+
 !-----------------------------------------------------------------------
 !
 !     initialize prognostic arrays to zero - they will be filled

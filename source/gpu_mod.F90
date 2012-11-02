@@ -16,7 +16,8 @@
    use kinds_mod
    use io
    use exit_mod
-   use domain_size ! included for use of km
+   use domain_size ! included for use of nx_block,ny_block,km,
+   use prognostic  ! include for reference to TRACER
 
    implicit none
    private
@@ -79,6 +80,9 @@
    character (char_len) :: &
       convection_type      ! input choice for method for convection
 
+   type(c_ptr) :: &
+      cptr                  ! ptr used for alllocating arrays
+
    namelist /gpu_mod_nml/ use_gpu_state
 
 !-----------------------------------------------------------------------
@@ -111,15 +115,14 @@
    if (my_task == master_task) then
       write(stdout,blank_fmt)
       write(stdout,ndelim_fmt)
-      write(stdout,blank_fmt)
-      write(stdout,'(a27)') 'GPU Accelerator options'
+      write(stdout,'(a23)') 'GPU Accelerator options'
       write(stdout,blank_fmt)
       write(stdout,delim_fmt)
 
       if (use_gpu_state) then
-         write(stdout,'(a33)') ' GPU usage for density computations enabled'
+         write(stdout,'(a43)') ' GPU usage for density computations enabled'
       else
-         write(stdout,'(a34)') ' GPU usage for density computations disabled'
+         write(stdout,'(a44)') ' GPU usage for density computations disabled'
       endif
 
    endif
@@ -132,8 +135,6 @@
 ! Proceed to initialize gpu, if necessary
 !-----------------------------------------------------------------------
   if (use_gpu_state) then
-
-
 
   !-----------------------------------------------------------------------
   !
@@ -150,7 +151,8 @@
   !
   !-----------------------------------------------------------------------
 
-
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nt*3*max_blocks_clinic));
+    call c_f_pointer(cptr, TRACER, (nx_block,ny_block,km,nt,3,max_blocks_clinic))
 
 
   !-----------------------------------------------------------------------
