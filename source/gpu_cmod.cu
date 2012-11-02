@@ -38,7 +38,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
         		double *DRHODT, double *DRHODS, double *RHOOUT,
         		int *pn_outputs, int *pstart_k, int *pend_k);
 
-__global__ void mwjf_state_1D(double *SALTK, double *TEMPK,
+__global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 		double *RHOFULL, double *DRHODT, double *DRHODS,
 		int n_outputs, int start_k, int end_k);
 
@@ -202,8 +202,8 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
         		double *DRHODT, double *DRHODS, double *RHOOUT,
         		int *pn_outputs, int *pstart_k, int *pend_k) {
   int n_outputs = *pn_outputs;
-  int start_k = *pstart_k;
-  int end_k = *pend_k;
+  int start_k = *pstart_k-1;
+  int end_k = *pend_k-1;
   cudaError_t err;
   
   //execution parameters
@@ -242,7 +242,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
   
-  mwjf_state_1D<<<grid,threads,0,stream[1]>>>(SALTK, TEMPK, RHOOUT, DRHODT, DRHODS,
+  mwjf_state_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, DRHODT, DRHODS,
         n_outputs, start_k, end_k);
   
   
@@ -260,7 +260,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
  * This eliminates the need to have a loop and is also cacheline boundary oblivious, making it a perfect for
  * using device mapped host memory.
  */
-__global__ void mwjf_state_1D(double *SALTK, double *TEMPK,
+__global__ void mwjf_state_1D(double *TEMPK, double *SALTK, 
 		double *RHOOUT, double *DRHODT, double *DRHODS,
 		int n_outputs, int start_k, int end_k) {
 
