@@ -35,7 +35,7 @@ void cuda_state_initialize(double *constants, double *pressz,
 
 //specific functions
 void mwjf_state_gpu(double *TEMPK, double *SALTK,
-        		double *DRHODT, double *DRHODS, double *RHOOUT,
+        		double *RHOOUT, double *DRHODT, double *DRHODS, 
         		int *pn_outputs, int *pstart_k, int *pend_k);
 
 __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
@@ -199,12 +199,12 @@ void cuda_state_initialize(double *constants, double *pressz,
 
 
 void mwjf_state_gpu(double *TEMPK, double *SALTK, 
-        		double *DRHODT, double *DRHODS, double *RHOOUT,
+        		double *RHOOUT, double *DRHODT, double *DRHODS,
         		int *pn_outputs, int *pstart_k, int *pend_k) {
   int n_outputs = *pn_outputs;
   int start_k = *pstart_k-1;
   int end_k = *pend_k-1;
-  cudaError_t err;
+  //cudaError_t err;
   
   //execution parameters
   dim3 threads(256,1);
