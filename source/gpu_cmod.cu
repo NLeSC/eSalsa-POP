@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include <math.h>
 
+//need to find out how to organize the compile time setting of the domain size
+//such that the size is only set in one location
 #define KM 42
+#define NX_BLOCK 904
+#define NY_BLOCK 604
 #define NSTREAMS 42
 
 #define CUDA_CHECK_ERROR(errorMessage) do {                                 \
@@ -113,17 +117,17 @@ void cuda_state_initialize(double *constants, double *pressz,
   //for now we do this because we want the GPU/C code to use the exact same
   //values as the Fortran code even if both parts are compiled with
   //different compilers
-  cudaMemcpyToSymbol("d_mwjfnums0t1"), &constants[21], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t1;
-  cudaMemcpyToSymbol("d_mwjfnums0t3"), &constants[23], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t3;
-  cudaMemcpyToSymbol("d_mwjfnums1t1"), &constants[25], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s1t1;
-  cudaMemcpyToSymbol("d_mwjfnums2t0"), &constants[26], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s2t0;
-  cudaMemcpyToSymbol("d_mwjfdens0t2"), &constants[34], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t2;
-  cudaMemcpyToSymbol("d_mwjfdens0t4"), &constants[36], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t4;
-  cudaMemcpyToSymbol("d_mwjfdens1t0"), &constants[37], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t0;
-  cudaMemcpyToSymbol("d_mwjfdens1t1"), &constants[38], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t1;
-  cudaMemcpyToSymbol("d_mwjfdens1t3"), &constants[39], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t3;
-  cudaMemcpyToSymbol("d_mwjfdensqt0"), &constants[40], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt0;
-  cudaMemcpyToSymbol("d_mwjfdensqt2"), &constants[41], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt2;
+  cudaMemcpyToSymbol("d_mwjfnums0t1", &constants[21], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t1
+  cudaMemcpyToSymbol("d_mwjfnums0t3", &constants[23], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t3
+  cudaMemcpyToSymbol("d_mwjfnums1t1", &constants[25], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s1t1
+  cudaMemcpyToSymbol("d_mwjfnums2t0", &constants[26], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s2t0
+  cudaMemcpyToSymbol("d_mwjfdens0t2", &constants[34], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t2
+  cudaMemcpyToSymbol("d_mwjfdens0t4", &constants[36], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t4
+  cudaMemcpyToSymbol("d_mwjfdens1t0", &constants[37], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t0
+  cudaMemcpyToSymbol("d_mwjfdens1t1", &constants[38], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t1
+  cudaMemcpyToSymbol("d_mwjfdens1t3", &constants[39], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t3
+  cudaMemcpyToSymbol("d_mwjfdensqt0", &constants[40], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt0
+  cudaMemcpyToSymbol("d_mwjfdensqt2", &constants[41], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt2
 
   double mwjfnp0s0t0 = constants[20];
   double mwjfnp0s0t2 = constants[22];
@@ -200,6 +204,7 @@ void state_mwjf_gpu(double *SALTK, double *TEMPK,
   int n_outputs = *pn_outputs;
   int start_k = *pstart_k;
   int end_k = *pend_k;
+  cudaError_t err;
   
   //execution parameters
   dim3 threads(256,1);
@@ -216,17 +221,17 @@ void state_mwjf_gpu(double *SALTK, double *TEMPK,
   double *d_DRHODS = NULL;
   
   //obtain device pointers for host mapped memory
-  err = cudaHostGetDevicePointer(d_TEMPK, TEMPK, 0);
+  err = cudaHostGetDevicePointer(&d_TEMPK, TEMPK, 0);
   if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-  err = cudaHostGetDevicePointer(d_SALTK, SALTK, 0);
+  err = cudaHostGetDevicePointer(&d_SALTK, SALTK, 0);
   if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-  err = cudaHostGetDevicePointer(d_RHOOUT, RHOOUT, 0);
+  err = cudaHostGetDevicePointer(&d_RHOOUT, RHOOUT, 0);
   if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
   
   if (n_outputs == 3) {
-    err = cudaHostGetDevicePointer(d_DRHODT, DRHODT, 0);
+    err = cudaHostGetDevicePointer(&d_DRHODT, DRHODT, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-    err = cudaHostGetDevicePointer(d_DRHODS, DRHODS, 0);
+    err = cudaHostGetDevicePointer(&d_DRHODS, DRHODS, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
   }
   
@@ -234,7 +239,7 @@ void state_mwjf_gpu(double *SALTK, double *TEMPK,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
   
-  mwjf_state_1D<<<grid,threads,0,stream[1]>>>(d_SALTK, d_TEMPK, d_RHOFULL, d_DRHODT, d_DRHODS,
+  mwjf_state_1D<<<grid,threads,0,stream[1]>>>(d_SALTK, d_TEMPK, d_RHOOUT, d_DRHODT, d_DRHODS,
         n_outputs, start_k, end_k);
   
   
@@ -284,42 +289,42 @@ __global__ void mwjf_state_1D(double *SALTK, double *TEMPK,
 
         sqr = sqrt(sq);
 
-        work1 = d_mwjfnums0t0[k] + tq * (mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + mwjfnums0t3 * tq)) +
-                              sq * (d_mwjfnums1t0[k] + mwjfnums1t1 * tq + mwjfnums2t0 * sq);
+        work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
+                              sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
 
-        work2 = d_mwjfdens0t0[k] + tq * (d_mwjfdens0t1[k] + tq * (mwjfdens0t2 +
-           tq * (d_mwjfdens0t3[k] + mwjfdens0t4 * tq))) +
-           sq * (mwjfdens1t0 + tq * (mwjfdens1t1 + tq*tq*mwjfdens1t3)+
-           sqr * (mwjfdensqt0 + tq*tq*mwjfdensqt2));
+        work2 = d_mwjfdens0t0[k] + tq * (d_mwjfdens0t1[k] + tq * (d_mwjfdens0t2 +
+           tq * (d_mwjfdens0t3[k] + d_mwjfdens0t4 * tq))) +
+           sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
+           sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
 
         denomk = 1.0/work2;
 //      if (present(RHOFULL)) then
-        RHOFULL[index] = work1*denomk;
+        RHOOUT[index] = work1*denomk;
 //      endif
 
         if (n_outputs == 3) { 
         
 	//      if (present(DRHODT)) then
 	        work3 = // dP_1/dT
-	                 mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k] +
-	                 3.0*mwjfnums0t3 * tq) + mwjfnums1t1 * sq;
+	                 d_mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k] +
+	                 3.0*d_mwjfnums0t3 * tq) + d_mwjfnums1t1 * sq;
 	
 	        work4 = // dP_2/dT
-	                 d_mwjfdens0t1[k] + sq * mwjfdens1t1 +
-	                 tq * (2.0*(mwjfdens0t2 + sq*sqr*mwjfdensqt2) +
-	                 tq * (3.0*(d_mwjfdens0t3[k] + sq * mwjfdens1t3) +
-	                 tq *  4.0*mwjfdens0t4));
+	                 d_mwjfdens0t1[k] + sq * d_mwjfdens1t1 +
+	                 tq * (2.0*(d_mwjfdens0t2 + sq*sqr*d_mwjfdensqt2) +
+	                 tq * (3.0*(d_mwjfdens0t3[k] + sq * d_mwjfdens1t3) +
+	                 tq *  4.0*d_mwjfdens0t4));
 	
 	        DRHODT[index] = (work3 - work1*denomk*work4)*denomk;
 	
 	//      endif
 	//      if (present(DRHODS)) then
 	        work3 = // dP_1/dS
-	                 d_mwjfnums1t0[k] + mwjfnums1t1 * tq + 2.0*mwjfnums2t0 * sq;
+	                 d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
 	
 	        work4 = mwjfdens1t0 +   // dP_2/dS
-	                 tq * (mwjfdens1t1 + tq*tq*mwjfdens1t3) +
-	                 1.5*sqr*(mwjfdensqt0 + tq*tq*mwjfdensqt2);
+	                 tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
+	                 1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
 	
 	        DRHODS[index] = (work3 - work1*denomk*work4)*denomk * 1000.0;
 	//      endif
