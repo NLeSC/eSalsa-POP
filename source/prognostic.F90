@@ -18,7 +18,6 @@
    use domain_size
    use domain
    use constants
-   use gpu_mod
 
    implicit none
    public
@@ -95,12 +94,6 @@
 
 !EOP
 !BOC
-
-! allocate TRACER array if not already done by gpu_mod
-      if (use_gpu_mod == .false.) {
-         allocate(TRACER(nx_block,ny_block,km,nt,3,max_blocks_clinic))
-      }
-
 
 !-----------------------------------------------------------------------
 !

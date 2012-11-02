@@ -163,6 +163,12 @@
   !-----------------------------------------------------------------------
 
 
+  else
+
+  ! allocate TRACER array without cudaMallocHost
+      if (use_gpu_mod == .false.) {
+         allocate(TRACER(nx_block,ny_block,km,nt,3,max_blocks_clinic))
+      }
 
   endif ! use_gpu_state
 
