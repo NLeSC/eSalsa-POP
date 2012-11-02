@@ -18,6 +18,7 @@
    use exit_mod
    use domain_size ! included for use of nx_block,ny_block,km,
    use prognostic  ! include for reference to TRACER
+   use iso_c_binding
 
    implicit none
    private
