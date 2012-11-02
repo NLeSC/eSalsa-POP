@@ -33,7 +33,7 @@ end subroutine cuda_state_initialize
 
 
 
-subroutine mwjf_state_gpu(SALT, TEMP, RHOOUT, DRHODT, DRHODS, n_outputs, start_k, end_k)
+subroutine mwjf_state_gpu(SALT, TEMP, RHOOUT, DRHODT, DRHODS, n_outputs, start_k, end_k) bind (c)
         use iso_c_binding
         real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
             TEMP,    &! temperature at level k
