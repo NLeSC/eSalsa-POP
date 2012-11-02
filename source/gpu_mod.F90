@@ -265,7 +265,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (present(RHOOUT) == .false.) then
+   if (present(RHOOUT) .eqv. .false.) then
       ! throw an this is currently not support error
    endif
 
