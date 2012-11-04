@@ -31,7 +31,8 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_gpu_mod, &
-             mwjf_state
+             mwjf_state, &
+             gpumod_compare
 !             vmix_coeffs,                          &
 !             vdifft, vdiffu,                       &
 !             impvmixt, impvmixt_correct, impvmixu, &
@@ -284,6 +285,19 @@
 
 
  end subroutine mwjf_state
+
+
+ subroutine gpumod_compare(A, B, n)
+    real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      A,             &! array 1
+      B               ! array 2
+
+    integer (int_kind), intent(in) :: &
+      n             ! number of elements
+
+   call gpu_compare(A, B, n)
+
+ end subroutine
 
 
  end module gpu_mod
