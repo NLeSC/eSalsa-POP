@@ -372,8 +372,8 @@ void gpu_compare (double *a1, double *a2, int N) {
     fprintf(stderr, "Error: more than 50% of array 1 contains zeros\n");
   }
 
-  printf("Number of errors in GPU result: %d\n",res);
-  fflush(stdout)
+  fprintf(stdout,"Number of errors in GPU result: %d\n",res);
+  fflush(stdout);
 
 }
 
