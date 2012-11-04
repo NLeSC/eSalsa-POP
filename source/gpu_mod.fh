@@ -45,6 +45,12 @@ subroutine mwjf_state_gpu(TEMP, SALT, RHOOUT, DRHODT, DRHODS, n_outputs, start_k
 end subroutine mwjf_state_gpu
 
 
+subroutine gpu_compare(A, B, n) bind (c)
+	use iso_c_binding
+	real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
+		A, B
+	integer (c_int) :: n
+end subroutine gpu_compare
 
 
 end interface

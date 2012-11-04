@@ -42,6 +42,8 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 		double *RHOFULL, double *DRHODT, double *DRHODS,
 		int n_outputs, int start_k, int end_k);
 
+void gpu_compare (double *a1, double *a2, int N);
+
 
 }
 
@@ -203,7 +205,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
         		int *pn_outputs, int *pstart_k, int *pend_k) {
   int n_outputs = *pn_outputs;
   int start_k = *pstart_k-1;
-  int end_k = *pend_k;
+  int end_k = *pend_k; //no -1 here as we're going from including to excluding
   //cudaError_t err;
   
   //execution parameters
@@ -339,6 +341,41 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 
 }
 
+
+
+
+void gpu_compare (double *a1, double *a2, int N) {
+  int i,res = 0;
+  int print = 0;
+  int zeros = 0;
+  double eps = 0.0000001;
+
+  for (i=0; i<N; i++) {
+//    if (i<1840080 && i>1840075) { printf("values at i=%d, a1= %20.17e, a2= %20.17e\n", i, a1[i], a2[i]); }
+
+    if (a1[i] < eps && a1[i] > -eps) {
+      zeros++;
+    }
+
+    double diff = a1[i]-a2[i];
+    if (diff > eps || diff < -eps) {
+        res++;
+        if (print < 10) {
+          print++;
+          printf("Error detected at i=%d, a1= %20.17e a2= %20.17e\n",i,a1[i],a2[i]);
+        }
+    }
+
+  }
+
+  if (zeros > N/2) {
+    fprintf(stderr, "Error: more than 50% of array 1 contains zeros\n");
+  }
+
+  if (res > 0) printf("Number of errors in GPU result: %d\n",res);
+
+  return res;
+}
 
 
 

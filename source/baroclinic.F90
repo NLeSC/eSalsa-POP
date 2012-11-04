@@ -1407,10 +1407,25 @@
 !
 !-----------------------------------------------------------------------
       if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
-         call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
-                         TRACER(:,:,:,2,newtime,iblock), &
-                         1, POP_km , &
-                         RHOOUT=RHO(:,:,:,newtime,iblock))
+        write(stdout,'(a25)') 'Going to run state on GPU'
+
+        call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+                        TRACER(:,:,:,2,newtime,iblock), &
+                        1, POP_km, &
+                        RHOOUT=RHO(:,:,:,newtime,iblock))
+
+        write(stdout,'(a21)') 'Finished state on GPU, checking result'
+
+        do k = 1,POP_km  ! recalculate new density
+          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                         TRACER(:,:,k,2,newtime,iblock), &
+                         this_block, RHOOUT=RHO_REF(:,:,k))
+
+        enddo
+
+        write(stdout,'(a25)') 'Finished state on CPU'
+
+        call gpu_compare(RHO, RHO_REF, nx_block*ny_block*km)
 
       else
         do k = 1,POP_km  ! recalculate new density

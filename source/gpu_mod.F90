@@ -3,15 +3,14 @@
   module gpu_mod
 
 !BOP
-! !MODULE: gpu_mod
-! !DESCRIPTION:
-!  This module contains the routines for computing several functions
-!  on GPU accelerators
+! MODULE: gpu_mod
+! DESCRIPTION:
+!  This module contains the routines for execution on GPU accelerators
 !
-! !REVISION HISTORY:
+! REVISION HISTORY:
 !  gpu_mod.F90 2012-10-11 19:30:26Z B. van Werkhoven
 
-! !USES:
+! USES:
 
    use kinds_mod
    use io
@@ -175,6 +174,7 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*max_blocks_clinic))
     call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,max_blocks_clinic /))
 
+    allocate(RHO_REF(nx_block,ny_block,km)) ! used for correctness checks
 
   !-----------------------------------------------------------------------
   !
@@ -183,7 +183,7 @@
   !
   !-----------------------------------------------------------------------
 
-    ! it's important that state_mod has already been initialized
+    ! it is important that state_mod has already been initialized
     call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax)
 
 

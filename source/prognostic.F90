@@ -59,6 +59,10 @@
    real (r8), dimension(:,:,:,:,:), pointer :: &
       RHO        ! 3d density fields,     for all blocks at 3 time lvls
 
+   real (r8), dimension(:,:,:), pointer :: &
+      RHO_REF    ! 3d density fields used to check for correctness of GPU routines
+
+
    real (r8), dimension(nx_block,ny_block,3,max_blocks_clinic), &
       target :: &
       PSURF,    &! surface pressure for all blocks at 3 time levels
