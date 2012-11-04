@@ -374,7 +374,7 @@ void gpu_compare (double *a1, double *a2, int N) {
 
   if (res > 0) printf("Number of errors in GPU result: %d\n",res);
 
-  return res;
+
 }
 
 
