@@ -1425,7 +1425,7 @@
 
         write(stdout,'(a25)') 'Finished state on CPU'
 
-        call gpu_compare(RHO, RHO_REF, nx_block*ny_block*km)
+        call gpu_compare(RHO, RHOREF, nx_block*ny_block*POP_km)
 
       else
         do k = 1,POP_km  ! recalculate new density
