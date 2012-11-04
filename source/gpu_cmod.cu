@@ -348,7 +348,7 @@ void gpu_compare (double *a1, double *a2, int N) {
   int i,res = 0;
   int print = 0;
   int zeros = 0;
-  double eps = 0.0000001;
+  double eps = 0.000001;
 
   for (i=0; i<N; i++) {
 //    if (i<1840080 && i>1840075) { printf("values at i=%d, a1= %20.17e, a2= %20.17e\n", i, a1[i], a2[i]); }
