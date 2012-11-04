@@ -292,7 +292,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
         sq = min(SALTK[index],d_smax[k]);
         sq = 1000.0 * max(sq,d_smin[k]);
 
-        sqr = sqrt(sq);
+        sqr = __dsqrt_rz(sq); //double precision sqrt round towards zero
 
         work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
                               sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);

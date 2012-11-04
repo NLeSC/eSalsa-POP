@@ -1414,7 +1414,7 @@
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
 
-        write(stdout,'(a21)') 'Finished state on GPU, checking result'
+        write(stdout,'(a38)') 'Finished state on GPU, checking result'
 
         do k = 1,POP_km  ! recalculate new density
           call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
@@ -1423,7 +1423,7 @@
 
         enddo
 
-        write(stdout,'(a25)') 'Finished state on CPU'
+        write(stdout,'(a21)') 'Finished state on CPU'
 
         call gpumod_compare(RHO, RHOREF, nx_block*ny_block*POP_km)
 
