@@ -203,7 +203,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
         		int *pn_outputs, int *pstart_k, int *pend_k) {
   int n_outputs = *pn_outputs;
   int start_k = *pstart_k-1;
-  int end_k = *pend_k-1;
+  int end_k = *pend_k;
   //cudaError_t err;
   
   //execution parameters

@@ -234,7 +234,7 @@
 ! !INPUT PARAMETERS:
 
    integer (int_kind), intent(in) :: &
-      start_k,                    &! loop start (including)
+      start_k,                    &! loop start (including) start index 1
       end_k                        ! loop end (including)
 
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
@@ -265,7 +265,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (present(RHOOUT) .eqv. .false.) then
+   if (.not. present(RHOOUT)) then
       ! throw an this is currently not support error
    endif
 
