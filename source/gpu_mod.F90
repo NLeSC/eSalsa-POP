@@ -174,7 +174,7 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*max_blocks_clinic))
     call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,max_blocks_clinic /))
 
-    allocate(RHO_REF(nx_block,ny_block,km)) ! used for correctness checks
+    allocate(RHOREF(nx_block,ny_block,km)) ! used for correctness checks
 
   !-----------------------------------------------------------------------
   !

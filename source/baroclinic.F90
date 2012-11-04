@@ -1419,7 +1419,7 @@
         do k = 1,POP_km  ! recalculate new density
           call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
                          TRACER(:,:,k,2,newtime,iblock), &
-                         this_block, RHOOUT=RHO_REF(:,:,k))
+                         this_block, RHOOUT=RHOREF(:,:,k))
 
         enddo
 
