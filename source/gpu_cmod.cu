@@ -216,8 +216,9 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
   grid.y = (KM);
   
-  printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
-		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
+  //printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
+  //		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
+  
   
   // perhaps not needed on Fermi GPUs, who knows?
   //corresponding device pointers
@@ -247,6 +248,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   
   //zero output array, for debugging purposes only
   memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
+
   
   //this synchronize is a bit over-protective but currently left in for debugging purposes
   cudaDeviceSynchronize();
@@ -312,7 +314,8 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 
         denomk = 1.0/work2;
 //      if (present(RHOFULL)) then
-        RHOOUT[index] = work1*denomk;
+        //RHOOUT[index] = work1*denomk;
+        RHOOUT[index] = 1337.0;
 //      endif
 
         if (n_outputs == 3) { 
