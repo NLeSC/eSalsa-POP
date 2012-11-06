@@ -111,7 +111,8 @@ FFLAGS := $(FFLAGS)
 #
 #----------------------------------------------------------------------------
 
-CUFLAGS = -Xptxas=-v -arch=sm_20
+CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
+#-prec-sqrt=true -fmad=false
 
 ifeq ($(OPTIMIZE),yes)
   CUFLAGS := $(CUFLAGS) -O3

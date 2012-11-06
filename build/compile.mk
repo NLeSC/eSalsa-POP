@@ -149,5 +149,5 @@ include $(DEPENDS)
 	@cd $(POPEXEDIR)/compile && $(CC) $(Cpp_opts) $(CFLAGS) -c $(notdir $<)
 
 %.o: %.cu
-	@echo $(POPARCH) Compiling with implicit rule $(Cpp_opts) $(CUFLAGS) $<
+	@echo $(POPARCH) Compiling with implicit rule $(CUFLAGS) $<
 	@cd $(POPEXEDIR)/compile && $(NVCC) $(CUFLAGS) -c $(notdir $<)

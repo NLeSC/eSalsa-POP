@@ -12,7 +12,7 @@ CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
 
 F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
 F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl $(CUDALIB) -lcudart -lstdc++
+LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl $(CUDALIB) -lcudart -lstdc++   -shared-intel -i-dynamic
 CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc
 Cp = /bin/cp
 Cpp = cpp -P
@@ -46,8 +46,8 @@ MPI = yes
 
 
 #with -mcmodel=medium
-NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
-NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
+NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/include
+NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/lib
 
 
 
@@ -107,7 +107,7 @@ endif
 
 #DAS4 specific
 FFLAGS := $(FFLAGS) -convert  big_endian
-FFLAGS := $(FFLAGS) -mcmodel=medium
+FFLAGS := $(FFLAGS) -mcmodel=medium -shared-intel -i-dynamic
 #-i-dynamic
 #FFLAGS := $(FFLAGS) 
  

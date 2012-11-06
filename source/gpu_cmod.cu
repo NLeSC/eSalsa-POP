@@ -232,12 +232,12 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
   grid.y = (KM);
   
-  if (my_task == 0)
-  printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
-  		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
+//  if (my_task == 0)
+//  printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
+//  		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
   
   
-  // perhaps not needed on Fermi GPUs, who knows?
+  /* not needed on Fermi GPUs, who knew?
   //corresponding device pointers
   double *d_SALTK;
   double *d_TEMPK;
@@ -261,9 +261,9 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
     err = cudaHostGetDevicePointer((void**) &d_DRHODS, DRHODS, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODS: %s\n", cudaGetErrorString( err ));
   }
-  //
+  */
   
-  printf("TEMPK=%llu, d_TEMPK=%llu\n SALTK=%llu, d_SALTK=%llu\n RHOOUT=%llu, d_RHOOUT=%llu\n", TEMPK, d_TEMPK, SALTK, d_SALTK, RHOOUT, d_RHOOUT);
+  //printf("TEMPK=%llu, d_TEMPK=%llu\n SALTK=%llu, d_SALTK=%llu\n RHOOUT=%llu, d_RHOOUT=%llu\n", TEMPK, d_TEMPK, SALTK, d_SALTK, RHOOUT, d_RHOOUT);
   
   
   //zero output array, for debugging purposes only
@@ -274,7 +274,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
   
-  mwjf_state_1D<<<grid,threads>>>(d_TEMPK, d_SALTK, d_RHOOUT, d_DRHODT, d_DRHODS,
+  mwjf_state_1D<<<grid,threads0,stream[1]>>>(TEMPK, SALTK, RHOOUT, DRHODT, DRHODS,
         n_outputs, start_k, end_k);
   
   
