@@ -315,7 +315,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
         denomk = 1.0/work2;
 //      if (present(RHOFULL)) then
         //RHOOUT[index] = work1*denomk;
-        RHOOUT[index] = 1337.0;
+        RHOOUT[index] = 1337.0; //for debugging obviously
 //      endif
 
         if (n_outputs == 3) { 

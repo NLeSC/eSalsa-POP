@@ -1409,6 +1409,9 @@
       if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
         write(stdout,'(a25)') 'Going to run state on GPU'
 
+        !zero the current array for debugging purposes
+        RHO(:,:,:,newtime,iblock) = c0;
+
         call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
                         TRACER(:,:,:,2,newtime,iblock), &
                         1, POP_km, &
