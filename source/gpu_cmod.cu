@@ -237,9 +237,6 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   err = cudaHostGetDevicePointer((void**) &d_RHOOUT, RHOOUT, 0);
   if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for RHO: %s\n", cudaGetErrorString( err ));
   
-  //zero output array, for debugging purposes only
-  memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
-  
   if (n_outputs == 3) {
     err = cudaHostGetDevicePointer((void**) &d_DRHODT, DRHODT, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODT: %s\n", cudaGetErrorString( err ));
@@ -247,6 +244,9 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODS: %s\n", cudaGetErrorString( err ));
   }
   //
+  
+  //zero output array, for debugging purposes only
+  memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
   
   //this synchronize is a bit over-protective but currently left in for debugging purposes
   cudaDeviceSynchronize();

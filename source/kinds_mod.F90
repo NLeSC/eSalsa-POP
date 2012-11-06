@@ -30,10 +30,11 @@
       int_kind       = kind(1)                ,&
       i4             = selected_int_kind(6)   ,&
       i8             = selected_int_kind(13)  ,&
-      r4             = selected_real_kind(6)  ,&
-      r8             = selected_real_kind(13)
+      r4             = c_float  ,&
+      r8             = c_double
 
 ! tested for GPU integration, used to be:
+!      r4             = selected_real_kind(6)  ,&
 !      r8             = selected_real_kind(13)
 
    integer, parameter, public ::               &
