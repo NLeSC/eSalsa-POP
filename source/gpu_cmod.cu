@@ -31,7 +31,7 @@ void cuda_init();
 void my_cudamallochost(void **hostptr, int* size);
 
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax);
+        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task);
 
 //specific functions
 void mwjf_state_gpu(double *TEMPK, double *SALTK,
