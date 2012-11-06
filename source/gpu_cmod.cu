@@ -217,7 +217,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   grid.y = (KM);
   
   
-  // perhaps not needed on Fermi GPUs, who knew?
+  // perhaps not needed on Fermi GPUs, who knows?
   //corresponding device pointers
   double *d_SALTK;
   double *d_TEMPK;
@@ -250,7 +250,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
   
-  mwjf_state_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, DRHODT, DRHODS,
+  mwjf_state_1D<<<grid,threads,0,stream[1]>>>(d_TEMPK, d_SALTK, d_RHOOUT, d_DRHODT, d_DRHODS,
         n_outputs, start_k, end_k);
   
   
