@@ -148,6 +148,7 @@ void cuda_state_initialize(double *constants, double *pressz,
   double mwjfdp3s0t1 = constants[44];
 
   double p;
+  double c10 = constants[7];
 
   //initialize all constant arrays to be stored in constant memory on the GPU
   double h_mwjfnums0t0[KM];
@@ -159,7 +160,7 @@ void cuda_state_initialize(double *constants, double *pressz,
 
   int k;
   for (k=0; k<KM; k++) {
-      p = 10.0*pressz[k];
+      p = c10*pressz[k];
 
       // first calculate numerator of MWJF density [P_1(S,T,p)]
       h_mwjfnums0t0[k] = mwjfnp0s0t0 + p*(mwjfnp1s0t0 + p*mwjfnp2s0t0);
@@ -215,7 +216,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   grid.y = (KM);
   
   
-  /* apparently not needed on Fermi GPUs, who knew?
+  // perhaps not needed on Fermi GPUs, who knew?
   //corresponding device pointers
   double *d_SALTK;
   double *d_TEMPK;
@@ -238,7 +239,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
     err = cudaHostGetDevicePointer((void**) &d_DRHODS, DRHODS, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
   }
-  */
+  //
   
   //this synchronize is a bit over-protective but currently left in for debugging purposes
   cudaDeviceSynchronize();
@@ -292,7 +293,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
         sq = min(SALTK[index],d_smax[k]);
         sq = 1000.0 * max(sq,d_smin[k]);
 
-        sqr = __dsqrt_rz(sq); //double precision sqrt round towards zero
+        sqr = sqrt(sq); //double precision sqrt round towards zero
 
         work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
                               sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
@@ -348,7 +349,7 @@ void gpu_compare (double *a1, double *a2, int N) {
   int i,res = 0;
   int print = 0;
   int zeros = 0;
-  double eps = 0.000001;
+  double eps = 0.0000001;
 
   for (i=0; i<N; i++) {
 //    if (i<1840080 && i>1840075) { printf("values at i=%d, a1= %20.17e, a2= %20.17e\n", i, a1[i], a2[i]); }
