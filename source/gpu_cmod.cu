@@ -75,6 +75,7 @@ void my_cudamallochost(void **hostptr, int *p_size) {
 
   err = cudaHostAlloc((void **)hostptr, (*p_size)*sizeof(double), cudaHostAllocMapped);
   if (err != cudaSuccess) fprintf(stderr, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
+  if (err != cudaSuccess) fprintf(stdout, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
 
 }
 
