@@ -64,7 +64,7 @@
       integer (int_kind)            :: buf_loc        ! location in buffer
       integer (int_kind)            :: field_loc      ! grid location and field
       integer (int_kind)            :: field_type     ! type for io, ghost cells
-      integer (r4)            :: field_depth_index  ! depth index of 2d slice
+      integer (int_kind)            :: field_depth_index  ! depth index of 2d slice
    end type
 
    integer (int_kind), parameter :: &
