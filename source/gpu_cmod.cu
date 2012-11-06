@@ -236,40 +236,9 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
 //  printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
 //  		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
   
-  
-  /* not needed on Fermi GPUs, who knew?
-  //corresponding device pointers
-  double *d_SALTK;
-  double *d_TEMPK;
-
-  double *d_RHOOUT;
-  double *d_DRHODT = NULL;
-  double *d_DRHODS = NULL;
-  
-  //obtain device pointers for host mapped memory
-  err = cudaHostGetDevicePointer((void**) &d_TEMPK, TEMPK, 0);
-  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for TEMP: %s\n", cudaGetErrorString( err ));
-  err = cudaHostGetDevicePointer((void**) &d_SALTK, SALTK, 0);
-  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for SALT: %s\n", cudaGetErrorString( err ));
-  
-  err = cudaHostGetDevicePointer((void**) &d_RHOOUT, RHOOUT, 0);
-  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for RHO: %s\n", cudaGetErrorString( err ));
-  
-  if (n_outputs == 3) {
-    err = cudaHostGetDevicePointer((void**) &d_DRHODT, DRHODT, 0);
-    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODT: %s\n", cudaGetErrorString( err ));
-    err = cudaHostGetDevicePointer((void**) &d_DRHODS, DRHODS, 0);
-    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODS: %s\n", cudaGetErrorString( err ));
-  }
-  */
-  
-  //printf("TEMPK=%llu, d_TEMPK=%llu\n SALTK=%llu, d_SALTK=%llu\n RHOOUT=%llu, d_RHOOUT=%llu\n", TEMPK, d_TEMPK, SALTK, d_SALTK, RHOOUT, d_RHOOUT);
-  
-  
   //zero output array, for debugging purposes only
   memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
 
-  
   //this synchronize is a bit over-protective but currently left in for debugging purposes
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
