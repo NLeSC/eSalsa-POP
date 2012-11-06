@@ -274,7 +274,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
   
-  mwjf_state_1D<<<grid,threads0,stream[1]>>>(TEMPK, SALTK, RHOOUT, DRHODT, DRHODS,
+  mwjf_state_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, DRHODT, DRHODS,
         n_outputs, start_k, end_k);
   
   
