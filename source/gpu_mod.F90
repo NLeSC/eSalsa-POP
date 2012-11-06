@@ -185,7 +185,7 @@
   !-----------------------------------------------------------------------
 
     ! it is important that state_mod has already been initialized
-    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax)
+    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task)
 
 
   else

@@ -1407,8 +1407,10 @@
 !
 !-----------------------------------------------------------------------
       if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
-        write(stdout,'(a25)') 'Going to run state on GPU'
 
+        if (my_task == master_task) then
+          write(stdout,'(a25)') 'Going to run state on GPU'
+        endif
         !zero the current array for debugging purposes
         !RHO(:,:,:,newtime,iblock) = c0;
 
@@ -1416,8 +1418,9 @@
                         TRACER(:,:,:,2,newtime,iblock), &
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
-
-        write(stdout,'(a38)') 'Finished state on GPU, checking result'
+        if (my_task == master_task) then
+          write(stdout,'(a38)') 'Finished state on GPU, checking result'
+        endif
 
         do k = 1,POP_km  ! recalculate new density
           call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
@@ -1426,7 +1429,9 @@
 
         enddo
 
-        write(stdout,'(a21)') 'Finished state on CPU'
+        if (my_task == master_task) then
+          write(stdout,'(a21)') 'Finished state on CPU'
+        endif
 
         call gpumod_compare(RHO, RHOREF, nx_block*ny_block*POP_km)
 

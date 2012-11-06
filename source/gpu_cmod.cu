@@ -110,8 +110,11 @@ __constant__ double d_mwjfdens0t3[KM];
 int cuda_state_initialized = 0;
 cudaStream_t stream[NSTREAMS];
 
+//debugging
+int my_task;
+
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax) {
+        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task) {
 
   if (cuda_state_initialized == 0) {
   cuda_state_initialized = 1;
@@ -196,7 +199,18 @@ void cuda_state_initialize(double *constants, double *pressz,
   for (k=0; k<NSTREAMS; k++) {
     cudaStreamCreate(&stream[k]);
   }
-
+  
+  //debugging
+  my_task = *pmy_task;
+  if (my_task == 0) {
+    printf("GPU_CMOD using constants:\n");
+    printf("c0=%20.17e, c1=%20.17e, c2=%20.17e, c3=%20.17e, c4=%20.17e, c5=%20.17e, c8=%20.17e, c10=%20.17e\n",
+    		constants[0], constants[1], constants[2], constants[3],
+    		constants[4], constants[5], constants[6], constants[7]);
+    printf("c16=%20.17e, c1000=%20.17e, c10000=%20.17e, c1p5=%20.17e, p33=%20.17e, p25=%20.17e, p125=%20.17e, p001=%20.17e\n",
+    		constants[8], constants[9], constants[10], constants[11],
+    		constants[12], constants[13], constants[14], constants[15]);
+  }
 
   }
 }
@@ -216,8 +230,9 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
   grid.y = (KM);
   
-  //printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
-  //		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
+  if (my_task == 0)
+  printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
+  		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
   
   
   // perhaps not needed on Fermi GPUs, who knows?
@@ -245,6 +260,10 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODS: %s\n", cudaGetErrorString( err ));
   }
   //
+  
+  
+  printf("TEMPK=%L, d_TEMPK=%L\n SALTK=%L, d_SALTK=%L\n RHOOUT=%L, d_RHOOUT=%L\n", TEMPK, d_TEMPK, SALTK, d_SALTK, RHOOUT, d_RHOOUT);
+  
   
   //zero output array, for debugging purposes only
   memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));

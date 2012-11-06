@@ -21,7 +21,7 @@ subroutine my_cudamallochost(hostptr, size) bind (c)
   integer (c_int), intent(in) :: size
 end subroutine my_cudaMallocHost
 
-subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax) bind (c)
+subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task) bind (c)
   use iso_c_binding
   real (c_double), dimension(45) :: &
     constants		! array used for passing constants to the GPU
@@ -29,6 +29,7 @@ subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax) bind
     tmin, tmax,        &! valid temperature range for level k
     smin, smax,        &! valid salinity    range for level k
     pressz              ! ref pressure (bars) at each level
+  integer (c_int) :: my_task
 end subroutine cuda_state_initialize
 
 
