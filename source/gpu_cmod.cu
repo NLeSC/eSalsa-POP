@@ -76,7 +76,7 @@ void my_cudamallochost(void **hostptr, int *p_size) {
   err = cudaHostAlloc((void **)hostptr, (*p_size)*sizeof(double), cudaHostAllocMapped);
   if (err != cudaSuccess) fprintf(stderr, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
   if (err != cudaSuccess) fprintf(stdout, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
-
+ 
 }
 
 //Fortran entry for initializing constants used in state computations
@@ -208,7 +208,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   int n_outputs = *pn_outputs;
   int start_k = *pstart_k-1;
   int end_k = *pend_k; //no -1 here as we're going from including to excluding
-  //cudaError_t err;
+  cudaError_t err;
   
   //execution parameters
   dim3 threads(256,1);
