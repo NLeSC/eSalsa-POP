@@ -207,9 +207,11 @@ void cuda_state_initialize(double *constants, double *pressz,
     printf("c0=%20.17e, c1=%20.17e, c2=%20.17e, c3=%20.17e, c4=%20.17e, c5=%20.17e, c8=%20.17e, c10=%20.17e\n",
     		constants[0], constants[1], constants[2], constants[3],
     		constants[4], constants[5], constants[6], constants[7]);
-    printf("c16=%20.17e, c1000=%20.17e, c10000=%20.17e, c1p5=%20.17e, p33=%20.17e, p25=%20.17e, p125=%20.17e, p001=%20.17e\n",
+    printf("c16=%20.17e, c1000=%20.17e, c10000=%20.17e, c1p5=%20.17e, p33=%20.17e, p5=%20.17e, p25=%20.17e, p125=%20.17e, p001=%20.17e\n",
     		constants[8], constants[9], constants[10], constants[11],
-    		constants[12], constants[13], constants[14], constants[15]);
+    		constants[12], constants[13], constants[14], constants[15], constants[16]);
+    
+    
   }
 
   }
@@ -261,8 +263,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   }
   //
   
-  
-  printf("TEMPK=%L, d_TEMPK=%L\n SALTK=%L, d_SALTK=%L\n RHOOUT=%L, d_RHOOUT=%L\n", TEMPK, d_TEMPK, SALTK, d_SALTK, RHOOUT, d_RHOOUT);
+  printf("TEMPK=%llu, d_TEMPK=%llu\n SALTK=%llu, d_SALTK=%llu\n RHOOUT=%llu, d_RHOOUT=%llu\n", TEMPK, d_TEMPK, SALTK, d_SALTK, RHOOUT, d_RHOOUT);
   
   
   //zero output array, for debugging purposes only
