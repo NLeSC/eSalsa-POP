@@ -228,17 +228,21 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   
   //obtain device pointers for host mapped memory
   err = cudaHostGetDevicePointer((void**) &d_TEMPK, TEMPK, 0);
-  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for TEMP: %s\n", cudaGetErrorString( err ));
   err = cudaHostGetDevicePointer((void**) &d_SALTK, SALTK, 0);
-  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for SALT: %s\n", cudaGetErrorString( err ));
+  
   err = cudaHostGetDevicePointer((void**) &d_RHOOUT, RHOOUT, 0);
-  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+  if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for RHO: %s\n", cudaGetErrorString( err ));
+  
+  //zero output array, for debugging purposes only
+  memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
   
   if (n_outputs == 3) {
     err = cudaHostGetDevicePointer((void**) &d_DRHODT, DRHODT, 0);
-    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODT: %s\n", cudaGetErrorString( err ));
     err = cudaHostGetDevicePointer((void**) &d_DRHODS, DRHODS, 0);
-    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer for DRHODS: %s\n", cudaGetErrorString( err ));
   }
   //
   
