@@ -48,7 +48,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK, 
 		double *RHOOUT, int start_k, int end_k);
 
-void gpu_compare (double *a1, double *a2, int N);
+void gpu_compare (double *a1, double *a2, int *pN)
 
 
 }
@@ -412,11 +412,12 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 
 
-void gpu_compare (double *a1, double *a2, int N) {
+void gpu_compare (double *a1, double *a2, int *pN) {
   int i,res = 0;
   int print = 0;
   int zeros = 0;
   double eps = 0.0000001;
+  int N = *pN;
 
   for (i=0; i<N; i++) {
 //    if (i<1840080 && i>1840075) { printf("values at i=%d, a1= %20.17e, a2= %20.17e\n", i, a1[i], a2[i]); }
