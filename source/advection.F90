@@ -49,9 +49,11 @@
    use time_management, only: max_blocks_clinic, km, nt, mix_pass, c2dtt
    use timers, only: timer_start, timer_stop, get_timer
    use exit_mod, only: sigAbort, exit_pop
-   use prognostic, only: UVEL, VVEL, curtime, tracer_d
+   use prognostic, only: UVEL, VVEL, curtime, tracer_d, RHOP
    use passive_tracers, only: tadvect_ctype_passive_tracers
    use registry
+
+   use gpu_mod
 
    implicit none
    private
