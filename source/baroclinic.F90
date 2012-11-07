@@ -952,6 +952,35 @@
 
 !-----------------------------------------------------------------------
 !
+!        if pressure averaging is on and it is a leapfrog time step
+!        we need the updated density for the pressure averaging
+!        loops have been split as k-loop is unrolled on GPU
+!
+!-----------------------------------------------------------------------
+
+         if (lpressure_avg .and. leapfrogts) then
+
+           if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+             call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+                        TRACER(:,:,:,2,newtime,iblock), &
+                        1, POP_km, &
+                        RHOOUT=RHO(:,:,:,newtime,iblock))
+           else ! use CPU function instead
+             do k = 1,POP_km
+               call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                         TRACER(:,:,k,2,newtime,iblock), &
+                         this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+
+             enddo
+           endif ! if gpus can be used
+
+         endif ! if lpressure_avg .and. leapfrogts
+
+
+
+
+!-----------------------------------------------------------------------
+!
 !     initialize arrays for vertical sums.
 !
 !-----------------------------------------------------------------------
@@ -966,18 +995,7 @@
          if (k == 1) km1 = 1
          if (k == POP_km) kp1 = POP_km
 
-!-----------------------------------------------------------------------
-!
-!        if pressure averaging is on and it is a leapfrog time step
-!        we need the updated density for the pressure averaging
-!
-!-----------------------------------------------------------------------
 
-         if (lpressure_avg .and. leapfrogts) then
-            call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                           TRACER(:,:,k,2,newtime,iblock), &
-                           this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
-         endif
 
 !-----------------------------------------------------------------------
 !
@@ -1408,33 +1426,34 @@
 !-----------------------------------------------------------------------
       if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
 
-        if (my_task == master_task) then
-          write(stdout,'(a25)') 'Going to run state on GPU'
-        endif
+!        if (my_task == master_task) then
+!          write(stdout,'(a25)') 'Going to run state on GPU'
+!        endif
         !zero the current array for debugging purposes
-        RHO(:,:,:,newtime,iblock) = c0;
-        RHOREF = c0;
+        !RHO(:,:,:,newtime,iblock) = c0;
+        !RHOREF = c0;
 
         call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
                         TRACER(:,:,:,2,newtime,iblock), &
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
-        if (my_task == master_task) then
-          write(stdout,'(a38)') 'Finished state on GPU, checking result'
-        endif
 
-        do k = 1,POP_km  ! recalculate new density
-          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                         TRACER(:,:,k,2,newtime,iblock), &
-                         this_block, RHOOUT=RHOREF(:,:,k))
-
-        enddo
-
-        if (my_task == master_task) then
-          write(stdout,'(a21)') 'Finished state on CPU'
-        endif
-
-        call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km)
+!        if (my_task == master_task) then
+!          write(stdout,'(a38)') 'Finished state on GPU, checking result'
+!        endif
+!
+!        do k = 1,POP_km  ! recalculate new density
+!          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+!                         TRACER(:,:,k,2,newtime,iblock), &
+!                         this_block, RHOOUT=RHOREF(:,:,k))
+!
+!        enddo
+!
+!        if (my_task == master_task) then
+!          write(stdout,'(a21)') 'Finished state on CPU'
+!        endif
+!
+!        call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km)
 
       else
         do k = 1,POP_km  ! recalculate new density

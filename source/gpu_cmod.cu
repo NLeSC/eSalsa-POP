@@ -93,10 +93,10 @@ __constant__ double d_mwjfdens1t3;
 __constant__ double d_mwjfdensqt0;
 __constant__ double d_mwjfdensqt2;
 
-__constant__ double d_tmax[KM];
-__constant__ double d_tmin[KM];
-__constant__ double d_smax[KM];
-__constant__ double d_smin[KM];
+//__constant__ double d_tmax[KM];
+//__constant__ double d_tmin[KM];
+//__constant__ double d_smax[KM];
+//__constant__ double d_smin[KM];
 
 __constant__ double d_mwjfnums0t0[KM];
 __constant__ double d_mwjfnums0t2[KM];
@@ -177,12 +177,13 @@ void cuda_state_initialize(double *constants, double *pressz,
       h_mwjfdens0t3[k] = mwjfdp0s0t3 + (p*p) * mwjfdp2s0t3;     //used to be p**2 in FORTRAN
   }
 
-  //bunch of memcpy to symbols go here
-  cudaMemcpyToSymbol("d_tmax", tmax, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol("d_tmin", tmin, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol("d_smax", smax, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol("d_smin", smin, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+//no longer used
+//  cudaMemcpyToSymbol("d_tmax", tmax, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+//  cudaMemcpyToSymbol("d_tmin", tmin, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+//  cudaMemcpyToSymbol("d_smax", smax, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+//  cudaMemcpyToSymbol("d_smin", smin, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
 
+  //bunch of memcpy to symbols go here
   cudaMemcpyToSymbol("d_mwjfnums0t0", h_mwjfnums0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
   cudaMemcpyToSymbol("d_mwjfnums0t2", h_mwjfnums0t2, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
   cudaMemcpyToSymbol("d_mwjfnums1t0", h_mwjfnums1t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
@@ -200,19 +201,19 @@ void cuda_state_initialize(double *constants, double *pressz,
     cudaStreamCreate(&stream[k]);
   }
   
-  //debugging
-  my_task = *pmy_task;
-  if (my_task == 0) {
-    printf("GPU_CMOD using constants:\n");
-    printf("c0=%20.17e, c1=%20.17e, c2=%20.17e, c3=%20.17e, c4=%20.17e, c5=%20.17e, c8=%20.17e, c10=%20.17e\n",
-    		constants[0], constants[1], constants[2], constants[3],
-    		constants[4], constants[5], constants[6], constants[7]);
-    printf("c16=%20.17e, c1000=%20.17e, c10000=%20.17e, c1p5=%20.17e, p33=%20.17e, p5=%20.17e, p25=%20.17e, p125=%20.17e, p001=%20.17e\n",
-    		constants[8], constants[9], constants[10], constants[11],
-    		constants[12], constants[13], constants[14], constants[15], constants[16]);
-    
-    
-  }
+//debugging
+//  my_task = *pmy_task;
+//  if (my_task == 0) {
+//    printf("GPU_CMOD using constants:\n");
+//    printf("c0=%20.17e, c1=%20.17e, c2=%20.17e, c3=%20.17e, c4=%20.17e, c5=%20.17e, c8=%20.17e, c10=%20.17e\n",
+//    		constants[0], constants[1], constants[2], constants[3],
+//    		constants[4], constants[5], constants[6], constants[7]);
+//    printf("c16=%20.17e, c1000=%20.17e, c10000=%20.17e, c1p5=%20.17e, p33=%20.17e, p5=%20.17e, p25=%20.17e, p125=%20.17e, p001=%20.17e\n",
+//    		constants[8], constants[9], constants[10], constants[11],
+//    		constants[12], constants[13], constants[14], constants[15], constants[16]);
+//    
+//    
+//  }
 
   }
 }
