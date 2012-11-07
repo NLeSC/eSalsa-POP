@@ -29,7 +29,7 @@
        field_type_scalar, c0, c1, c2, grav, ndelim_fmt,                      &
        hflux_factor, salinity_factor, salt_to_ppt
    use prognostic, only: TRACER, UVEL, VVEL, mixtime, &
-       RHO, RHOREF, newtime, oldtime, curtime, PSURF
+       RHO, RHOREF, newtime, oldtime, curtime, PSURF, RHOP
    use broadcast, only: broadcast_scalar
    use communicate, only: my_task, master_task
    use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type,                 &
