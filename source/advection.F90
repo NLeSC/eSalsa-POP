@@ -1728,7 +1728,8 @@
             ! correctness checks, debuggin only
             call state(k,1, TRCR(:,:,k,1),                         &
                             TRCR(:,:,k,2), this_block, &
-                            RHOFULL=RHOK1)
+                            RHOOUT=RHOK1)
+
             call gpumod_compare(RHOP(:,:,k), RHOK1, nx_block*ny_block)
 
          else !use CPU functionality instead
