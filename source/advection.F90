@@ -143,7 +143,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (POP_i4) :: &
+   integer (POP_i4), public :: &
       tavg_WVEL,         &! Vertical Velocity
       tavg_UEU,          &! flux of zonal momentum across east  face
       tavg_VNU,          &! flux of zonal momentum across north face
