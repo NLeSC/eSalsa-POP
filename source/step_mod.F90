@@ -29,7 +29,7 @@
    use timers
    use grid
    use diagnostics
-   use state_mod, only: state
+   use state_mod
    use time_management
    use baroclinic
    use barotropic
@@ -48,6 +48,8 @@
                        float_special_value, float_freq_iopt, float_freq,  &
                        float_flag
    use gather_floats, only: gather_float_fields, float_test_sum
+
+   use gpu_mod
 
    implicit none
    private
