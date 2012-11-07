@@ -1412,7 +1412,8 @@
           write(stdout,'(a25)') 'Going to run state on GPU'
         endif
         !zero the current array for debugging purposes
-        !RHO(:,:,:,newtime,iblock) = c0;
+        RHO(:,:,:,newtime,iblock) = c0;
+        RHOREF = c0;
 
         call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
                         TRACER(:,:,:,2,newtime,iblock), &

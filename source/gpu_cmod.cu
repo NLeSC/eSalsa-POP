@@ -230,14 +230,14 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   dim3 threads(256,1);
   dim3 grid(1,1);
   grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
-  grid.y = (KM);
+  grid.y = (end_k-start_k);
   
 //  if (my_task == 0)
 //  printf("n_outputs=%d, start_k=%d, end_k=%d, tx=%d, ty=%d, gx=%d, gy=%d\n", 
 //  		  n_outputs, start_k, end_k, threads.x, threads.y, grid.x, grid.y);
   
   //zero output array, for debugging purposes only
-  memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
+  //memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
 
   //this synchronize is a bit over-protective but currently left in for debugging purposes
   cudaDeviceSynchronize();
@@ -269,9 +269,9 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
   //int i = threadIdx.x + blockIdx.x * BLOCK_X;
   //obtain global id
   int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
-  int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
+  int k = start_k + (i /  (NX_BLOCK*NY_BLOCK));
   //obtain array index
-  int index = i + start_k*NX_BLOCK*NY_BLOCK;
+  int index = i + start_k*(NX_BLOCK*NY_BLOCK);
 
   double tq, sq, sqr, work1, work2, work3, work4, denomk;
 
@@ -280,7 +280,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 //for (i=0; i< NX_BLOCK; i++) {
 //emulating
 //  if (j < NY_BLOCK && i < NX_BLOCK) {
-  if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
+  if (i < (NX_BLOCK*NY_BLOCK)*(end_k-start_k)) {
 
 //unrolled for (k=start_k; k < end_k; k++)
 
