@@ -41,7 +41,7 @@
        POP_haloClinic
    use broadcast, only: broadcast_scalar, broadcast_array
    use diagnostics, only: cfl_advect
-   use state_mod, only: state
+   use state_mod
    use operators, only: zcurl
    use tavg, only: tavg_requested, ltavg_on, define_tavg_field,             &
        accumulate_tavg_field
