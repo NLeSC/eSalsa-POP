@@ -362,7 +362,7 @@ void gpu_compare (double *a1, double *a2, int N) {
         res++;
         if (print < 10) {
           print++;
-          printf("Error detected at i=%d, a1= %20.17e a2= %20.17e\n",i,a1[i],a2[i]);
+          printf("Error detected at i=%d, a1= %30.27e a2= %30.27e\n",i,a1[i],a2[i]);
         }
     }
 
