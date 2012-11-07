@@ -269,7 +269,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
   //int i = threadIdx.x + blockIdx.x * BLOCK_X;
   //obtain global id
   int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
-  int k = start_k + (i / NX_BLOCK*NY_BLOCK);
+  int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
   //obtain array index
   int index = i + start_k*NX_BLOCK*NY_BLOCK;
 
@@ -285,8 +285,8 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 //unrolled for (k=start_k; k < end_k; k++)
 
 	    //tmax, tmin, smax, smin not really used in MWJF, replace with -2 and 999
-        tq = min(TEMPK[index],999.0);	//d_tmax[k]
-        tq = max(tq,-2.0);				//d_tmin[k]
+        tq = min(TEMPK[index], 999.0);	//d_tmax[k]
+        tq = max(tq, -2.0);				//d_tmin[k]
 
         sq = min(SALTK[index], 0.999);	//d_smax[k]
         sq = 1000.0 * max(sq, 0.0);		//d_smin[k]
