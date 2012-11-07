@@ -224,7 +224,7 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   int n_outputs = *pn_outputs;
   int start_k = *pstart_k-1;
   int end_k = *pend_k; //no -1 here as we're going from including to excluding
-  cudaError_t err;
+  //cudaError_t err;
   
   //execution parameters
   dim3 threads(256,1);
@@ -245,7 +245,6 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   
   mwjf_state_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, DRHODT, DRHODS,
         n_outputs, start_k, end_k);
-  
   
   //synchronize because we currently don't know when inputs or outputs will be used by CPU
   //the more this sync can be delayed the more overlap with CPU execution can be exploited
@@ -285,11 +284,12 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 
 //unrolled for (k=start_k; k < end_k; k++)
 
-        tq = min(TEMPK[index],d_tmax[k]);
-        tq = max(tq,d_tmin[k]);
+	    //tmax, tmin, smax, smin not really used in MWJF, replace with -2 and 999
+        tq = min(TEMPK[index],999.0);	//d_tmax[k]
+        tq = max(tq,-2.0);				//d_tmin[k]
 
-        sq = min(SALTK[index],d_smax[k]);
-        sq = 1000.0 * max(sq,d_smin[k]);
+        sq = min(SALTK[index], 0.999);	//d_smax[k]
+        sq = 1000.0 * max(sq, 0.0);		//d_smin[k]
 
         sqr = sqrt(sq); //double precision sqrt round towards zero
 
