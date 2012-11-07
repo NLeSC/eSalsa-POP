@@ -35,7 +35,7 @@
    use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type,                 &
        sfc_layer_varthick, partial_bottom_cells, dz, DZT, CALCT, dzw, dzr,   &
        FCORT, TAREA_R
-   use advection, only: advu, advt, comp_flux_vel_ghost
+   use advection, only: advu, advt, comp_flux_vel_ghost, tavg_PD
    use pressure_grad, only: lpressure_avg, gradp
    use horizontal_mix, only: hdiffu, hdifft
    use vertical_mix, only: vmix_coeffs, implicit_vertical_mix, vdiffu,       &
