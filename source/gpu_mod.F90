@@ -258,13 +258,15 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      n_outputs = 1;
+      n_outputs = 1
 
 !-----------------------------------------------------------------------
 !
 !  first check for requested functionality
 !
 !-----------------------------------------------------------------------
+   n_outputs = 1
+
 
    if (.not. present(RHOOUT)) then
       ! throw an this is currently not support error
@@ -274,6 +276,8 @@
    if (present(DRHODT) .and. present(DRHODS)) then
       n_outputs = 3
    endif
+
+
 
 !-----------------------------------------------------------------------
 !
