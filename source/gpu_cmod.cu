@@ -38,9 +38,15 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
         		double *RHOOUT, double *DRHODT, double *DRHODS, 
         		int *pn_outputs, int *pstart_k, int *pend_k);
 
+void mwjf_statepd_gpu(double *TEMPK, double *SALTK,
+        		double *RHOOUT, int *pstart_k, int *pend_k);
+
 __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 		double *RHOFULL, double *DRHODT, double *DRHODS,
 		int n_outputs, int start_k, int end_k);
+
+__global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK, 
+		double *RHOOUT, int start_k, int end_k);
 
 void gpu_compare (double *a1, double *a2, int N);
 
@@ -254,6 +260,27 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   
 }
 
+void mwjf_statepd_gpu(double *TEMPK, double *SALTK, 
+        		double *RHOOUT, int *pstart_k, int *pend_k) {
+  int start_k = *pstart_k-1;
+  int end_k = *pend_k; //no -1 here as we're going from including to excluding
+  //cudaError_t err;
+  
+  //execution parameters
+  dim3 threads(256,1);
+  dim3 grid(1,1);
+  grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
+  grid.y = (end_k-start_k);
+  
+  mwjf_statepd_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, start_k, end_k);
+  
+  //synchronize because we currently don't know when inputs or outputs will be used by CPU
+  //the more this sync can be delayed the more overlap with CPU execution can be exploited
+  cudaDeviceSynchronize();
+  CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
+  
+}
+
 
 
 /*
@@ -292,7 +319,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
         sq = min(SALTK[index], 0.999);	//d_smax[k]
         sq = 1000.0 * max(sq, 0.0);		//d_smin[k]
 
-        sqr = sqrt(sq); //double precision sqrt round towards zero
+        sqr = sqrt(sq);
 
         work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
                               sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
@@ -342,6 +369,46 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 
 }
 
+/*
+ * The idea behind this kernel is to create a thread for each element in the array and not just for one level.
+ * This eliminates the need to have a loop and is also cacheline boundary oblivious, making it a perfect for
+ * using device mapped host memory.
+ */
+__global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK, 
+		double *RHOOUT, int start_k, int end_k) {
+
+  //obtain global id
+  int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
+  //obtain array index
+  int index = i + start_k*(NX_BLOCK*NY_BLOCK);
+
+  double tq, sq, sqr, work1, work2, denomk;
+
+  if (i < (NX_BLOCK*NY_BLOCK)*(end_k-start_k)) {
+
+	    //tmax, tmin, smax, smin not really used in MWJF, replace with -2 and 999
+        tq = min(TEMPK[index], 999.0);	//d_tmax[k]
+        tq = max(tq, -2.0);				//d_tmin[k]
+
+        sq = min(SALTK[index], 0.999);	//d_smax[k]
+        sq = 1000.0 * max(sq, 0.0);		//d_smin[k]
+
+        sqr = sqrt(sq);
+
+        work1 = d_mwjfnums0t0[0] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[0] + d_mwjfnums0t3 * tq)) +
+                              sq * (d_mwjfnums1t0[0] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
+
+        work2 = d_mwjfdens0t0[0] + tq * (d_mwjfdens0t1[0] + tq * (d_mwjfdens0t2 +
+           tq * (d_mwjfdens0t3[0] + d_mwjfdens0t4 * tq))) +
+           sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
+           sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
+
+        denomk = 1.0/work2;
+        RHOOUT[index] = work1*denomk;
+
+  } // end of if-statement
+
+}
 
 
 

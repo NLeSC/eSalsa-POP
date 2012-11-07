@@ -1718,17 +1718,31 @@
           tavg_requested(tavg_VRHO) .or.  &
           tavg_requested(tavg_WRHO)) then
 
-         call state(k,1,TRCR(:,:,k,1),                         &
-                        TRCR(:,:,k,2), this_block, &
-                        RHOFULL=RHOK1)
+         ! if GPU acelerated functions can be used
+         if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+            ! GPU values are precomputed for all levels and stored in RHOP
 
-         if (k == 1) then
-            RHOK1M = RHOK1
-         else
-            call state(k-1,1,TRCR(:,:,k,1),                         &
-                             TRCR(:,:,k,2), this_block, &
-                             RHOFULL=RHOK1M)
-         endif
+
+            ! correctness checks, debuggin only
+            call state(k,1, TRCR(:,:,k,1),                         &
+                            TRCR(:,:,k,2), this_block, &
+                            RHOFULL=RHOK1)
+            call gpumod_compare(RHOP(:,:,k), RHOK1, nx_block*ny_block)
+
+         else !use CPU functionality instead
+             call state(k,1,TRCR(:,:,k,1),                         &
+                            TRCR(:,:,k,2), this_block, &
+                            RHOFULL=RHOK1)
+
+             if (k == 1) then
+                RHOK1M = RHOK1
+             else
+                call state(k-1,1,TRCR(:,:,k,1),                         &
+                                 TRCR(:,:,k,2), this_block, &
+                                 RHOFULL=RHOK1M)
+             endif
+
+         endif !endif use GPU accelerated functions
       endif
 
       if (tavg_requested(tavg_PD)) then

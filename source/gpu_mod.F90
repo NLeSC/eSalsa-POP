@@ -32,6 +32,7 @@
 
    public :: init_gpu_mod, &
              mwjf_state, &
+             mwjf_statePD, &
              gpumod_compare
 !             vmix_coeffs,                          &
 !             vdifft, vdiffu,                       &
@@ -175,6 +176,10 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*max_blocks_clinic))
     call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,max_blocks_clinic /))
 
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
+    call c_f_pointer(cptr, RHOP, (/ nx_block,ny_block,km /))
+
+
     allocate(RHOREF(nx_block,ny_block,km)) ! used for correctness checks
 
   !-----------------------------------------------------------------------
@@ -267,7 +272,6 @@
 !-----------------------------------------------------------------------
    n_outputs = 1
 
-
    if (.not. present(RHOOUT)) then
       ! throw an this is currently not support error
    endif
@@ -276,8 +280,6 @@
    if (present(DRHODT) .and. present(DRHODS)) then
       n_outputs = 3
    endif
-
-
 
 !-----------------------------------------------------------------------
 !
@@ -289,6 +291,24 @@
 
 
  end subroutine mwjf_state
+
+
+ subroutine mwjf_statePD(TEMP, SALT, start_k, end_k, RHOOUT)
+
+   integer (int_kind), intent(in) :: &
+      start_k,                    &! loop start (including) start index 1
+      end_k                        ! loop end (including)
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      TEMP,             &! temperature at level k
+      SALT               ! salinity    at level k
+
+   real (r8), dimension(nx_block,ny_block,km), intent(out) :: &
+      RHOOUT
+
+   call mwjf_statepd_gpu(TEMP, SALT, RHOOUT, start_k, end_k)
+
+ end subroutine mwjf_statePD
 
 
  subroutine gpumod_compare(A, B, n)

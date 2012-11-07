@@ -60,6 +60,9 @@
       RHO        ! 3d density fields,     for all blocks at 3 time lvls
 
    real (r8), dimension(:,:,:), pointer :: &
+      RHOP       ! 3d density field, used to store potential density for tavg_PD
+
+   real (r8), dimension(:,:,:), pointer :: &
       RHOREF    ! 3d density fields used to check for correctness of GPU routines
 
 
