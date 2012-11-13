@@ -88,6 +88,8 @@
    type(c_ptr) :: &
       cptr                  ! ptr used for alllocating arrays
 
+   namelist /gpu_mod_nml/ use_gpu_state
+
    ! array used for sending constants to the GPU
    ! this prevents issues with compilers rounding double precision constants
    ! differently and thus reduces rounding errors
@@ -104,7 +106,6 @@
 
    constants(46) = grav
 
-   namelist /gpu_mod_nml/ use_gpu_state
 
 !-----------------------------------------------------------------------
 !
