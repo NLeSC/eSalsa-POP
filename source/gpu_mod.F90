@@ -100,7 +100,7 @@
                        mwjfnp2s0t2, mwjfdp0s0t0, mwjfdp0s0t1, mwjfdp0s0t2, &
                        mwjfdp0s0t3, mwjfdp0s0t4, mwjfdp0s1t0, mwjfdp0s1t1, &
                        mwjfdp0s1t3, mwjfdp0sqt0, mwjfdp0sqt2, mwjfdp1s0t0, &
-                       mwjfdp2s0t3, mwjfdp3s0t1, 0.0 /)
+                       mwjfdp2s0t3, mwjfdp3s0t1, 0.0_r8 /)
 
    ! for some reason grav is at run time in init_constants
    ! therefore we cant use it in the parameter array above and set it here
