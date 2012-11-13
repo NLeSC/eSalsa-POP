@@ -8,7 +8,8 @@
 #
 #-----------------------------------------------------------------------
 MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
-CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
+#CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
+CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
 
 F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
 F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90

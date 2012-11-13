@@ -8,7 +8,8 @@
 #
 #-----------------------------------------------------------------------
 
-CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
+#CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
+CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
 
 F77 = mpif90 -p -O3
 F90 = mpif90 -p -O3
