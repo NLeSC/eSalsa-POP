@@ -91,7 +91,7 @@
    ! array used for sending constants to the GPU
    ! this prevents issues with compilers rounding double precision constants
    ! differently and thus reduces rounding errors
-   real (r8), parameter, dimension(46) :: &
+   real (r8), dimension(46) :: &
         constants = (/ c0, c1, c2, c3, c4, c5, c8, c10, c16, c1000, &
                        c10000, c1p5, p33, p5, p25, p125, p001, eps, &
                        eps2, bignum, mwjfnp0s0t0, mwjfnp0s0t1, mwjfnp0s0t2, &
@@ -100,11 +100,8 @@
                        mwjfnp2s0t2, mwjfdp0s0t0, mwjfdp0s0t1, mwjfdp0s0t2, &
                        mwjfdp0s0t3, mwjfdp0s0t4, mwjfdp0s1t0, mwjfdp0s1t1, &
                        mwjfdp0s1t3, mwjfdp0sqt0, mwjfdp0sqt2, mwjfdp1s0t0, &
-                       mwjfdp2s0t3, mwjfdp3s0t1, 0.0_r8 /)
+                       mwjfdp2s0t3, mwjfdp3s0t1, grav /)
 
-   ! for some reason grav is at run time in init_constants
-   ! therefore we cant use it in the parameter array above and set it here
-   constants(46) = grav
 
    namelist /gpu_mod_nml/ use_gpu_state
 
