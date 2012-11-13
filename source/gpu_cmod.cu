@@ -99,6 +99,8 @@ __constant__ double d_mwjfdens1t3;
 __constant__ double d_mwjfdensqt0;
 __constant__ double d_mwjfdensqt2;
 
+__constant__ double d_grav;
+
 //__constant__ double d_tmax[KM];
 //__constant__ double d_tmin[KM];
 //__constant__ double d_smax[KM];
@@ -129,17 +131,37 @@ void cuda_state_initialize(double *constants, double *pressz,
   //for now we do this because we want the GPU/C code to use the exact same
   //values as the Fortran code even if both parts are compiled with
   //different compilers
-  cudaMemcpyToSymbol("d_mwjfnums0t1", &constants[21], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t1
-  cudaMemcpyToSymbol("d_mwjfnums0t3", &constants[23], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t3
-  cudaMemcpyToSymbol("d_mwjfnums1t1", &constants[25], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s1t1
-  cudaMemcpyToSymbol("d_mwjfnums2t0", &constants[26], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s2t0
-  cudaMemcpyToSymbol("d_mwjfdens0t2", &constants[34], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t2
-  cudaMemcpyToSymbol("d_mwjfdens0t4", &constants[36], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t4
-  cudaMemcpyToSymbol("d_mwjfdens1t0", &constants[37], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t0
-  cudaMemcpyToSymbol("d_mwjfdens1t1", &constants[38], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t1
-  cudaMemcpyToSymbol("d_mwjfdens1t3", &constants[39], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t3
-  cudaMemcpyToSymbol("d_mwjfdensqt0", &constants[40], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt0
-  cudaMemcpyToSymbol("d_mwjfdensqt2", &constants[41], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt2
+  /* CUDA 4 style
+    cudaMemcpyToSymbol("d_mwjfnums0t1", &constants[21], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t1
+    cudaMemcpyToSymbol("d_mwjfnums0t3", &constants[23], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t3
+    cudaMemcpyToSymbol("d_mwjfnums1t1", &constants[25], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s1t1
+    cudaMemcpyToSymbol("d_mwjfnums2t0", &constants[26], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s2t0
+    cudaMemcpyToSymbol("d_mwjfdens0t2", &constants[34], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t2
+    cudaMemcpyToSymbol("d_mwjfdens0t4", &constants[36], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t4
+    cudaMemcpyToSymbol("d_mwjfdens1t0", &constants[37], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t0
+    cudaMemcpyToSymbol("d_mwjfdens1t1", &constants[38], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t1
+    cudaMemcpyToSymbol("d_mwjfdens1t3", &constants[39], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t3
+    cudaMemcpyToSymbol("d_mwjfdensqt0", &constants[40], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt0
+    cudaMemcpyToSymbol("d_mwjfdensqt2", &constants[41], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt2
+
+    cudaMemcpyToSymbol("d_grav", &constants[45], sizeof(double), 0, cudaMemcpyHostToDevice); //= grav
+  */
+
+  //CUDA 5.0 style
+    cudaMemcpyToSymbol(d_mwjfnums0t1, &constants[21], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t1
+    cudaMemcpyToSymbol(d_mwjfnums0t3, &constants[23], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t3
+    cudaMemcpyToSymbol(d_mwjfnums1t1, &constants[25], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s1t1
+    cudaMemcpyToSymbol(d_mwjfnums2t0, &constants[26], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s2t0
+    cudaMemcpyToSymbol(d_mwjfdens0t2, &constants[34], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t2
+    cudaMemcpyToSymbol(d_mwjfdens0t4, &constants[36], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t4
+    cudaMemcpyToSymbol(d_mwjfdens1t0, &constants[37], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t0
+    cudaMemcpyToSymbol(d_mwjfdens1t1, &constants[38], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t1
+    cudaMemcpyToSymbol(d_mwjfdens1t3, &constants[39], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t3
+    cudaMemcpyToSymbol(d_mwjfdensqt0, &constants[40], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt0
+    cudaMemcpyToSymbol(d_mwjfdensqt2, &constants[41], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt2
+
+    cudaMemcpyToSymbol(d_grav, &constants[45], sizeof(double), 0, cudaMemcpyHostToDevice); //= grav
+
 
   double mwjfnp0s0t0 = constants[20];
   double mwjfnp0s0t2 = constants[22];
@@ -190,13 +212,13 @@ void cuda_state_initialize(double *constants, double *pressz,
 //  cudaMemcpyToSymbol("d_smin", smin, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
 
   //bunch of memcpy to symbols go here
-  cudaMemcpyToSymbol("d_mwjfnums0t0", h_mwjfnums0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol("d_mwjfnums0t2", h_mwjfnums0t2, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol("d_mwjfnums1t0", h_mwjfnums1t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_mwjfnums0t0, h_mwjfnums0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_mwjfnums0t2, h_mwjfnums0t2, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_mwjfnums1t0, h_mwjfnums1t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
 
-  cudaMemcpyToSymbol("d_mwjfdens0t0", h_mwjfdens0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol("d_mwjfdens0t1", h_mwjfdens0t1, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol("d_mwjfdens0t3", h_mwjfdens0t3, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_mwjfdens0t0, h_mwjfdens0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_mwjfdens0t1, h_mwjfdens0t1, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(d_mwjfdens0t3, h_mwjfdens0t3, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
 
   //error checking
   cudaDeviceSynchronize();
