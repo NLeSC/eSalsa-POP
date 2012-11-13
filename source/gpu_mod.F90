@@ -100,8 +100,9 @@
                        mwjfnp2s0t2, mwjfdp0s0t0, mwjfdp0s0t1, mwjfdp0s0t2, &
                        mwjfdp0s0t3, mwjfdp0s0t4, mwjfdp0s1t0, mwjfdp0s1t1, &
                        mwjfdp0s1t3, mwjfdp0sqt0, mwjfdp0sqt2, mwjfdp1s0t0, &
-                       mwjfdp2s0t3, mwjfdp3s0t1, grav /)
+                       mwjfdp2s0t3, mwjfdp3s0t1, 0.0_r8 /)
 
+   constants(46) = grav
 
    namelist /gpu_mod_nml/ use_gpu_state
 
