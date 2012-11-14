@@ -52,7 +52,7 @@ void gpu_compare (double *a1, double *a2, int *pN);
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR);
 
-__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int start_k, int end_k);
+__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k);
 
 }
 
@@ -532,7 +532,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("Before buoydiff_gpu kernel execution");
 
-    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, 42);
+    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, 42);
     
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("After buoydiff_gpu kernel execution");
@@ -569,7 +569,7 @@ __device__ double state(double temp, double salt, int k) {
   return work1*denomk;
 }
 
-__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int start_k, int end_k) {
+__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k) {
 
   int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
   int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
@@ -603,7 +603,7 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 		DBLOC[indexmk] = 0.0;
 	}
 	
-	if (k >= d_kmt[sfci]){ //-1 removed because FORTRAN array index starts at 1
+	if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
 		DBLOC[indexmk] = 0.0;
 	}
 
