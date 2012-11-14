@@ -31,7 +31,7 @@ void cuda_init();
 void my_cudamallochost(void **hostptr, int* size);
 
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task);
+        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *kmt);
 
 //specific functions
 void mwjf_state_gpu(double *TEMPK, double *SALTK,
@@ -114,6 +114,9 @@ __constant__ double d_mwjfdens0t0[KM];
 __constant__ double d_mwjfdens0t1[KM];
 __constant__ double d_mwjfdens0t3[KM];
 
+//device pointer for kmt in GPU global memory
+int *d_kmt;
+
 //declare streams
 int cuda_state_initialized = 0;
 cudaStream_t stream[NSTREAMS];
@@ -122,8 +125,9 @@ cudaStream_t stream[NSTREAMS];
 int my_task;
 
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task) {
-
+        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *kmt) {
+  cudaError_t err;
+	
   if (cuda_state_initialized == 0) {
   cuda_state_initialized = 1;
   
@@ -148,20 +152,31 @@ void cuda_state_initialize(double *constants, double *pressz,
   */
 
   //CUDA 5.0 style
-    cudaMemcpyToSymbol(d_mwjfnums0t1, &constants[21], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t1
-    cudaMemcpyToSymbol(d_mwjfnums0t3, &constants[23], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t3
-    cudaMemcpyToSymbol(d_mwjfnums1t1, &constants[25], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s1t1
-    cudaMemcpyToSymbol(d_mwjfnums2t0, &constants[26], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s2t0
-    cudaMemcpyToSymbol(d_mwjfdens0t2, &constants[34], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t2
-    cudaMemcpyToSymbol(d_mwjfdens0t4, &constants[36], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t4
-    cudaMemcpyToSymbol(d_mwjfdens1t0, &constants[37], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t0
-    cudaMemcpyToSymbol(d_mwjfdens1t1, &constants[38], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t1
-    cudaMemcpyToSymbol(d_mwjfdens1t3, &constants[39], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t3
-    cudaMemcpyToSymbol(d_mwjfdensqt0, &constants[40], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt0
-    cudaMemcpyToSymbol(d_mwjfdensqt2, &constants[41], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt2
+  err = cudaMemcpyToSymbol(d_mwjfnums0t1, &constants[21], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t1
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfnums0t1\n");
+  err = cudaMemcpyToSymbol(d_mwjfnums0t3, &constants[23], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s0t3
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfnums0t3\n");
+  err = cudaMemcpyToSymbol(d_mwjfnums1t1, &constants[25], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s1t1
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfnums1t1\n");
+  err = cudaMemcpyToSymbol(d_mwjfnums2t0, &constants[26], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfnp0s2t0
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfnums2t0\n");
+  err = cudaMemcpyToSymbol(d_mwjfdens0t2, &constants[34], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t2
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens0t2\n");
+  err = cudaMemcpyToSymbol(d_mwjfdens0t4, &constants[36], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s0t4
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens0t4\n");
+  err = cudaMemcpyToSymbol(d_mwjfdens1t0, &constants[37], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t0
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens1t0\n");
+  err = cudaMemcpyToSymbol(d_mwjfdens1t1, &constants[38], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t1
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens1t1\n");
+  err = cudaMemcpyToSymbol(d_mwjfdens1t3, &constants[39], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0s1t3
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens1t3\n");
+  err = cudaMemcpyToSymbol(d_mwjfdensqt0, &constants[40], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt0
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdensqt0\n");
+  err = cudaMemcpyToSymbol(d_mwjfdensqt2, &constants[41], sizeof(double), 0, cudaMemcpyHostToDevice); //= mwjfdp0sqt2
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdensqt2\n");
 
-    cudaMemcpyToSymbol(d_grav, &constants[45], sizeof(double), 0, cudaMemcpyHostToDevice); //= grav
-
+  err = cudaMemcpyToSymbol(d_grav, &constants[45], sizeof(double), 0, cudaMemcpyHostToDevice); //= grav
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_grav\n");
 
   double mwjfnp0s0t0 = constants[20];
   double mwjfnp0s0t2 = constants[22];
@@ -212,14 +227,25 @@ void cuda_state_initialize(double *constants, double *pressz,
 //  cudaMemcpyToSymbol("d_smin", smin, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
 
   //bunch of memcpy to symbols go here
-  cudaMemcpyToSymbol(d_mwjfnums0t0, h_mwjfnums0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol(d_mwjfnums0t2, h_mwjfnums0t2, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol(d_mwjfnums1t0, h_mwjfnums1t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  err = cudaMemcpyToSymbol(d_mwjfnums0t0, h_mwjfnums0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfnums0t0\n");
+  err = cudaMemcpyToSymbol(d_mwjfnums0t2, h_mwjfnums0t2, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfnums0t2\n");
+  err = cudaMemcpyToSymbol(d_mwjfnums1t0, h_mwjfnums1t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfnums1t0\n");
 
-  cudaMemcpyToSymbol(d_mwjfdens0t0, h_mwjfdens0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol(d_mwjfdens0t1, h_mwjfdens0t1, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
-  cudaMemcpyToSymbol(d_mwjfdens0t3, h_mwjfdens0t3, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  err = cudaMemcpyToSymbol(d_mwjfdens0t0, h_mwjfdens0t0, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens0t0\n");
+  err = cudaMemcpyToSymbol(d_mwjfdens0t1, h_mwjfdens0t1, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens0t1\n");
+  err = cudaMemcpyToSymbol(d_mwjfdens0t3, h_mwjfdens0t3, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens0t3\n");
 
+  err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*sizeof(int));
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMalloc d_kmt\n");
+  err = cudaMemcpy (d_kmt, kmt, NX_BLOCK*NY_BLOCK*sizeof(int), cudaMemcpyHostToDevice); 
+  if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyHostToDevice KMT\n");
+  
   //error checking
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("After cudaMemcpyToSymbols");
@@ -228,6 +254,10 @@ void cuda_state_initialize(double *constants, double *pressz,
   for (k=0; k<NSTREAMS; k++) {
     cudaStreamCreate(&stream[k]);
   }
+  
+  //error checking
+  cudaDeviceSynchronize();
+  CUDA_CHECK_ERROR("After cudaStreamCreate");
   
 //debugging
 //  my_task = *pmy_task;

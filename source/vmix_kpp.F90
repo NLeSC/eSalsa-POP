@@ -58,6 +58,10 @@
    real (r8), public ::   &
       bckgrnd_vdc2         ! variation in diffusivity
 
+   real (r8), dimension(:,:,:), pointer, public :: &
+      DBLOC,      &! buoyancy difference between adjacent levels
+      DBSFC        ! buoyancy difference between level and surface
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -695,8 +699,8 @@
       STABLE       ! = 1 for stable forcing; = 0 for unstable forcing
  
    real (r8), dimension(nx_block,ny_block,km) :: &
-      DBLOC,      &! buoyancy difference between adjacent levels
-      DBSFC,      &! buoyancy difference between level and surface
+!      DBLOC,      &! buoyancy difference between adjacent levels
+!      DBSFC,      &! buoyancy difference between level and surface
       GHAT         ! non-local mixing coefficient
 
    real (r8), dimension(nx_block,ny_block,0:km+1) :: &

@@ -16,6 +16,7 @@
    use io
    use exit_mod
    use constants
+   use grid
    use state_mod     ! access to preszz, tmin, tmax, smin, smax, etc
    use domain_size   ! included for use of nx_block,ny_block,km,
    use prognostic    ! include for reference to TRACER
@@ -182,8 +183,18 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
     call c_f_pointer(cptr, RHOP, (/ nx_block,ny_block,km /))
 
+!       real (r8), dimension(nx_block,ny_block,km) :: &
+!      DBLOC,      &! buoyancy difference between adjacent levels
+!      DBSFC,      &! buoyancy difference between level and surface
 
-    allocate(RHOREF(nx_block,ny_block,km)) ! used for correctness checks
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
+    call c_f_pointer(cptr, DBLOC, (/ nx_block,ny_block,km /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
+    call c_f_pointer(cptr, DBSFC, (/ nx_block,ny_block,km /))
+
+
+    !allocate(RHOREF(nx_block,ny_block,km)) ! used for correctness checks
 
   !-----------------------------------------------------------------------
   !
@@ -193,7 +204,7 @@
   !-----------------------------------------------------------------------
 
     ! it is important that state_mod has already been initialized
-    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task)
+    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, KMT)
 
 
   else
@@ -205,7 +216,8 @@
   !-----------------------------------------------------------------------
     allocate(TRACER(nx_block,ny_block,km,nt,3,max_blocks_clinic))
     allocate(RHO(nx_block,ny_block,km,3,max_blocks_clinic))
-
+    allocate(DBLOC(nx_block,ny_block,km))
+    allocate(DBSFC(nx_block,ny_block,km))
 
   endif ! use_gpu_state
 
