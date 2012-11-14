@@ -466,8 +466,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 }
 
 
-
-void compare (double *a1, double *a2, int *pN) {
+void gpu_compare (double *a1, double *a2, int *pN) {
   int N = *pN;
   int i,res = 0;
   int print = 0;
