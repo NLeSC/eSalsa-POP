@@ -467,46 +467,45 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 
 
-void gpu_compare (double *a1, double *a2, int *pN) {
+int compare (double *a1, double *a2, int N) {
   int i,res = 0;
   int print = 0;
-  int zeros = 0;
-  double eps = 0.0000001;
-  int N = *pN;
+  int zeros1 = 0;
+  int zeros2 = 0;
+  double eps = 0.0000000001;
 
   for (i=0; i<N; i++) {
-//    if (i<1840080 && i>1840075) { printf("values at i=%d, a1= %20.17e, a2= %20.17e\n", i, a1[i], a2[i]); }
 
-    if (a1[i] < eps && a1[i] > -eps) {
-      zeros++;
-    }
-    
-    //check for nan
+    if (a1[i] < eps && a1[i] > -eps) { zeros1++; }
+    if (a2[i] < eps && a2[i] > -eps) { zeros2++; }
+
     if (isnan(a1[i]) || isnan(a2[i])) {
-    	res++;
-        if (print < 10) {
-          print++;
-          printf("Error detected at i=%d, a1= %20.17e a2= %20.17e\n",i,a1[i],a2[i]);
-        }
-    }
-
-    //compare results
-    double diff = a1[i]-a2[i];
-    if (diff > eps || diff < -eps) {
         res++;
         if (print < 10) {
           print++;
-          printf("Error detected at i=%d, a1= %30.27e a2= %30.27e\n",i,a1[i],a2[i]);
+          fprintf(stderr, "Node %d: Error detected at i=%d, a1= %20.17e a2= %20.17e\n",my_task,i,a1[i],a2[i]);
+        }
+    }
+
+    double diff = a1[i]-a2[i];
+    if (abs(diff) > eps) {
+        res++;
+        if (print < 10) {
+          print++;
+          fprintf(stderr, "Node %d: Error detected at i=%d, \t a1= \t %20.17e \t a2= \t %20.17e\n",my_task,i,a1[i],a2[i]);
         }
     }
 
   }
 
-  if (zeros > N/2) {
-    fprintf(stderr, "Error: more than 50% of array 1 contains zeros\n");
+  if (zeros1 > N/2) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zeros1); }
+  if (zeros2 > N/2) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zeros2); }
+
+  if (zeros1 != zeros2) {
+    fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zeros1, zeros2);
   }
 
-  fprintf(stdout,"Number of errors in GPU result: %d\n",res);
+  fprintf(stderr,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
 
 }
 
