@@ -262,8 +262,8 @@ void cuda_state_initialize(double *constants, double *pressz,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("After cudaStreamCreate");
   
+  my_task = *pmy_task;
 //debugging
-//  my_task = *pmy_task;
 //  if (my_task == 0) {
 //    printf("GPU_CMOD using constants:\n");
 //    printf("c0=%20.17e, c1=%20.17e, c2=%20.17e, c3=%20.17e, c4=%20.17e, c5=%20.17e, c8=%20.17e, c10=%20.17e\n",
