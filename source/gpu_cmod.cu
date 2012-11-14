@@ -601,7 +601,8 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 	
 	if (rhok != 0.0) { //prevent div by zero
 		DBSFC[index]   = d_grav*(1.0 - rho1/rhok);
-		DBLOC[indexmk] = d_grav*(1.0 - rhokm/rhok);
+		DBLOC[indexmk] = 1337.0;
+		//DBLOC[indexmk] = d_grav*(1.0 - rhokm/rhok);
 	} else {
 		DBSFC[index]   = 0.0;
 		DBLOC[indexmk] = 0.0;
