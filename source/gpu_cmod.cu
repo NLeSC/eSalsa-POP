@@ -501,7 +501,7 @@ void gpu_compare (double *a1, double *a2, int *pN) {
   if (zero_one > 3*(N/4)) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zero_one); }
   if (zero_two > 3*(N/4)) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zero_two); }
 
-  if (zeros1 != zeros2) {
+  if (zero_one != zero_two) {
     fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
   }
 
