@@ -145,7 +145,7 @@ clean:
 ifeq ($(VARSDEFINED),POPEXEDIRPOPDIRPOPARCH)
 	@cd $(POPEXEDIR) && $(RM) core pop pop_db 
 	@cd $(POPEXEDIR) && $(RM) compile/Depends/*.* 
-	@cd $(POPEXEDIR) && $(RM) compile/*.f compile/*.f90 compile/*.c
+	@cd $(POPEXEDIR) && $(RM) compile/*.f compile/*.f90 compile/*.c compile/*.cu
 	@cd $(POPEXEDIR) && $(RM) compile/*.o compile/*.$(MODSUF) 
 else
 	@echo "  Please setenv POPEXEDIR POPDIR and POPARCH"

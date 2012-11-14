@@ -518,7 +518,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     //this will later be reused by other GPU kernels in vmix_kpp
     err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
     if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
-    err = cudaMemcpyAsync(d_TRCR, TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double), cudaMemcpyHostToDevice, stream[1]);
+    err = cudaMemcpy(d_TRCR, TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double), cudaMemcpyHostToDevice);
     if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device TRCR: %s\n", cudaGetErrorString( err ));
 
     memset(DBLOC, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
