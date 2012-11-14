@@ -60,9 +60,7 @@
    real (r8), public ::   &
       bckgrnd_vdc2         ! variation in diffusivity
 
-   real (r8), dimension(:,:,:), pointer, public :: &
-      DBLOC,      &! buoyancy difference between adjacent levels
-      DBSFC        ! buoyancy difference between level and surface
+
 
 !EOP
 !BOC

@@ -65,6 +65,12 @@
       smin, smax,        &! valid salinity    range for level k
       pressz              ! ref pressure (bars) at each level
 
+!temporarily storing pointers in state_mod
+!to avoid circular dependency between vmix_kpp and gpu_mod
+   real (r8), dimension(:,:,:), pointer, public :: &
+      DBLOC,      &! buoyancy difference between adjacent levels
+      DBSFC        ! buoyancy difference between level and surface
+
 !-----------------------------------------------------------------------
 !
 !  choices for eos type and valid range checks
