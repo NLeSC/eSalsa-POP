@@ -467,7 +467,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 
 
-int compare (double *a1, double *a2, int N) {
+void compare (double *a1, double *a2, int N) {
   int i,res = 0;
   int print = 0;
   int zeros1 = 0;
