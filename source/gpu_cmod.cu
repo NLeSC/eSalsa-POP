@@ -521,6 +521,9 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     err = cudaMemcpyAsync(d_TRCR, TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double), cudaMemcpyHostToDevice, stream[1]);
     if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device TRCR: %s\n", cudaGetErrorString( err ));
 
+    memset(DBLOC, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
+    memset(DBSFC, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
+    
     //setup execution parameters
     dim3 threads(256,1);
     dim3 grid(1,1);
@@ -531,8 +534,9 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("Before buoydiff_gpu kernel execution");
 
-    //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, 42);
-    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, 42);
+    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
+    //debugging
+    //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, 42);
     
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("After buoydiff_gpu kernel execution");
