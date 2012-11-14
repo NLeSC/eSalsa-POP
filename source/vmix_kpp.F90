@@ -35,6 +35,8 @@
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
 
+   use gpu_mod
+
    implicit none
    private
    save
@@ -699,8 +701,8 @@
       STABLE       ! = 1 for stable forcing; = 0 for unstable forcing
  
    real (r8), dimension(nx_block,ny_block,km) :: &
-!      DBLOC,      &! buoyancy difference between adjacent levels
-!      DBSFC,      &! buoyancy difference between level and surface
+      DBLOCREF,      &! buoyancy difference between adjacent levels
+      DBSFCREF,      &! buoyancy difference between level and surface
       GHAT         ! non-local mixing coefficient
 
    real (r8), dimension(nx_block,ny_block,0:km+1) :: &
@@ -723,9 +725,17 @@
 !  compute buoyancy differences at each vertical level.
 !
 !-----------------------------------------------------------------------
+if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
 
+   call buoydiff_wrapper(DBLOC, DBSFC, TRCR)
+
+   call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
+
+   call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*POP_km)
+   call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*POP_km)
+else
    call buoydiff(DBLOC, DBSFC, TRCR, this_block)
-
+endif
 
 !-----------------------------------------------------------------------
 !

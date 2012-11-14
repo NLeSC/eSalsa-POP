@@ -50,6 +50,9 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 void gpu_compare (double *a1, double *a2, int *pN);
 
+void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR);
+
+__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int start_k, int end_k);
 
 }
 
@@ -243,7 +246,7 @@ void cuda_state_initialize(double *constants, double *pressz,
 
   err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*sizeof(int));
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMalloc d_kmt\n");
-  err = cudaMemcpy (d_kmt, kmt, NX_BLOCK*NY_BLOCK*sizeof(int), cudaMemcpyHostToDevice); 
+  err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*sizeof(int), cudaMemcpyHostToDevice); 
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyHostToDevice KMT\n");
   
   //error checking
@@ -477,7 +480,17 @@ void gpu_compare (double *a1, double *a2, int *pN) {
     if (a1[i] < eps && a1[i] > -eps) {
       zeros++;
     }
+    
+    //check for nan
+    if (isnan(a1[i]) || isnan(a2[i])) {
+    	res++;
+        if (print < 10) {
+          print++;
+          printf("Error detected at i=%d, a1= %20.17e a2= %20.17e\n",i,a1[i],a2[i]);
+        }
+    }
 
+    //compare results
     double diff = a1[i]-a2[i];
     if (diff > eps || diff < -eps) {
         res++;
@@ -497,5 +510,103 @@ void gpu_compare (double *a1, double *a2, int *pN) {
 
 }
 
+double *d_TRCR;
 
+void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
+    cudaError_t err;
+    
+    //allocate space and copy TRCR to GPU
+    //this will later be reused by other GPU kernels in vmix_kpp
+    err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
+    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+    err = cudaMemcpyAsync(d_TRCR, TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double), cudaMemcpyHostToDevice, stream[1]);
+    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device TRCR: %s\n", cudaGetErrorString( err ));
+
+    //setup execution parameters
+    dim3 threads(256,1);
+    dim3 grid(1,1);
+    grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
+    grid.y = (KM);
+
+    //this sync is a bit over protective but currently here for debugging purposes
+    cudaDeviceSynchronize();
+    CUDA_CHECK_ERROR("Before buoydiff_gpu kernel execution");
+
+    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, 42);
+    
+    cudaDeviceSynchronize();
+    CUDA_CHECK_ERROR("After buoydiff_gpu kernel execution");
+
+    //this free() should be removed if we want to reuse TRCR info in
+    //other kernels from vmix_kpp
+    cudaFree(d_TRCR);
+    
+}
+
+
+//device version of state for rho only used in buoydiff GPU kernel
+__device__ double state(double temp, double salt, int k) {
+  double tq, sq, sqr, work1, work2, denomk;
+
+        tq = min(temp, TMAX);
+        tq = max(tq,   TMIN);
+
+        sq = min(salt, SMAX);
+        sq = 1000.0 * max(sq, SMIN);
+
+        sqr = sqrt(sq);
+
+        work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
+                              sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
+
+        work2 = d_mwjfdens0t0[k] + tq * (d_mwjfdens0t1[k] + tq * (d_mwjfdens0t2 +
+           tq * (d_mwjfdens0t3[k] + d_mwjfdens0t4 * tq))) +
+           sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
+           sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
+
+        denomk = 1.0/work2;
+
+  return work1*denomk;
+}
+
+__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int start_k, int end_k) {
+
+  int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
+  int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
+  int sfci = i - (i / (NX_BLOCK*NY_BLOCK))*(NX_BLOCK*NY_BLOCK);
+  //obtain array index
+  int index = i + start_k*NX_BLOCK*NY_BLOCK;
+  int indexmk = index-(NX_BLOCK*NY_BLOCK);
+
+  double rho1, rhokm, rhok;
+
+  if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
+
+    //if k==0 we write DBSFC=0 and exit, as DBLOC for k=0 is computed by k=1
+	if (k == 0) {
+		DBSFC[index] = 0.0;
+		return;
+	}
+	if (k == KM-1) {
+		DBLOC[index] = 0.0;
+	}
+	
+	rho1  = state(TEMP[sfci], SALT[sfci], k);
+	rhokm = state(TEMP[indexmk], SALT[indexmk], k-1);
+	rhok  = state(TEMP[index], SALT[index], k);
+	
+	if (rhok != 0.0) { //prevent div by zero
+		DBSFC[index]   = d_grav*(1.0 - rho1/rhok);
+		DBLOC[indexmk] = d_grav*(1.0 - rhokm/rhok);
+	} else {
+		DBSFC[index]   = 0.0;
+		DBLOC[indexmk] = 0.0;
+	}
+	
+	if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
+		DBLOC[indexmk] = 0.0;
+	}
+
+  }
+}
 

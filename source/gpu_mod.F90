@@ -34,7 +34,8 @@
    public :: init_gpu_mod, &
              mwjf_state, &
              mwjf_statePD, &
-             gpumod_compare
+             gpumod_compare, &
+             buoydiff_wrapper
 !             vmix_coeffs,                          &
 !             vdifft, vdiffu,                       &
 !             impvmixt, impvmixt_correct, impvmixu, &
@@ -193,8 +194,10 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
     call c_f_pointer(cptr, DBSFC, (/ nx_block,ny_block,km /))
 
-
-    !allocate(RHOREF(nx_block,ny_block,km)) ! used for correctness checks
+    ! used for correctness checks
+    !allocate(RHOREF(nx_block,ny_block,km))
+    !allocate(DBLOCREF(nx_block,ny_block,km))
+    !allocate(DBSFCREF(nx_block,ny_block,km))
 
   !-----------------------------------------------------------------------
   !
@@ -337,6 +340,33 @@
    call gpu_compare(A, B, n)
 
  end subroutine
+
+
+
+ subroutine buoydiff_wrapper(DBLOC, DBSFC, TRCR)
+
+! !DESCRIPTION:
+!  This routine calculates the buoyancy differences at model levels.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TRCR                ! tracers at current time
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km), intent(out) :: &
+      DBLOC,         &! buoyancy difference between adjacent levels
+      DBSFC           ! buoyancy difference between level and surface
+
+   call buoydiff_gpu(DBLOC, DBSFC, TRCR)
+
+ end subroutine buoydiff_wrapper
+
+
 
 
  end module gpu_mod

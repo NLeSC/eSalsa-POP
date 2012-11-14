@@ -62,8 +62,8 @@
    real (r8), dimension(:,:,:), pointer :: &
       RHOP       ! 3d density field, used to store potential density for tavg_PD
 
-   real (r8), dimension(:,:,:), pointer :: &
-      RHOREF    ! 3d density fields used to check for correctness of GPU routines
+   !real (r8), dimension(:,:,:), pointer :: &
+   !   RHOREF    ! 3d density fields used to check for correctness of GPU routines
 
 
    real (r8), dimension(nx_block,ny_block,3,max_blocks_clinic), &
