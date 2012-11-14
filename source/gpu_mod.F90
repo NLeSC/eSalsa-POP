@@ -76,10 +76,14 @@
 !
 !-----------------------------------------------------------------------
 
+   type (block) :: &
+      this_block          ! block information for current block
+
    integer (int_kind) ::  &
       k,                  &! vertical level index
       nu,                 &! i/o unit
-      nml_error            ! namelist i/o error flag
+      nml_error,          &! namelist i/o error flag
+      bid                  ! block id
 
    character (char_len) :: &
       vmix_choice          ! input choice for desired parameterization
@@ -108,6 +112,8 @@
 
    constants(46) = grav
 
+   this_block = get_block(blocks_clinic(1),1)
+   bid = this_block%local_id
 
 !-----------------------------------------------------------------------
 !
@@ -207,7 +213,7 @@
   !-----------------------------------------------------------------------
 
     ! it is important that state_mod has already been initialized
-    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, KMT)
+    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, KMT(:,:,bid))
 
 
   else
