@@ -56,6 +56,7 @@ subroutine mwjf_statepd_gpu(TEMP, SALT, RHOOUT, start_k, end_k) bind (c)
         integer (c_int) :: start_k, end_k
 end subroutine mwjf_statepd_gpu
 
+
 subroutine gpu_compare(A, B, n) bind (c)
 	use iso_c_binding
 	real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
