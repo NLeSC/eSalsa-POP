@@ -113,6 +113,7 @@
    constants(46) = grav
 
    this_block = get_block(blocks_clinic(1),1)
+
    bid = this_block%local_id
 
 !-----------------------------------------------------------------------
