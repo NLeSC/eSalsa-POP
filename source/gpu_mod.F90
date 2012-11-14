@@ -17,7 +17,7 @@
    use exit_mod
    use constants
    use grid
-   use vmix_kpp
+   use vmix_kpp, only: DBLOC, DBSFC
    use state_mod     ! access to preszz, tmin, tmax, smin, smax, etc
    use domain_size   ! included for use of nx_block,ny_block,km,
    use prognostic    ! include for reference to TRACER
