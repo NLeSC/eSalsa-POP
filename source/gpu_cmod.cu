@@ -468,16 +468,16 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 void gpu_compare (double *a1, double *a2, int *pN) {
   int N = *pN;
-  int i,res = 0;
+  int i=0, res=0;
   int print = 0;
-  int zeros1 = 0;
-  int zeros2 = 0;
+  int zero_one = 0;
+  int zero_two = 0;
   double eps = 0.0000000001;
 
   for (i=0; i<N; i++) {
 
-    if (a1[i] < eps && a1[i] > -eps) { zeros1++; }
-    if (a2[i] < eps && a2[i] > -eps) { zeros2++; }
+    if (a1[i] < eps && a1[i] > -eps) { zero_one++; }
+    if (a2[i] < eps && a2[i] > -eps) { zero_two++; }
 
     if (isnan(a1[i]) || isnan(a2[i])) {
         res++;
@@ -488,7 +488,7 @@ void gpu_compare (double *a1, double *a2, int *pN) {
     }
 
     double diff = a1[i]-a2[i];
-    if (abs(diff) > eps) {
+    if (diff > eps || diff < -eps) {
         res++;
         if (print < 10) {
           print++;
@@ -498,11 +498,11 @@ void gpu_compare (double *a1, double *a2, int *pN) {
 
   }
 
-  if (zeros1 > N/2) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zeros1); }
-  if (zeros2 > N/2) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zeros2); }
+  if (zero_one > 3*(N/4)) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zero_one); }
+  if (zero_two > 3*(N/4)) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zero_two); }
 
   if (zeros1 != zeros2) {
-    fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zeros1, zeros2);
+    fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
   }
 
   fprintf(stderr,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
@@ -534,7 +534,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("Before buoydiff_gpu kernel execution");
 
-    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
+    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, 42);
     //debugging
     //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, 42);
     
@@ -608,9 +608,10 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 		DBLOC[indexmk] = 0.0;
 	}
 	
-	if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
-		DBLOC[indexmk] = 0.0;
-	}
+	//removed for debugging purposes
+	//if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
+	//	DBLOC[indexmk] = 0.0;
+	//}
 
   }
 }
