@@ -548,11 +548,11 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 __device__ double state(double temp, double salt, int k) {
   double tq, sq, sqr, work1, work2, denomk;
 
-        tq = min(temp, TMAX);
-        tq = max(tq,   TMIN);
+        tq = min(temp, 999.0);
+        tq = max(tq,   -2.0);
 
-        sq = min(salt, SMAX);
-        sq = 1000.0 * max(sq, SMIN);
+        sq = min(salt, 0.999);
+        sq = 1000.0 * max(sq, 0.0);
 
         sqr = sqrt(sq);
 
