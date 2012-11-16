@@ -72,10 +72,9 @@ endif
 #
 #----------------------------------------------------------------------------
 
-SOURCES = 
-CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.h)))
-ifneq (,$(CUSRCS))
-	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
+HSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.h)))
+ifneq (,$(HSRCS))
+	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(HSRCS))) \
              $(SOURCES)
 endif
 
