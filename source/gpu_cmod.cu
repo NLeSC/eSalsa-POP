@@ -603,12 +603,12 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 		dbloc = 0.0;
 	}
 	
-	//removed for debugging purposes
-	//if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
-	//	dbloc = 0.0;
-	//}
-	//DBLOC[indexmk] = dbloc;
-	DBLOC[indexmk] = d_grav;
+	
+	if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
+		dbloc = 0.0;
+	}
+	DBLOC[indexmk] = dbloc;
+	//DBLOC[indexmk] = d_grav;
 
   }
 }
