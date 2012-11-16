@@ -2626,7 +2626,7 @@ endif
          endif
 
          !removed for debugging
-         !if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
+         if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
       end do
       end do
 
