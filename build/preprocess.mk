@@ -68,6 +68,19 @@ endif
 
 #----------------------------------------------------------------------------
 #
+# Define .h sources that must be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+SOURCES = 
+CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.h)))
+ifneq (,$(CUSRCS))
+	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
+             $(SOURCES)
+endif
+
+#----------------------------------------------------------------------------
+#
 # Define .F sources that must be preprocessed into the build directory as .f
 # and add .f version to list of target source files.
 #
@@ -201,7 +214,6 @@ preprocess: $(SOURCES)
 %.f90 : %.F90
 %.f : %.F
 
-
 # Preprocessing rules for Fortran (.F, F90) and C files
 
 $(POPEXEDIR)/compile/%.f: %.F
@@ -233,10 +245,13 @@ $(POPEXEDIR)/compile/%.f90: %.f90
 $(POPEXEDIR)/compile/%.c: %.c
 	@echo '$(POPARCH) preprocessing ' $<
 	@$(Cp) $< $(POPEXEDIR)/compile/$*.c
-	@$(Cp) $< $(POPEXEDIR)/compile/$*.h
 
 $(POPEXEDIR)/compile/%.cu: %.cu
 	@echo '$(POPARCH) preprocessing ' $<
 	@$(Cp) $< $(POPEXEDIR)/compile/$*.cu
+	
+$(POPEXEDIR)/compile/%.h: %.h
+	@echo '$(POPARCH) copying ' $<
+	@$(Cp) $< $(POPEXEDIR)/compile/$*.h
 
 #----------------------------------------------------------------------------
