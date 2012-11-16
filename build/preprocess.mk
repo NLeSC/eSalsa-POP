@@ -233,6 +233,7 @@ $(POPEXEDIR)/compile/%.f90: %.f90
 $(POPEXEDIR)/compile/%.c: %.c
 	@echo '$(POPARCH) preprocessing ' $<
 	@$(Cp) $< $(POPEXEDIR)/compile/$*.c
+	@$(Cp) $< $(POPEXEDIR)/compile/$*.h
 
 $(POPEXEDIR)/compile/%.cu: %.cu
 	@echo '$(POPARCH) preprocessing ' $<
