@@ -26,6 +26,8 @@
    private
    save
 
+   ! include compile time domain info
+   #include "gpu_domain.h"
    ! include the interface to the C code
    #include "gpu_mod.fh"
 
