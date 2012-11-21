@@ -216,7 +216,7 @@
     ! it is important that state_mod has already been initialized
     call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, KMT(:,:,bid))
 
-    write(stdout, *) ' grav= ', constants(46)
+    !write(stdout, *) ' grav= ', constants(46)
 
 
   else
@@ -372,15 +372,13 @@
       DBLOC,         &! buoyancy difference between adjacent levels
       DBSFC           ! buoyancy difference between level and surface
 
-    if (my_task == master_task) then
-      write(stdout, *) ' tmin= ', tmin
-      write(stdout, *) ' tmax= ', tmax
-      write(stdout, *) ' smin= ', smin
-      write(stdout, *) ' smax= ', smax
-      write(stdout, *) ' pressz= ', pressz
-
-
-    endif
+!    if (my_task == master_task) then
+!      write(stdout, *) ' tmin= ', tmin
+!      write(stdout, *) ' tmax= ', tmax
+!      write(stdout, *) ' smin= ', smin
+!      write(stdout, *) ' smax= ', smax
+!      write(stdout, *) ' pressz= ', pressz
+!    endif
 
    call buoydiff_gpu(DBLOC, DBSFC, TEMP, SALT)
 

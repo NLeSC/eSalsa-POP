@@ -883,7 +883,7 @@
 !      write(stdout, *) ' tmax= ', tmax(1)
 !      write(stdout, *) ' smin= ', smin(1)
 !      write(stdout, *) ' smax= ', smax(1)
-      write(stdout, *) ' pressz= ', pressz
+!      write(stdout, *) ' pressz= ', pressz
 
 !-----------------------------------------------------------------------
 !
