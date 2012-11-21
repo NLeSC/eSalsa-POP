@@ -241,8 +241,9 @@ void cuda_state_initialize(double *constants, double *pressz,
 
   err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*sizeof(int));
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMalloc d_kmt\n");
-  err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*sizeof(int), cudaMemcpyHostToDevice); 
+  err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*sizeof(int), cudaMemcpyHostToDevice);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyHostToDevice KMT\n");
+
   
   //error checking
   cudaDeviceSynchronize();
@@ -542,21 +543,15 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     
 }
 
-//test
-#define TMIN -2.0000000000000000
-#define TMAX 999.00000000000000
-#define SMIN 0.0000000000000000
-#define SMAX 0.99900001287460327
-
 //device version of state for rho only used in buoydiff GPU kernel
 __device__ double state(double temp, double salt, int k) {
   double tq, sq, sqr, work1, work2, denomk;
 
-        tq = min(temp, TMAX);
-        tq = max(tq,   TMIN);
+        tq = min(temp, 999.0);
+        tq = max(tq,   -2.0);
 
-        sq = min(salt, SMAX);
-        sq = 1000.0 * max(sq, SMIN);
+        sq = min(salt, 0.999);
+        sq = 1000.0 * max(sq, 0.0);
 
         sqr = sqrt(sq);
 
