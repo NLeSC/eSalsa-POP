@@ -2622,7 +2622,7 @@ endif
             DBLOC(i,j,k-1) = grav*(c1 - RHOKM(i,j)/RHOK(i,j))
          else
             DBSFC(i,j,k)   = c0
-            DBLOC(i,j,k-1) = c0
+            !DBLOC(i,j,k-1) = c0
             !debugging
             DBLOC(i,j,k-1) = 1337.0_r8
          endif
