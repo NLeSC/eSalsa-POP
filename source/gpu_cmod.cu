@@ -511,6 +511,15 @@ double *d_SALT;
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
     cudaError_t err;
     
+    //completely unnecessary but testing anyway
+    double *d_DBLOC;
+    double *d_DBSFC;    
+    err = cudaHostGetDevicePointer(d_DBLOC, DBLOC, 0);
+    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+    err = cudaHostGetDevicePointer(d_DBSFC, DBSFC, 0);
+    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+
+    
     //allocate space and copy TRCR to GPU
     //this will later be reused by other GPU kernels in vmix_kpp
     err = cudaMalloc((void **)&d_TEMP, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
@@ -536,7 +545,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("Before buoydiff_gpu kernel execution");
 
-    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TEMP, d_SALT, d_kmt, 0, KM);
+    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(d_DBLOC, d_DBSFC, d_TEMP, d_SALT, d_kmt, 0, KM);
     //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
     //debugging
     //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
@@ -605,19 +614,19 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 	if (rhok != 0.0) { //prevent div by zero
 		DBSFC[index]   = d_grav*(1.0 - rho1/rhok);
 		//debug DBLOC[indexmk] = 1337.0;
-		//dbloc = d_grav*(1.0 - rhokm/rhok);
-		DBLOC[indexmk] = d_grav*(1.0 - rhokm/rhok);
+		dbloc = d_grav*(1.0 - rhokm/rhok);
+		//DBLOC[indexmk] = d_grav*(1.0 - rhokm/rhok);
 	} else {
 		DBSFC[index]   = 0.0;
-		//dbloc = 0.0;
-		DBLOC[indexmk] = 0.0;
+		dbloc = 0.0;
+		//DBLOC[indexmk] = 0.0;
 	}
 	
 	if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
-		//dbloc = 0.0;
-		DBLOC[indexmk] = 0.0;
+		dbloc = 0.0;
+		//DBLOC[indexmk] = 0.0;
 	}
-	//DBLOC[indexmk] = dbloc;
+	DBLOC[indexmk] = dbloc;
 
   }
 }
