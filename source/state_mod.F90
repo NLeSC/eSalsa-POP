@@ -879,10 +879,10 @@
       smin =   0.0_r8  ! limited   on the low  end
       smax = 0.999_r8  ! unlimited on the high end
 
-      write(stdout, *) ' tmin= ', tmin
-      write(stdout, *) ' tmax= ', tmax
-      write(stdout, *) ' smin= ', smin
-      write(stdout, *) ' smax= ', smax
+      write(stdout, *) ' tmin= ', tmin(1)
+      write(stdout, *) ' tmax= ', tmax(1)
+      write(stdout, *) ' smin= ', smin(1)
+      write(stdout, *) ' smax= ', smax(1)
 
 
 !-----------------------------------------------------------------------
