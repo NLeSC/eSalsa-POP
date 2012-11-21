@@ -59,7 +59,7 @@ subroutine gpu_compare(A, B, n, str) bind (c)
 	real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
 		A, B
 	integer (c_int) :: n
-	character (*) :: str
+	character (*), dimension(KM) :: str
 end subroutine gpu_compare
 
 
