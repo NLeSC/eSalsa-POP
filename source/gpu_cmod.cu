@@ -514,9 +514,9 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
     //completely unnecessary but testing anyway
     double *d_DBLOC;
     double *d_DBSFC;    
-    err = cudaHostGetDevicePointer(d_DBLOC, DBLOC, 0);
+    err = cudaHostGetDevicePointer((void**)&d_DBLOC, DBLOC, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-    err = cudaHostGetDevicePointer(d_DBSFC, DBSFC, 0);
+    err = cudaHostGetDevicePointer((void**)&d_DBSFC, DBSFC, 0);
     if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
 
     
