@@ -2624,7 +2624,7 @@ endif
             DBSFC(i,j,k)   = c0
             DBLOC(i,j,k-1) = c0
             !debugging
-            !DBLOC(i,j,k-1) = 1337.0_r8
+            DBLOC(i,j,k-1) = 1337.0_r8
          endif
 
          !only removed for debugging
