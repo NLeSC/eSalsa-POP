@@ -204,9 +204,7 @@
     call c_f_pointer(cptr, DBSFC, (/ nx_block,ny_block,km /))
 
     ! used for correctness checks
-    !allocate(RHOREF(nx_block,ny_block,km))
-    !allocate(DBLOCREF(nx_block,ny_block,km))
-    !allocate(DBSFCREF(nx_block,ny_block,km))
+    allocate(RHOREF(nx_block,ny_block,km))
 
   !-----------------------------------------------------------------------
   !
