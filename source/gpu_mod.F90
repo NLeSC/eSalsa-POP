@@ -346,7 +346,7 @@
     integer (int_kind), intent(in) :: &
       n             ! number of elements
 
-    character (*), intent(in) :: &
+    character (1), intent(in) :: &
       str
 
    call gpu_compare(A, B, n, str)
