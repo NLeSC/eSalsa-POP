@@ -727,12 +727,9 @@ if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_ityp
 
    call buoydiff_wrapper(DBLOC, DBSFC, TRCR(:,:,:,1), TRCR(:,:,:,2))
 
-   DBLOCREF = c0
-   DBSFCREF = c0
    call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
 
    call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km)
-   !lets first only check if DBLOC is correct
    call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km)
 else
    call buoydiff(DBLOC, DBSFC, TRCR, this_block)

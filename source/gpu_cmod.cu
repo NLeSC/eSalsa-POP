@@ -564,23 +564,23 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
 __device__ double state(double temp, double salt, int k) {
   double tq, sq, sqr, work1, work2, denomk;
 
-        tq = min(temp, 999.0);
-        tq = max(tq,   -2.0);
+  tq = min(temp, 999.0);		//d_tmax[k]
+  tq = max(tq, -2.0);			//d_tmin[k]
 
-        sq = min(salt, 0.999);
-        sq = 1000.0 * max(sq, 0.0);
+  sq = min(salt, 0.999);		//d_smax[k]
+  sq = 1000.0 * max(sq, 0.0);	//d_smin[k]
 
-        sqr = sqrt(sq);
+  sqr = sqrt(sq);
 
-        work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
-                              sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
+  work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
+                        sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
 
-        work2 = d_mwjfdens0t0[k] + tq * (d_mwjfdens0t1[k] + tq * (d_mwjfdens0t2 +
-           tq * (d_mwjfdens0t3[k] + d_mwjfdens0t4 * tq))) +
-           sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
-           sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
+  work2 = d_mwjfdens0t0[k] + tq * (d_mwjfdens0t1[k] + tq * (d_mwjfdens0t2 +
+     tq * (d_mwjfdens0t3[k] + d_mwjfdens0t4 * tq))) +
+     sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
+     sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
 
-        denomk = 1.0/work2;
+  denomk = 1.0/work2;
 
   return work1*denomk;
 }
