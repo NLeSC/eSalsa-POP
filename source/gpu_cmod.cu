@@ -562,7 +562,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
 
 //device version of state for rho only used in buoydiff GPU kernel
 __device__ double state(double temp, double salt, int k) {
-  double tq, sq, sqr, work1, work2, denomk;
+  double tq, sq, sqr, work1, work2;//, denomk;
 
   tq = min(temp, 999.0);		//d_tmax[k]
   tq = max(tq, -2.0);			//d_tmin[k]
@@ -580,9 +580,10 @@ __device__ double state(double temp, double salt, int k) {
      sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
      sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
 
-  denomk = 1.0/work2;
-
-  return work1*denomk;
+  //denomk = 1.0/work2;
+  //return work1*denomk;
+  
+  return work1/work2;
 }
 
 __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k) {
@@ -601,8 +602,8 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
     //if k==0 we write DBSFC=0 and exit, as DBLOC for k=0 is computed by k=1
 	if (k == 0) {
 		DBSFC[index] = 0.0;
-		//return;
-	} else {
+		return;
+	} 
 	if (k == KM-1) {
 		DBLOC[index] = 0.0;
 	}
@@ -632,6 +633,6 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 	}
 	DBLOC[indexmk] = dbloc;
 
-	}
+	
   }
 }
