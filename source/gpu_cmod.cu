@@ -45,7 +45,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 void gpu_compare(double *a1, double *a2, int *pN);
 
-void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR);
+void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT);
 
 __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k);
 
@@ -505,16 +505,22 @@ void gpu_compare (double *a1, double *a2, int *pN) {
 
 }
 
-double *d_TRCR;
+double *d_TEMP;
+double *d_SALT;
 
-void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
+void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
     cudaError_t err;
     
     //allocate space and copy TRCR to GPU
     //this will later be reused by other GPU kernels in vmix_kpp
-    err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
+    err = cudaMalloc((void **)&d_TEMP, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
     if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
-    err = cudaMemcpy(d_TRCR, TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double), cudaMemcpyHostToDevice);
+    err = cudaMemcpy(d_TEMP, TEMP, NX_BLOCK*NY_BLOCK*KM*sizeof(double), cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device TRCR: %s\n", cudaGetErrorString( err ));
+    
+    err = cudaMalloc((void **)&d_SALT, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
+    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+    err = cudaMemcpy(d_SALT, SALT, NX_BLOCK*NY_BLOCK*KM*sizeof(double), cudaMemcpyHostToDevice);
     if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device TRCR: %s\n", cudaGetErrorString( err ));
 
     memset(DBLOC, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
@@ -530,7 +536,8 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("Before buoydiff_gpu kernel execution");
 
-    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
+    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TEMP, d_SALT, d_kmt, 0, KM);
+    //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
     //debugging
     //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
     
@@ -539,7 +546,8 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 
     //this free() should be removed if we want to reuse TRCR info in
     //other kernels from vmix_kpp
-    cudaFree(d_TRCR);
+    cudaFree(d_TEMP);
+    cudaFree(d_SALT);
     
 }
 

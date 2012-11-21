@@ -725,7 +725,7 @@
 !-----------------------------------------------------------------------
 if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
 
-   call buoydiff_wrapper(DBLOC, DBSFC, TRCR)
+   call buoydiff_wrapper(DBLOC, DBSFC, TRCR(:,:,:,1), TRCR(:,:,:,2))
 
    call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
 

@@ -62,13 +62,14 @@ subroutine gpu_compare(A, B, n) bind (c)
 end subroutine gpu_compare
 
 
-subroutine buoydiff_gpu(DBLOC, DBSFC, TRCR) bind (c)
+subroutine buoydiff_gpu(DBLOC, DBSFC, TEMP, SALT) bind (c)
         use iso_c_binding
         real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
             DBLOC,    &! temperature at level k
             DBSFC      ! salinity    at level k
-        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM,2) :: &
-            TRCR       ! perturbation density of water
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
+            TEMP,     &! temperature
+            SALT	   ! salinity
 end subroutine buoydiff_gpu
 
 

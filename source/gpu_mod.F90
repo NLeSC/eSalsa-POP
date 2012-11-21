@@ -352,7 +352,7 @@
 
 
 
- subroutine buoydiff_wrapper(DBLOC, DBSFC, TRCR)
+ subroutine buoydiff_wrapper(DBLOC, DBSFC, TEMP, SALT)
 
 ! !DESCRIPTION:
 !  This routine calculates the buoyancy differences at model levels.
@@ -362,8 +362,9 @@
 
 ! !INPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
-      TRCR                ! tracers at current time
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      TEMP,              &! temperature tracer at current time
+      SALT                ! salinity tracer at current time
 
 ! !OUTPUT PARAMETERS:
 
@@ -371,7 +372,7 @@
       DBLOC,         &! buoyancy difference between adjacent levels
       DBSFC           ! buoyancy difference between level and surface
 
-   call buoydiff_gpu(DBLOC, DBSFC, TRCR)
+   call buoydiff_gpu(DBLOC, DBSFC, TEMP, SALT)
 
  end subroutine buoydiff_wrapper
 
