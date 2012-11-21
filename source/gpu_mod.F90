@@ -372,6 +372,16 @@
       DBLOC,         &! buoyancy difference between adjacent levels
       DBSFC           ! buoyancy difference between level and surface
 
+    if (my_task == master_task) then
+      write(stdout, *) ' tmin= ', tmin
+      write(stdout, *) ' tmax= ', tmax
+      write(stdout, *) ' smin= ', smin
+      write(stdout, *) ' smax= ', smax
+      write(stdout, *) ' pressz= ', pressz
+
+
+    endif
+
    call buoydiff_gpu(DBLOC, DBSFC, TEMP, SALT)
 
  end subroutine buoydiff_wrapper
