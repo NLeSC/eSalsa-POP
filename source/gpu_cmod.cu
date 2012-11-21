@@ -512,12 +512,12 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
     cudaError_t err;
     
     //completely unnecessary but testing anyway
-    double *d_DBLOC;
-    double *d_DBSFC;    
-    err = cudaHostGetDevicePointer((void**)&d_DBLOC, DBLOC, 0);
-    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
-    err = cudaHostGetDevicePointer((void**)&d_DBSFC, DBSFC, 0);
-    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+//    double *d_DBLOC;
+//    double *d_DBSFC;    
+//    err = cudaHostGetDevicePointer((void**)&d_DBLOC, DBLOC, 0);
+//    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
+//    err = cudaHostGetDevicePointer((void**)&d_DBSFC, DBSFC, 0);
+//    if (err != cudaSuccess) fprintf(stderr, "Error retrieving device pointer: %s\n", cudaGetErrorString( err ));
 
     
     //allocate space and copy TRCR to GPU
@@ -545,7 +545,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
     cudaDeviceSynchronize();
     CUDA_CHECK_ERROR("Before buoydiff_gpu kernel execution");
 
-    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(d_DBLOC, d_DBSFC, d_TEMP, d_SALT, d_kmt, 0, KM);
+    buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TEMP, d_SALT, d_kmt, 0, KM);
     //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
     //debugging
     //buoydiff_kernel1D<<<grid,threads,0,stream[1]>>>(DBLOC, DBSFC, TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), d_kmt, 0, KM);
@@ -607,13 +607,13 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 		DBLOC[index] = 0.0;
 	}
 	
-	double tempsfc = max(TEMP[sfci],-2.0);
-	double tempmk  = max(TEMP[indexmk],-2.0);
-	double tempk   = max(TEMP[index],-2.0);
+	//double tempsfc = max(TEMP[sfci],-2.0);
+	//double tempmk  = max(TEMP[indexmk],-2.0);
+	//double tempk   = max(TEMP[index],-2.0);
 	
-	rho1  = state(tempsfc, SALT[sfci], k);
-	rhokm = state(tempmk, SALT[indexmk], k-1);
-	rhok  = state(tempk, SALT[index], k);
+	rho1  = state(TEMP[sfci], SALT[sfci], k);
+	rhokm = state(TEMP[indexmk], SALT[indexmk], k-1);
+	rhok  = state(TEMP[index], SALT[index], k);
 	
 	if (rhok != 0.0) { //prevent div by zero
 		DBSFC[index]   = d_grav*(1.0 - rho1/rhok);
