@@ -43,7 +43,7 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK, 
 		double *RHOOUT, int start_k, int end_k);
 
-void gpu_compare(double *a1, double *a2, int *pN);
+void gpu_compare(double *a1, double *a2, int *pN, int *pName);
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT);
 
