@@ -2622,13 +2622,16 @@ endif
             DBLOC(i,j,k-1) = grav*(c1 - RHOKM(i,j)/RHOK(i,j))
          else
             DBSFC(i,j,k)   = c0
-            !DBLOC(i,j,k-1) = c0
+            DBLOC(i,j,k-1) = c0
             !debugging
-            DBLOC(i,j,k-1) = 1337.0_r8
+            !DBLOC(i,j,k-1) = 1337.0_r8
          endif
 
          !only removed for debugging
-         if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
+         if (k-1 >= KMT(i,j,bid)) then
+           DBLOC(i,j,k-1) = 1337.0_r8
+           !DBLOC(i,j,k-1) = c0
+         endif
       end do
       end do
 
