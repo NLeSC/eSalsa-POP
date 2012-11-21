@@ -462,7 +462,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 }
 
 
-void gpu_compare (double *a1, double *a2, int *pN) {
+void gpu_compare (double *a1, double *a2, int *pN, char* str) {
   int N = *pN;
   int i=0, res=0;
   int print = 0;
@@ -501,7 +501,7 @@ void gpu_compare (double *a1, double *a2, int *pN) {
     fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
   }
 
-  fprintf(stdout,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
+  fprintf(stdout,"Node %d: Number of errors in %s GPU result: %d\n",my_task,str,res);
 
 }
 
