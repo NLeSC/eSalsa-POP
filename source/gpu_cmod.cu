@@ -560,15 +560,21 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TEMP, double *SALT) {
     
 }
 
+//test
+#define TMIN -2.0000000000000000
+#define TMAX 999.00000000000000
+#define SMIN 0.0000000000000000
+#define SMAX 0.9990000000000000
+
 //device version of state for rho only used in buoydiff GPU kernel
 __device__ double state(double temp, double salt, int k) {
   double tq, sq, sqr, work1, work2, denomk;
 
-  tq = min(temp, 999.0);		//d_tmax[k]
-  tq = max(tq, -2.0);			//d_tmin[k]
+  tq = min(temp, TMAX);		//d_tmax[k]
+  tq = max(tq, TMIN);			//d_tmin[k]
 
-  sq = min(salt, 0.999);		//d_smax[k]
-  sq = 1000.0 * max(sq, 0.0);	//d_smin[k]
+  sq = min(salt, SMAX);		//d_smax[k]
+  sq = 1000.0 * max(sq, SMIN);	//d_smin[k]
 
   sqr = sqrt(sq);
 
