@@ -1464,7 +1464,7 @@
 !          write(stdout,'(a21)') 'Finished state on CPU'
 !        endif
 
-        call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km, "RHOOUT")
+        call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km, 1)
 
       else
         do k = 1,POP_km  ! recalculate new density

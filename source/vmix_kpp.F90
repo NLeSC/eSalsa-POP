@@ -729,8 +729,8 @@ if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_ityp
 
    call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
 
-   call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km, "DBLOC")
-   call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km, "DBSFC")
+   call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km, 2)
+   call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km, 3)
 else
    call buoydiff(DBLOC, DBSFC, TRCR, this_block)
 endif

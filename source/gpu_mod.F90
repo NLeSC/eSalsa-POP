@@ -338,7 +338,7 @@
  end subroutine mwjf_statePD
 
 
- subroutine gpumod_compare(A, B, n, str)
+ subroutine gpumod_compare(A, B, n, var_name)
     real (r8), dimension(nx_block,ny_block,KM), intent(in) :: &
       A,             &! array 1
       B               ! array 2
@@ -346,10 +346,14 @@
     integer (int_kind), intent(in) :: &
       n             ! number of elements
 
-    character (1), intent(in) :: &
-      str
+    integer (int_kind), intent(in), optional :: &
+      var_name
 
-   call gpu_compare(A, B, n, str)
+   if (present(var_name)) then
+     call gpu_compare(A, B, n, var_name)
+   else
+     call gpu_compare(A, B, n, 0)
+   endif
 
  end subroutine
 

@@ -461,9 +461,12 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 }
 
+char **var_names = { "ERROR", "RHOOUT", "DBLOC", "DBSFC" };
 
-void gpu_compare (double *a1, double *a2, int *pN, char* str) {
+
+void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int N = *pN;
+  int vName = *pName;
   int i=0, res=0;
   int print = 0;
   int zero_one = 0;
@@ -501,8 +504,12 @@ void gpu_compare (double *a1, double *a2, int *pN, char* str) {
     fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
   }
 
-  fprintf(stdout,"Node %d: Number of errors in %s GPU result: %d\n",my_task,str,res);
-
+  if (vName == 0) {
+    fprintf(stdout,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
+  } else {
+	fprintf(stdout,"Node %d: Number of errors in %s GPU result: %d\n",my_task,var_names[vName],res);
+  }
+    
 }
 
 double *d_TEMP;
