@@ -568,7 +568,7 @@ __device__ double state(double temp, double salt, int k) {
   return work1*denomk;
 }
 
-__global__ void buoydiff_kernel1D_old(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k) {
+__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k) {
 
   int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
   int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
@@ -612,7 +612,7 @@ __global__ void buoydiff_kernel1D_old(double *DBLOC, double *DBSFC, double *TEMP
   }
 }
 
-__global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k) {
+__global__ void buoydiff_kernel1D_old(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k) {
 
   int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
   int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
