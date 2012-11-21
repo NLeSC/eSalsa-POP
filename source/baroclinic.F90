@@ -1453,18 +1453,18 @@
 !          write(stdout,'(a38)') 'Finished state on GPU, checking result'
 !        endif
 
-        do k = 1,POP_km  ! recalculate new density
-          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                         TRACER(:,:,k,2,newtime,iblock), &
-                         this_block, RHOOUT=RHOREF(:,:,k))
-
-        enddo
+!        do k = 1,POP_km  ! recalculate new density
+!          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+!                         TRACER(:,:,k,2,newtime,iblock), &
+!                         this_block, RHOOUT=RHOREF(:,:,k))
+!
+!        enddo
 
 !        if (my_task == master_task) then
 !          write(stdout,'(a21)') 'Finished state on CPU'
 !        endif
 
-        call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km)
+!        call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km)
 
       else
         do k = 1,POP_km  ! recalculate new density
