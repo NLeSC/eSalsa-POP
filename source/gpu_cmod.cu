@@ -613,7 +613,7 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 	//double tempk   = max(TEMP[index],-2.0);
 	
 	rho1  = state(TEMP[sfci], SALT[sfci], k);
-	rhokm = state(TEMP[indexmk], SALT[indexmk], k-1);
+	rhokm = state(TEMP[indexmk], SALT[indexmk], k);
 	rhok  = state(TEMP[index], SALT[index], k);
 	
 	if (rhok != 0.0) { //prevent div by zero
