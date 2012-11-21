@@ -500,7 +500,7 @@ void gpu_compare (double *a1, double *a2, int *pN) {
     fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
   }
 
-  fprintf(stderr,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
+  fprintf(stdout,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
 
 }
 
