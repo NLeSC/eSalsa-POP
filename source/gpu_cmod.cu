@@ -542,16 +542,21 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
     
 }
 
+//test
+#define TMIN -2.0000000000000000
+#define TMAX 999.00000000000000
+#define SMIN 0.0000000000000000
+#define SMAX 0.99900001287460327
 
 //device version of state for rho only used in buoydiff GPU kernel
 __device__ double state(double temp, double salt, int k) {
   double tq, sq, sqr, work1, work2, denomk;
 
-        tq = min(temp, 999.0);
-        tq = max(tq,   -2.0);
+        tq = min(temp, TMAX);
+        tq = max(tq,   TMIN);
 
-        sq = min(salt, 0.999);
-        sq = 1000.0 * max(sq, 0.0);
+        sq = min(salt, SMAX);
+        sq = 1000.0 * max(sq, SMIN);
 
         sqr = sqrt(sq);
 
@@ -608,85 +613,6 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 	}
 	DBLOC[indexmk] = dbloc;
 	//DBLOC[indexmk] = d_grav;
-
-  }
-}
-
-__global__ void buoydiff_kernel1D_old(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k) {
-
-  int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
-  int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
-  //int sfci = i % (NX_BLOCK*NY_BLOCK); //- (i / (NX_BLOCK*NY_BLOCK))*(NX_BLOCK*NY_BLOCK);
-  int sfci = i - (i / (NX_BLOCK*NY_BLOCK))*(NX_BLOCK*NY_BLOCK);
-  //obtain array index
-  int index = i + start_k*NX_BLOCK*NY_BLOCK;
-  int indexmk = index-(NX_BLOCK*NY_BLOCK);
-
-  double rho1, rhokm, rhok;
-  double dbloc;
-
-  if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
-
-//if k==0 we write DBSFC=0 and exit, as DBLOC for k=0 is computed by k=1
-
-if (k == 0) {
-   DBSFC[index] = 0.0;
-   return;
-}
-
-//!-----------------------------------------------------------------------
-//!
-//!  calculate DBLOC and DBSFC for all other levels
-//!
-//!-----------------------------------------------------------------------
-
-//   do k = 2,km
-
-//unnecessary with MWJF EOS
-//      TEMPK(:,:,klvl) = merge(-c2,TRCR(:,:,k,1),TRCR(:,:,k,1) < -c2)
-
-//      call state(k, k, TEMPSFC,          TRCR(:,:,1  ,2), &
-//                       this_block, RHOFULL=RHO1)
-        rho1 = state(TEMP[sfci], SALT[sfci], k);
-//      call state(k, k, TEMPK(:,:,kprev), TRCR(:,:,k-1,2), &
-//                       this_block, RHOFULL=RHOKM)
-        rhokm = state(TEMP[indexmk], SALT[indexmk], k-1);
-
-//      call state(k, k, TEMPK(:,:,klvl),  TRCR(:,:,k  ,2), &
-//                       this_block, RHOFULL=RHOK)
-        rhok = state(TEMP[index], SALT[index], k);
-
-//      do j=1,ny_block
-//      do i=1,nx_block
-
-        if (rhok != 0.0) { //prevent div by zero
-           DBSFC[index]   = d_grav*(1.0 - rho1/rhok);
-           dbloc = d_grav*(1.0 - rhokm/rhok);
-        } else {
-           DBSFC[index]   = 0.0;
-           dbloc = 0.0;
-        }
-
-        //zero if on land
-        //why DBSFC isnt zeroed here is a mystery to me
-
-//      if (k-1 >= KMT[sfci]){
-        if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
-           dbloc = 0.0;
-        }
-        if (k == KM-1) {
-           DBLOC[index] = 0.0;
-        }
-
-        DBLOC[indexmk] = dbloc;
-//debug
-//      DBLOC[indexmk] = 1337.0;
-//      DBLOC[indexmk] = d_grav;
-
-//      end do
-//      end do
-
-//   enddo
 
   }
 }
