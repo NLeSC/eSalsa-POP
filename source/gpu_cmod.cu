@@ -605,17 +605,19 @@ __global__ void buoydiff_kernel1D(double *DBLOC, double *DBSFC, double *TEMP, do
 	if (rhok != 0.0) { //prevent div by zero
 		DBSFC[index]   = d_grav*(1.0 - rho1/rhok);
 		//debug DBLOC[indexmk] = 1337.0;
-		dbloc = d_grav*(1.0 - rhokm/rhok);
+		//dbloc = d_grav*(1.0 - rhokm/rhok);
+		DBLOC[indexmk] = d_grav*(1.0 - rhokm/rhok);
 	} else {
 		DBSFC[index]   = 0.0;
-		dbloc = 0.0;
+		//dbloc = 0.0;
+		DBLOC[indexmk] = 0.0;
 	}
 	
 	if (k >= KMT[sfci]){ //-1 removed because FORTRAN array index starts at 1
-		dbloc = 0.0;
+		//dbloc = 0.0;
+		DBLOC[indexmk] = 0.0;
 	}
-	DBLOC[indexmk] = dbloc;
-	//DBLOC[indexmk] = d_grav;
+	//DBLOC[indexmk] = dbloc;
 
   }
 }
