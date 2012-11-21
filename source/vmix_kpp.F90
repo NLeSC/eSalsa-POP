@@ -2623,9 +2623,11 @@ endif
          else
             DBSFC(i,j,k)   = c0
             DBLOC(i,j,k-1) = c0
+            !debugging
+            !DBLOC(i,j,k-1) = 1337.0_r8
          endif
 
-         !removed for debugging
+         !only removed for debugging
          if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
       end do
       end do
