@@ -732,7 +732,7 @@
               call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
                              TRACER(:,:,k,2,oldtime,iblock), &
                              this_block,                     &
-                             RHOOUT=RHOREF)
+                             RHOOUT=RHOREF(:,:,k))
            enddo
            call gpumod_compare(RHO(:,:,:,oldtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
 
@@ -745,7 +745,7 @@
               call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
                              TRACER(:,:,k,2,curtime,iblock), &
                              this_block,                     &
-                             RHOOUT=RHOREF)
+                             RHOOUT=RHOREF(:,:,k))
            enddo
            call gpumod_compare(RHO(:,:,:,curtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
 
