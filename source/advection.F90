@@ -1726,11 +1726,11 @@
             ! later on we might want to call the cudaDeviceSynchronize() here if k == 1
 
             ! correctness checks, debuggin only
-!            call state(k,1, TRCR(:,:,k,1),                         &
-!                            TRCR(:,:,k,2), this_block, &
-!                            RHOOUT=RHOK1)
-!
-!            call gpumod_compare(RHOP(:,:,k), RHOK1, nx_block*ny_block)
+            call state(k,1, TRCR(:,:,k,1),                         &
+                            TRCR(:,:,k,2), this_block, &
+                            RHOOUT=RHOK1)
+
+            call gpumod_compare(RHOP(:,:,k), RHOK1, nx_block*ny_block, 5)
 
             ! for the tavgs other than PD we pass info the old way
             ! this may involve unnecessary copying

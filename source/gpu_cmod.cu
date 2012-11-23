@@ -461,7 +461,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 }
 
-const char *var_names[4] = { "ERROR", "RHOOUT", "DBLOC", "DBSFC" };
+const char *var_names[4] = { "ERROR", "RHOOUT", "DBLOC", "DBSFC", "STEPMOD_RHO", "ADVT_PD" };
 
 
 void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
@@ -471,7 +471,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int print = 0;
   int zero_one = 0;
   int zero_two = 0;
-  double eps = 0.0000000001;
+  double eps = 0.00000000001;
 
   for (i=0; i<N; i++) {
 
@@ -497,19 +497,20 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
 
   }
 
-  if (zero_one > 3*(N/4)) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zero_one); }
-  if (zero_two > 3*(N/4)) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zero_two); }
+  if (zero_one > 9*(N/10)) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zero_one); }
+  if (zero_two > 9*(N/10)) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zero_two); }
 
   if (zero_one != zero_two) {
     fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
   }
 
-  if (vName == 0) {
-    fprintf(stdout,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
-  } else {
-	fprintf(stdout,"Node %d: Number of errors in %s GPU result: %d\n",my_task,var_names[vName],res);
+  if (res > 0) {
+    if (vName == 0) {
+      fprintf(stdout,"Node %d: Number of errors in GPU result: %d\n",my_task,res);
+    } else {
+	  fprintf(stdout,"Node %d: Number of errors in %s GPU result: %d\n",my_task,var_names[vName],res);
+    }
   }
-    
 }
 
 double *d_TEMP;

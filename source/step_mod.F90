@@ -727,10 +727,28 @@
                            TRACER(:,:,:,2,oldtime,iblock), &
                            1, POP_km, &
                            RHOOUT=RHO(:,:,:,oldtime,iblock))
+           !correctness check
+           do k = 1,POP_km
+              call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
+                             TRACER(:,:,k,2,oldtime,iblock), &
+                             this_block,                     &
+                             RHOOUT=RHOREF)
+           enddo
+           call gpumod_compare(RHO(:,:,:,oldtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
+
            call mwjf_state(TRACER(:,:,:,1,curtime,iblock), &
                            TRACER(:,:,:,2,curtime,iblock), &
                            1, POP_km, &
                            RHOOUT=RHO(:,:,:,curtime,iblock))
+           !correctness check
+           do k = 1,POP_km
+              call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
+                             TRACER(:,:,k,2,curtime,iblock), &
+                             this_block,                     &
+                             RHOOUT=RHOREF)
+           enddo
+           call gpumod_compare(RHO(:,:,:,curtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
+
          else ! use CPU functions instead
            do k = 1,POP_km  ! recalculate densities from averaged tracers
               call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
