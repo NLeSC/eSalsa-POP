@@ -497,8 +497,8 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
 
   }
 
-  if (zero_one > 9*(N/10)) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zero_one); }
-  if (zero_two > 9*(N/10)) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zero_two); }
+  if (zero_one > 95*(N/100)) { fprintf(stderr, "Node %d: Error: array1 contains %d zeros\n",my_task, zero_one); }
+  if (zero_two > 95*(N/100)) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zero_two); }
 
   if (zero_one != zero_two) {
     fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
