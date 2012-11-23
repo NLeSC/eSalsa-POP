@@ -461,7 +461,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 }
 
-const char *var_names[4] = { "ERROR", "RHOOUT", "DBLOC", "DBSFC", "STEPMOD_RHO", "ADVT_PD" };
+const char *var_names[6] = { "ERROR", "RHOOUT", "DBLOC", "DBSFC", "STEPMOD_RHO", "ADVT_PD" };
 
 
 void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
