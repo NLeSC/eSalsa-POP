@@ -126,7 +126,7 @@ int *d_kmt;
 
 //declare streams
 int cuda_state_initialized = 0;
-cudaStream_t stream[NSTREAMS];
+cudaStream_t stream[KM];
 cudaEvent_t event_htod[KM];
 cudaEvent_t event_comp[KM];
 cudaEvent_t event_dtoh[KM];
@@ -248,11 +248,11 @@ void cuda_state_initialize(double *constants, double *pressz,
   CUDA_CHECK_ERROR("After cudaMemcpyToSymbols");
 
   //setup streams
-  for (k=0; k<NSTREAMS; k++) {
+  for (k=0; k<KM; k++) {
     cudaStreamCreate(&stream[k]);
   }
   //create cuda events
-  for (k=0; k<NSTREAMS; k++) {
+  for (k=0; k<KM; k++) {
     err = cudaEventCreate(&event_htod[k]);
     if (err != cudaSuccess) fprintf(stderr, "Error in cudaEventCreate htod: %s\n", cudaGetErrorString( err ));
     err = cudaEventCreate(&event_comp[k]);

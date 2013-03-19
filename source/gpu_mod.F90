@@ -50,7 +50,8 @@
 ! !PUBLIC DATA MEMBERS:
 
    logical (log_kind), public :: &
-      use_gpu_state   ! flag for computing density functions on gpu
+      use_gpu_state,      &! flag for computing density functions on gpu
+      use_verify_results   ! flag for verification of gpu results
 
 !EOP
 !BOC
