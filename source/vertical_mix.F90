@@ -78,7 +78,7 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:,:,:), allocatable, target :: &
+   real (r8), dimension(:,:,:,:), allocatable, public, target :: &
       VVC,         &! momentum viscosity
       VVCREF        ! copy for GPU result verification
 
