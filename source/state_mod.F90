@@ -69,7 +69,10 @@
 !to avoid circular dependency between vmix_kpp and gpu_mod
    real (r8), dimension(:,:,:), pointer, public :: &
       DBLOC,      &! buoyancy difference between adjacent levels
-      DBSFC        ! buoyancy difference between level and surface
+      DBSFC,      &! buoyancy difference between level and surface
+      DBLOCREF,   &! for verfication
+      DBSFCREF     ! for verfication
+
 
 !-----------------------------------------------------------------------
 !

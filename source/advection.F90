@@ -1723,14 +1723,14 @@
          ! if GPU acelerated functions can be used
          if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
             ! Potential Density values are precomputed for all levels and stored in RHOP
-            ! later on we might want to call the cudaDeviceSynchronize() here if k == 1
+            if (k == 1) call gpumod_devsync
 
-            ! correctness checks, debuggin only
-            call state(k,1, TRCR(:,:,k,1),                         &
+            if (use_verify_results) then  ! correctness checks
+              call state(k,1, TRCR(:,:,k,1),                         &
                             TRCR(:,:,k,2), this_block, &
                             RHOOUT=RHOK1)
-
-            call gpumod_compare(RHOP(:,:,k), RHOK1, nx_block*ny_block, 5)
+              call gpumod_compare(RHOP(:,:,k), RHOK1, nx_block*ny_block, 5)
+            endif
 
             ! for the tavgs other than PD we pass info the old way
             ! this may involve unnecessary copying

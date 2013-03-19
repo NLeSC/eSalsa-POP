@@ -35,7 +35,7 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-! made allocatable for gpu extensions
+! changed to allocatable for gpu extensions
 !   real (r8), dimension(nx_block,ny_block,km,nt,3,max_blocks_clinic), &
 !      target :: &
 !      TRACER     ! 3d tracer fields for all blocks at 3 time levels
@@ -46,7 +46,7 @@
    type (tracer_field), dimension(nt) :: &
       tracer_d   ! descriptors for each tracer
 
-! made allocatable for gpu extensions
+! changed to allocatable for gpu extensions
 !   real (r8), dimension(nx_block,ny_block,km,3,max_blocks_clinic), &
 !      target :: &
 !      UVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls

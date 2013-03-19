@@ -547,7 +547,7 @@
         if (k == 1 .and. tavg_requested(tavg_PD) .and. use_gpu_state .and. &
             state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
 
-            call mwjf_statePD(TRACER (:,:,:,1,curtime,iblock), &
+            call gpumod_mwjf_statePD(TRACER (:,:,:,1,curtime,iblock), &
                               TRACER (:,:,:,2,curtime,iblock), &
                               1, POP_km, RHOP)
 
@@ -972,7 +972,7 @@
          if (lpressure_avg .and. leapfrogts) then
 
            if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
-             call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+             call gpumod_mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
                         TRACER(:,:,:,2,newtime,iblock), &
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
@@ -1444,27 +1444,25 @@
         !RHO(:,:,:,newtime,iblock) = c0;
         !RHOREF = c0;
 
-        call mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+        call gpumod_mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
                         TRACER(:,:,:,2,newtime,iblock), &
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
 
-!        if (my_task == master_task) then
-!          write(stdout,'(a38)') 'Finished state on GPU, checking result'
-!        endif
-
-        do k = 1,POP_km  ! recalculate new density
-          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                         TRACER(:,:,k,2,newtime,iblock), &
-                         this_block, RHOOUT=RHOREF(:,:,k))
-
-        enddo
-
-!        if (my_task == master_task) then
-!          write(stdout,'(a21)') 'Finished state on CPU'
-!        endif
-
-        call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km, 1)
+        if (use_verify_results) then
+!          if (my_task == master_task) then
+!            write(stdout,'(a38)') 'Finished state on GPU, checking result'
+!          endif
+           do k = 1,POP_km  ! recalculate new density
+            call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                           TRACER(:,:,k,2,newtime,iblock), &
+                           this_block, RHOOUT=RHOREF(:,:,k))
+           enddo
+!          if (my_task == master_task) then
+!            write(stdout,'(a21)') 'Finished state on CPU'
+!          endif
+           call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km, 1)
+        endif
 
       else
         do k = 1,POP_km  ! recalculate new density

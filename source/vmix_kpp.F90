@@ -699,8 +699,6 @@
       STABLE       ! = 1 for stable forcing; = 0 for unstable forcing
  
    real (r8), dimension(nx_block,ny_block,km) :: &
-      DBLOCREF,      &! buoyancy difference between adjacent levels
-      DBSFCREF,      &! buoyancy difference between level and surface
       GHAT         ! non-local mixing coefficient
 
    real (r8), dimension(nx_block,ny_block,0:km+1) :: &
@@ -725,12 +723,14 @@
 !-----------------------------------------------------------------------
 if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
 
-   call buoydiff_wrapper(DBLOC, DBSFC, TRCR(:,:,:,1), TRCR(:,:,:,2))
+   call gpumod_buoydiff(DBLOC, DBSFC, TRCR, this_block)
 
-   call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
+  if (use_verify_results) then
+    call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
 
-   call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km, 2)
-   call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km, 3)
+    call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km, 2)
+    call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km, 3)
+  endif
 else
    call buoydiff(DBLOC, DBSFC, TRCR, this_block)
 endif
@@ -751,7 +751,19 @@ endif
 !
 !-----------------------------------------------------------------------
 
-   if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
+!   if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
+   if (ldbl_diff) then
+     if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+       call gpumod_ddmix(VDC, TRCR, this_block)
+
+       if (use_verify_results) then
+         call ddmix(VDCREF, TRCR, this_block)
+         call gpumod_compare(VDCREF, VDC, nx_block*ny_block*(km+2)*2, 6)
+       endif
+     else
+       call ddmix(VDC, TRCR, this_block)
+     endif
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2622,13 +2634,9 @@ endif
          else
             DBSFC(i,j,k)   = c0
             DBLOC(i,j,k-1) = c0
-            !debugging
-            !DBLOC(i,j,k-1) = 1337.0_r8
          endif
 
-         !only removed for debugging
          if (k-1 >= KMT(i,j,bid)) then
-           !DBLOC(i,j,k-1) = 1337.0_r8
            DBLOC(i,j,k-1) = c0
          endif
       end do

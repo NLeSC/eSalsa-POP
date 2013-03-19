@@ -20,6 +20,7 @@
    use state_mod     ! access to preszz, tmin, tmax, smin, smax, etc
    use domain_size   ! included for use of nx_block,ny_block,km,
    use prognostic    ! include for reference to TRACER
+   use vertical_mix  ! include for ference to VDC and VVC
    use iso_c_binding
 
    implicit none
@@ -34,10 +35,13 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 
    public :: init_gpu_mod, &
-             mwjf_state, &
-             mwjf_statePD, &
              gpumod_compare, &
-             buoydiff_wrapper
+             gpumod_devsync, &
+             gpumod_mwjf_state, &
+             gpumod_mwjf_statePD, &
+             gpumod_buoydiff, &
+             gpumod_ddmix
+
 !             vmix_coeffs,                          &
 !             vdifft, vdiffu,                       &
 !             impvmixt, impvmixt_correct, impvmixu, &
@@ -96,7 +100,7 @@
    type(c_ptr) :: &
       cptr                  ! ptr used for alllocating arrays
 
-   namelist /gpu_mod_nml/ use_gpu_state
+   namelist /gpu_mod_nml/ use_gpu_state, use_verify_results
 
    ! array used for sending constants to the GPU
    ! this prevents issues with compilers rounding double precision constants
@@ -125,6 +129,7 @@
 !-----------------------------------------------------------------------
 
    use_gpu_state = .true.
+   use_verify_results = .false.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -156,6 +161,12 @@
          write(stdout,'(a43)') ' GPU usage for density computations enabled'
       else
          write(stdout,'(a44)') ' GPU usage for density computations disabled'
+      endif
+
+      if (use_verify_results) then
+         write(stdout,'(a39)') ' GPU results verfication by CPU enabled'
+      else
+         write(stdout,'(a40)') ' GPU results verfication by CPU disabled'
       endif
 
    endif
@@ -203,8 +214,24 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
     call c_f_pointer(cptr, DBSFC, (/ nx_block,ny_block,km /))
 
-    ! used for correctness checks
-    allocate(RHOREF(nx_block,ny_block,km))
+      !allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
+      !          VVC(nx_block,ny_block,km,      nblocks_clinic))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*max_blocks_clinic))
+    call c_f_pointer(cptr, VDC, (nx_block,ny_block,0:km+1,2,max_blocks_clinic))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*max_blocks_clinic))
+    call c_f_pointer(cptr, VVC, (nx_block,ny_block,km,max_blocks_clinic))
+
+
+    ! arrays used for correctness checks
+    if (use_verify_results) then
+      allocate(RHOREF(nx_block,ny_block,km), &
+               DBLOCREF(nx_block,ny_block,km), &
+               DBSFCREF(nx_block,ny_block,km), &
+               VDCREF(nx_block,ny_block,0:km+1,2,max_blocks_clinic), &
+               VVCREF(nx_block,ny_block,km,max_blocks_clinic))
+
+    endif
 
   !-----------------------------------------------------------------------
   !
@@ -217,7 +244,6 @@
     call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, KMT(:,:,bid))
 
     !write(stdout, *) ' grav= ', constants(46)
-
 
   else
   !-----------------------------------------------------------------------
@@ -239,12 +265,20 @@
  end subroutine init_gpu_mod
 
 
+!cudaDeviceSynchronize()
+ subroutine gpumod_devsync
+
+   call devsync
+
+ end subroutine gpumod_devsync
+
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: state
 ! !INTERFACE:
 
- subroutine mwjf_state(TEMP, SALT, start_k, end_k, &
+ subroutine gpumod_mwjf_state(TEMP, SALT, start_k, end_k, &
                          RHOOUT, DRHODT, DRHODS)
 
 ! !DESCRIPTION:
@@ -317,10 +351,10 @@
    call mwjf_state_gpu(TEMP, SALT, RHOOUT, DRHODT, DRHODS, n_outputs, start_k, end_k)
 
 
- end subroutine mwjf_state
+ end subroutine gpumod_mwjf_state
 
 
- subroutine mwjf_statePD(TEMP, SALT, start_k, end_k, RHOOUT)
+ subroutine gpumod_mwjf_statePD(TEMP, SALT, start_k, end_k, RHOOUT)
 
    integer (int_kind), intent(in) :: &
       start_k,                    &! loop start (including) start index 1
@@ -335,7 +369,7 @@
 
    call mwjf_statepd_gpu(TEMP, SALT, RHOOUT, start_k, end_k)
 
- end subroutine mwjf_statePD
+ end subroutine gpumod_mwjf_statePD
 
 
  subroutine gpumod_compare(A, B, n, var_name)
@@ -358,8 +392,7 @@
  end subroutine
 
 
-
- subroutine buoydiff_wrapper(DBLOC, DBSFC, TEMP, SALT)
+ subroutine gpumod_buoydiff(DBLOC, DBSFC, TRCR, this_block)
 
 ! !DESCRIPTION:
 !  This routine calculates the buoyancy differences at model levels.
@@ -369,9 +402,11 @@
 
 ! !INPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
-      TEMP,              &! temperature tracer at current time
-      SALT                ! salinity tracer at current time
+   real (r8), dimension(nx_block,ny_block,km,2), intent(in) :: &
+      TRCR              ! tracers at current time
+
+   type (block), intent(in) :: &
+      this_block          ! block information for current block
 
 ! !OUTPUT PARAMETERS:
 
@@ -387,12 +422,39 @@
 !      write(stdout, *) ' pressz= ', pressz
 !    endif
 
-   call buoydiff_gpu(DBLOC, DBSFC, TEMP, SALT)
+   call buoydiff_gpu(DBLOC, DBSFC, TRCR)
 
- end subroutine buoydiff_wrapper
+ end subroutine gpumod_buoydiff
 
+ subroutine ddmix(VDC, TRCR, this_block)
 
+! !DESCRIPTION:
+!  $R_\rho$ dependent interior flux parameterization.
+!  Add double-diffusion diffusivities to Ri-mix values at blending
+!  interface and below.
+!
+! !REVISION HISTORY:
+!  same as module
 
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TRCR                ! tracers at current time
+
+   type (block), intent(in) :: &
+      this_block          ! block information for current block
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+      VDC        ! diffusivity for tracer diffusion
+
+!EOP
+!BOC
+
+   call ddmix_gpu(VDC, TRCR)
+
+ end subroutine gpumod_ddmix
 
  end module gpu_mod
 

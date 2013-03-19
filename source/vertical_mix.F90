@@ -55,9 +55,8 @@
 ! !PUBLIC DATA MEMBERS:
 
    real (r8), dimension(:,:,:,:,:), allocatable, public, target :: &
-      VDC                 ! tracer diffusivity - public to allow
-                          ! possible modification by Gent-McWilliams
-                          ! horizontal mixing parameterization
+      VDC, &             ! tracer diffusivity - public to allow possible modification by Gent-McWilliams horizontal mixing parameterization
+      VDCREF             ! copy for GPU result verification
 
    integer (int_kind), parameter, public :: &
       vmix_type_const = 1,  & ! integer identifiers for desired
@@ -80,7 +79,8 @@
 !-----------------------------------------------------------------------
 
    real (r8), dimension(:,:,:,:), allocatable, target :: &
-      VVC                 ! momentum viscosity
+      VVC,         &! momentum viscosity
+      VVCREF        ! copy for GPU result verification
 
 !-----------------------------------------------------------------------
 !
@@ -383,8 +383,9 @@
                                   nblocks_clinic, distrb_clinic%nprocs)
 
    case(vmix_type_kpp)
-      allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
-                VVC(nx_block,ny_block,km,      nblocks_clinic))
+      !moved allocations to gpu_mod
+      !allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
+      !          VVC(nx_block,ny_block,km,      nblocks_clinic))
       call init_vmix_kpp(VDC,VVC)
       call get_timer(timer_vmix_coeffs,'VMIX_COEFFICIENTS_KPP', &
                                   nblocks_clinic, distrb_clinic%nprocs)

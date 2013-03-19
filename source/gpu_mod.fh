@@ -12,6 +12,10 @@ subroutine cuda_init() bind (c)
   use iso_c_binding
 end subroutine cuda_init
 
+subroutine devsync() bind (c)
+  use iso_c_binding
+end subroutine devsync
+
 subroutine my_cudamallochost(hostptr, size) bind (c)
   use iso_c_binding
   type(C_PTR), intent(out) :: hostptr
@@ -62,17 +66,22 @@ subroutine gpu_compare(A, B, n, v) bind (c)
 end subroutine gpu_compare
 
 
-subroutine buoydiff_gpu(DBLOC, DBSFC, TEMP, SALT) bind (c)
+subroutine buoydiff_gpu(DBLOC, DBSFC, TRCR) bind (c)
         use iso_c_binding
         real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
             DBLOC,    &! temperature at level k
             DBSFC      ! salinity    at level k
-        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
-            TEMP,     &! temperature
-            SALT	   ! salinity
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM,2) :: &
+            TRCR       ! temperature
 end subroutine buoydiff_gpu
 
-
+subroutine ddmix_gpu(VDC, TRCR) bind (c)
+        use iso_c_binding
+        real (r8), dimension(nx_block,ny_block,0:km+1,2) :: &
+            VDC        ! diffusivity for tracer diffusion
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM,2) :: &
+            TRCR       ! temperature
+end subroutine ddmix_gpu
 
 
 end interface
