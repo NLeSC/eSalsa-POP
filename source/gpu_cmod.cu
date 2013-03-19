@@ -11,6 +11,8 @@
 #define SMIN 0.0000000000000000
 #define SMAX 0.99900001287460327
 
+#define RRHO0 2.55
+#define DSFMAX 1.0
 
 #define CUDA_CHECK_ERROR(errorMessage) do {                                 \
     cudaError_t err = cudaGetLastError();                                    \
@@ -587,7 +589,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	  }
 
 	  for (k=0; k<KM; k+=lps) {
-	    err = cudaMemcpyAsync(h_DBSFC+k*array_size, d_DBSFC+k*array_size, lps*array_size*sizeof(double), cudaMemcpyDeviceToHost, stream[k]);
+	    err = cudaMemcpyAsync(DBSFC+k*array_size, d_DBSFC+k*array_size, lps*array_size*sizeof(double), cudaMemcpyDeviceToHost, stream[k]);
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy device to host DBSFC: %s\n", cudaGetErrorString( err ));
 
 	    if (k < KM-1) {
@@ -595,7 +597,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	      err = cudaStreamWaitEvent(stream[k], event_comp[k+lps], 0);
 	      if (err != cudaSuccess) fprintf(stderr, "Error in cudaStreamWaitEvent comp k+1: %s\n", cudaGetErrorString( err ));
 	    }
-	    err = cudaMemcpyAsync(h_DBLOC+k*array_size, d_DBLOC+k*array_size, lps*array_size*sizeof(double), cudaMemcpyDeviceToHost, stream[k]);
+	    err = cudaMemcpyAsync(DBLOC+k*array_size, d_DBLOC+k*array_size, lps*array_size*sizeof(double), cudaMemcpyDeviceToHost, stream[k]);
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy device to host DBLOC: %s\n", cudaGetErrorString( err ));
 	  }
 	  
