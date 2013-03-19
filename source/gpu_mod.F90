@@ -218,10 +218,10 @@
       !allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
       !          VVC(nx_block,ny_block,km,      nblocks_clinic))
     call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*max_blocks_clinic))
-    call c_f_pointer(cptr, VDC, (nx_block,ny_block,0:km+1,2,max_blocks_clinic))
+    call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
 
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*max_blocks_clinic))
-    call c_f_pointer(cptr, VVC, (nx_block,ny_block,km,max_blocks_clinic))
+    call c_f_pointer(cptr, VVC, (/ nx_block,ny_block,km,max_blocks_clinic /))
 
 
     ! arrays used for correctness checks
@@ -231,7 +231,6 @@
                DBSFCREF(nx_block,ny_block,km), &
                VDCREF(nx_block,ny_block,0:km+1,2,max_blocks_clinic), &
                VVCREF(nx_block,ny_block,km,max_blocks_clinic))
-
     endif
 
   !-----------------------------------------------------------------------
@@ -427,7 +426,7 @@
 
  end subroutine gpumod_buoydiff
 
- subroutine ddmix(VDC, TRCR, this_block)
+ subroutine gpumod_ddmix(VDC, TRCR, this_block)
 
 ! !DESCRIPTION:
 !  $R_\rho$ dependent interior flux parameterization.
