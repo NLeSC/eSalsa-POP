@@ -6,6 +6,12 @@
 #define REUSE_TRCR 1
 #define USE_READ_ONLY_CACHE 1
 
+#define TMIN -2.0000000000000000
+#define TMAX 999.00000000000000
+#define SMIN 0.0000000000000000
+#define SMAX 0.99900001287460327
+
+
 #define CUDA_CHECK_ERROR(errorMessage) do {                                 \
     cudaError_t err = cudaGetLastError();                                    \
     if( cudaSuccess != err) {                                                \
@@ -528,6 +534,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	  double *d_DBLOC;
 	  double *d_DBSFC;
 	  double *d_SALT;
+	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
 
 	  err = cudaMalloc((void **)&d_DBLOC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
