@@ -36,6 +36,7 @@
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
 
    use gpu_mod
+   use global_vars
 
    implicit none
    private
