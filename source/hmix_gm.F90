@@ -26,6 +26,7 @@
       use grid
       use io
       use vertical_mix
+      use global_vars  !added since VDC has been moved from vertical_mix to global_vars
       use vmix_kpp
       use state_mod
       use time_management

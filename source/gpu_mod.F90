@@ -20,7 +20,7 @@
    use state_mod     ! access to preszz, tmin, tmax, smin, smax, etc
    use domain_size   ! included for use of nx_block,ny_block,km,
    use prognostic    ! include for reference to TRACER
-   !use vertical_mix, only: VDC, VDCREF, VVC, VVCREF
+   use global_vars
    use iso_c_binding
 
    implicit none

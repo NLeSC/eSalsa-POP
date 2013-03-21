@@ -39,6 +39,8 @@
    use vmix_rich
    use vmix_kpp
    use exit_mod
+   !gpu extensions
+   use global_vars
 
    implicit none
    private
@@ -54,9 +56,10 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), dimension(:,:,:,:,:), allocatable, public, target :: &
-      VDC, &             ! tracer diffusivity - public to allow possible modification by Gent-McWilliams horizontal mixing parameterization
-      VDCREF             ! copy for GPU result verification
+   !moved to global vars
+   !real (r8), dimension(:,:,:,:,:), allocatable, public, target :: &
+   !   VDC, &             ! tracer diffusivity - public to allow possible modification by Gent-McWilliams horizontal mixing parameterization
+   !   VDCREF             ! copy for GPU result verification
 
    integer (int_kind), parameter, public :: &
       vmix_type_const = 1,  & ! integer identifiers for desired
@@ -78,9 +81,10 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:,:,:), allocatable, public, target :: &
-      VVC,         &! momentum viscosity
-      VVCREF        ! copy for GPU result verification
+   !moved to global_vars
+   !real (r8), dimension(:,:,:,:), allocatable, public, target :: &
+   !   VVC,         &! momentum viscosity
+   !   VVCREF        ! copy for GPU result verification
 
 !-----------------------------------------------------------------------
 !
