@@ -75,6 +75,7 @@ subroutine buoydiff_gpu(DBLOC, DBSFC, TRCR) bind (c)
             TRCR       ! temperature
 end subroutine buoydiff_gpu
 
+
 subroutine ddmix_gpu(VDC, TRCR) bind (c)
         use iso_c_binding
         real (c_double), dimension(NX_BLOCK,NY_BLOCK,0:KM+1,2) :: &
