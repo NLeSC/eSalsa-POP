@@ -29,11 +29,11 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), dimension(:,:,:,:,:), public, pointer :: &
+   real (r8), dimension(:,:,:,:,:), pointer :: &
       VDC, &             ! tracer diffusivity - public to allow possible modification by Gent-McWilliams horizontal mixing parameterization
       VDCREF             ! copy for GPU result verification
 
-   real (r8), dimension(:,:,:,:), public, pointer :: &
+   real (r8), dimension(:,:,:,:), pointer :: &
       VVC,         &! momentum viscosity
       VVCREF        ! copy for GPU result verification
 
