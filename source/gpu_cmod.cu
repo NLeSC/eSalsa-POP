@@ -615,7 +615,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 #ifdef REUSE_TRACER
 	 //do nothing 
 #else	  
-	  cudaFree(d_TRCR);
+	  //cudaFree(d_TRCR);
 #endif
 }
 
@@ -697,7 +697,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 
 	  cudaDeviceSynchronize();
 	  CUDA_CHECK_ERROR("Before ddmix_gpu kernel execution");
-	  
+
 	#ifdef REUSE_TRCR
 	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM-1);
 	#else
