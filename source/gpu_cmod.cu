@@ -725,13 +725,17 @@ __global__ void ddmix_kernelmm(double *VDC1, double *VDC2, double *TEMP, double 
   if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
 
 #ifdef USE_READ_ONLY_CACHE
+  if (k < KM-1) {
    temp_kup = __ldg(TEMP+index);
    salt_kup = __ldg(SALT+index);
+  }
    temp = __ldg(TEMP+indexpk);
    salt = __ldg(SALT+indexpk);
 #else
+  if (k < KM-1) {
    temp_kup = TEMP[index];
    salt_kup = SALT[index];
+  }
    temp = TEMP[indexpk];
    salt = SALT[indexpk];
 #endif
