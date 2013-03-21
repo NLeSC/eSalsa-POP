@@ -722,7 +722,6 @@ __global__ void ddmix_kernelmm(double *VDC1, double *VDC2, double *TEMP, double 
   //check bounds
   if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
 
-    
 #ifdef USE_READ_ONLY_CACHE
    temp_kup = __ldg(TEMP+index);
    salt_kup = __ldg(SALT+index);
