@@ -486,6 +486,8 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int zero_one = 0;
   int zero_two = 0;
   double eps = 0.00000000001;
+  
+  if (vName < 0 || vName > 6) { vName = 0; }
 
   for (i=0; i<N; i++) {
 
@@ -496,7 +498,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
         res++;
         if (print < 10) {
           print++;
-          fprintf(stderr, "Node %d: Error detected at i=%d, a1= %20.17e a2= %20.17e\n",my_task,i,a1[i],a2[i]);
+          fprintf(stderr, "Node %d: %s Error detected at i=%d, a1= %20.17e a2= %20.17e\n",my_task,var_names[vName],i,a1[i],a2[i]);
         }
     }
 
@@ -505,7 +507,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
         res++;
         if (print < 10) {
           print++;
-          fprintf(stderr, "Node %d: Error detected at i=%d, \t a1= \t %20.17e \t a2= \t %20.17e\n",my_task,i,a1[i],a2[i]);
+          fprintf(stderr, "Node %d: %s Error detected at i=%d, \t a1= \t %20.17e \t a2= \t %20.17e\n",my_task,var_names[vName],i,a1[i],a2[i]);
         }
     }
 
@@ -515,7 +517,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   if (zero_two > 95*(N/100)) { fprintf(stderr, "Node %d: Error: array2 contains %d zeros\n",my_task, zero_two); }
 
   if (zero_one != zero_two) {
-    fprintf(stderr, "Node %d: Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n",my_task, zero_one, zero_two);
+    fprintf(stderr, "Node %d: %s Error: number of zeros in arrays dont correspond zero1=%d, zero2=%d\n", my_task, var_names[vName], zero_one, zero_two);
   }
 
   if (res > 0) {
