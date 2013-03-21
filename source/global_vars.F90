@@ -29,9 +29,13 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2,max_blocks_clinic), pointer :: &
-      VDC, &             ! tracer diffusivity - public to allow possible modification by Gent-McWilliams horizontal mixing parameterization
+   real (r8), dimension(:,:,:,:,:), pointer :: &
+      VDCp, &            ! pointer used for pinned memory allocation, aliased to VDC
+            &            ! this is a hack because we can't use dimension() statement on fortran90 pointers
       VDCREF             ! copy for GPU result verification
+
+   real (r8), dimension(nx_block,ny_block,0:km+1,2,max_blocks_clinic), target :: &
+      VDC             ! tracer diffusivity - public to allow possible modification by Gent-McWilliams horizontal mixing parameterization
 
    real (r8), dimension(:,:,:,:), pointer :: &
       VVC,         &! momentum viscosity
