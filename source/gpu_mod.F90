@@ -237,7 +237,9 @@
       allocate(RHOREF(nx_block,ny_block,km), &
                DBLOCREF(nx_block,ny_block,km), &
                DBSFCREF(nx_block,ny_block,km))
-      allocate(VDCREF(nx_block,ny_block,0:km+1,2,max_blocks_clinic))
+
+      allocate(VDCREF(nx_block,ny_block,0:km+1,2))
+
       allocate(VVCREF(nx_block,ny_block,km,max_blocks_clinic))
     endif
 

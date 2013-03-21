@@ -30,11 +30,11 @@
 ! !PUBLIC DATA MEMBERS:
    real (r8), dimension(:,:,:,:,:), pointer :: &
       VDC, &            ! pointer used for pinned memory allocation, aliased to VDC
-      VDCREF             ! copy for GPU result verification
 
    real (r8), dimension(:,:,:,:), pointer :: &
       VVC,         &! momentum viscosity
-      VVCREF        ! copy for GPU result verification
+      VVCREF,      &! copy for GPU result verification
+      VDCREF        ! copy for GPU result verification
 
 
 !EOP
