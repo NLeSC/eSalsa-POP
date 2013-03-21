@@ -287,6 +287,7 @@ void cuda_state_initialize(double *constants, double *pressz,
 //    
 //  }
   //debugging
+  /*
   if (my_task == 0) {
     printf("GPU_CMOD using pressz:\n");
     for (k=0; k<KM; k++) {
@@ -294,7 +295,7 @@ void cuda_state_initialize(double *constants, double *pressz,
     }
     printf("\n");
   }
-  
+  */
 
   }
 }

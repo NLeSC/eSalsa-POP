@@ -755,6 +755,11 @@ endif
 !   if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
    if (ldbl_diff) then
      if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+       !VDC is an inout parameter to ddmix, therefore to check the result we first have to store it.
+       if (use_verify_results) then
+         VDCREF = VDC; !hopefully this copies the array and does mess with pointers
+       endif
+
        call gpumod_ddmix(VDC, TRCR, this_block)
 
        if (use_verify_results) then
