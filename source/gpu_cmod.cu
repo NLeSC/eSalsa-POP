@@ -691,10 +691,13 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
 	  grid.y = (KM);
 
+	  cudaDeviceSynchronize();
+	  CUDA_CHECK_ERROR("Before ddmix_gpu kernel execution");
+	  
 	#ifdef REUSE_TRCR
-	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM);
+	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM-1);
 	#else
-	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM);
+	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM-1);
 	#endif
 
 	  cudaDeviceSynchronize();
@@ -719,6 +722,7 @@ __global__ void ddmix_kernelmm(double *VDC1, double *VDC2, double *TEMP, double 
   //check bounds
   if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
 
+    
 #ifdef USE_READ_ONLY_CACHE
    temp_kup = __ldg(TEMP+index);
    salt_kup = __ldg(SALT+index);
