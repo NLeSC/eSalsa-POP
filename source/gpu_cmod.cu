@@ -286,6 +286,15 @@ void cuda_state_initialize(double *constants, double *pressz,
 //    
 //    
 //  }
+  //debugging
+  if (my_task == 0) {
+    printf("GPU_CMOD using pressz:\n");
+    for (k=0; k<KM; k++) {
+	    printf("%d=%20.17e\n",k,pressz[k]);
+    }
+    printf("\n");
+  }
+  
 
   }
 }
