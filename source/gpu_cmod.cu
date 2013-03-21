@@ -541,12 +541,12 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
 
 	  err = cudaMalloc((void **)&d_DBLOC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
+	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
 	  err = cudaMalloc((void **)&d_DBSFC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_DBSFC: %s\n", cudaGetErrorString( err ));
+	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBSFC: %s\n", cudaGetErrorString( err ));
 	  
 	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
 	  d_SALT = d_TRCR+NX_BLOCK*NY_BLOCK*KM;
 
 	  //only used in debugging
@@ -612,7 +612,9 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	  cudaFree(d_DBSFC);
 	  
 	  //TRCR values may remain on the GPU for other vmix_kpp routines
-#if !defined(REUSE_TRACER)
+#ifdef REUSE_TRACER
+	 //do nothing 
+#else	  
 	  cudaFree(d_TRCR);
 #endif
 }
