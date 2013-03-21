@@ -724,26 +724,20 @@ __global__ void ddmix_kernelmm(double *VDC1, double *VDC2, double *TEMP, double 
   //check bounds
   if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
 
+	if (k < KM-1) {
 #ifdef USE_READ_ONLY_CACHE
-
    temp_kup = __ldg(TEMP+index);
    salt_kup = __ldg(SALT+index);
-
-  if (k < KM-1) {
    temp = __ldg(TEMP+indexpk);
    salt = __ldg(SALT+indexpk);
-  }
 #else
- 
    temp_kup = TEMP[index];
    salt_kup = SALT[index];
-
-  if (k < KM-1) {
    temp = TEMP[indexpk];
    salt = SALT[indexpk];
-  }
 #endif
-
+	}
+	  
    //inlined function state
            double tq, sq, sqr, work1, work2, work3, work4, denomk;
            tq = min(temp_kup, TMAX);
