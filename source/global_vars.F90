@@ -29,7 +29,7 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), dimension(:,:,:,:,:), pointer :: &
+   real (r8), dimension(nx_block,ny_block,0:km+1,2,max_blocks_clinic), pointer :: &
       VDC, &             ! tracer diffusivity - public to allow possible modification by Gent-McWilliams horizontal mixing parameterization
       VDCREF             ! copy for GPU result verification
 

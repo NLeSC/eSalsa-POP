@@ -220,7 +220,9 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*max_blocks_clinic))
     call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,(km+2),2,max_blocks_clinic /))
 
-    VDC = RESHAPE(VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
+    !VDC = RESHAPE(VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
+    !for some reason the '0:km+1' is not allowed in an array shape array
+    !I hope this doesn't cause any errors in the rest of the code
 
     !apparantly c_f_pointer doesnt like the ':' in the array shape statement
     !call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
