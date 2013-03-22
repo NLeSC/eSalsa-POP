@@ -267,6 +267,9 @@
     allocate(DBLOC(nx_block,ny_block,km))
     allocate(DBSFC(nx_block,ny_block,km))
 
+    allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
+              VVC(nx_block,ny_block,km,      nblocks_clinic))
+
   endif ! use_gpu_state
 
 !-----------------------------------------------------------------------
