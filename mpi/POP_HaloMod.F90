@@ -1854,6 +1854,11 @@ contains
                      halo%sendTask(nmsg),                           &
                      POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '2D send R8', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -2200,6 +2205,11 @@ contains
                      halo%sendTask(nmsg),                           &
                      POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '2D send R4', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -2544,6 +2554,10 @@ contains
                      halo%sendTask(nmsg),                             &
                      POP_mpitagHalo + POP_myTask,                     &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '2D send MPI_INT', halo%sendTask(nmsg), msgSize
+#endif
    end do
 
 !-----------------------------------------------------------------------
@@ -2926,6 +2940,11 @@ contains
                      halo%sendTask(nmsg),                         &
                      POP_mpitagHalo + POP_myTask,                 &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '3D send R8', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -3337,6 +3356,11 @@ contains
                      halo%sendTask(nmsg),                         &
                      POP_mpitagHalo + POP_myTask,                 &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '3D send R4', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -3748,6 +3772,11 @@ contains
                      halo%sendTask(nmsg),                           &
                      POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '3D send MPI_INT', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -4163,6 +4192,11 @@ contains
                      halo%sendTask(nmsg),                         &
                      POP_mpitagHalo + POP_myTask,                 &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '4D send R8', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -4594,6 +4628,11 @@ contains
                      halo%sendTask(nmsg),                         &
                      POP_mpitagHalo + POP_myTask,                 &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '4D send R4', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
@@ -5025,6 +5064,11 @@ contains
                      halo%sendTask(nmsg),                           &
                      POP_mpitagHalo + POP_myTask,                   &
                      halo%communicator, sndRequest(nmsg), ierr)
+
+#ifdef JASON_PRINT_SEND
+      write(*,*) '4D send MPI_INT', halo%sendTask(nmsg), msgSize
+#endif
+
    end do
 
 !-----------------------------------------------------------------------
