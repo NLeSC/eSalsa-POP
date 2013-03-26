@@ -625,7 +625,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 #ifdef REUSE_TRACER
 	 //do nothing 
 #else	  
-	  //cudaFree(d_TRCR);
+	  cudaFree(d_TRCR);
 #endif
 }
 
