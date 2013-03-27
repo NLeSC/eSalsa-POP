@@ -323,8 +323,8 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   //memset(RHOOUT, 0, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
 
   //this synchronize is a bit over-protective but currently left in for debugging purposes
-  cudaDeviceSynchronize();
-  CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
+  //cudaDeviceSynchronize();
+  //CUDA_CHECK_ERROR("Before mwjf_state_1D kernel execution");
   
   mwjf_state_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, DRHODT, DRHODS,
         n_outputs, start_k, end_k);
@@ -351,8 +351,8 @@ void mwjf_statepd_gpu(double *TEMPK, double *SALTK,
   mwjf_statepd_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, start_k, end_k);
   
   //synchronize can be delayed to increase overlap with CPU execution
-  cudaDeviceSynchronize();
-  CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
+  //cudaDeviceSynchronize();
+  //CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
   
 }
 
@@ -560,8 +560,8 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	  d_SALT = d_TRCR+NX_BLOCK*NY_BLOCK*KM;
 
 	  //only used in debugging
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("After memory setup");
+	  //cudaDeviceSynchronize();
+	  //CUDA_CHECK_ERROR("After memory setup");
 
 	  //setup execution parameters
 	  dim3 threads(32,8);
@@ -613,7 +613,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy device to host DBLOC: %s\n", cudaGetErrorString( err ));
 	  }
 	  
-      //only here for debugging, remove in production code
+      //wait for device to finish
 	  cudaDeviceSynchronize();
 	  CUDA_CHECK_ERROR("After buoydiff_gpu kernel execution");
 
@@ -705,8 +705,8 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
 	  grid.y = (KM);
 
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("Before ddmix_gpu kernel execution");
+	  //cudaDeviceSynchronize();
+	  //CUDA_CHECK_ERROR("Before ddmix_gpu kernel execution");
 
 	#ifdef REUSE_TRCR
 	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM-1);
