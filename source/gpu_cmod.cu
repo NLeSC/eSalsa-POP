@@ -495,7 +495,8 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int print = 0;
   int zero_one = 0;
   int zero_two = 0;
-  double eps = 0.00000000001;
+  //double eps = 0.00000000001;
+  double eps = 0.0000000000001;
   
   if (vName < 0 || vName > 6) { vName = 0; }
 
