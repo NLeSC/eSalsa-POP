@@ -173,7 +173,7 @@
    endif
 
    call broadcast_scalar(use_gpu_state, master_task)
-
+   call broadcast_scalar(use_verify_results, master_task)
 
 !-----------------------------------------------------------------------
 !
