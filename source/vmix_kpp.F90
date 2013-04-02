@@ -722,19 +722,19 @@
 !  compute buoyancy differences at each vertical level.
 !
 !-----------------------------------------------------------------------
-if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
-
-    call gpumod_buoydiff(DBLOC, DBSFC, TRCR, this_block)
-
-    if (use_verify_results) then
-        call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
-
-        call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km, 2)
-        call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km, 3)
-    endif
-else
+!if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+!
+!    call gpumod_buoydiff(DBLOC, DBSFC, TRCR, this_block)
+!
+!    if (use_verify_results) then
+!        call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
+!
+!        call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km, 2)
+!        call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km, 3)
+!    endif
+!else
     call buoydiff(DBLOC, DBSFC, TRCR, this_block)
-endif
+!endif
 
 !-----------------------------------------------------------------------
 !
