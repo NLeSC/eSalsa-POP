@@ -130,7 +130,7 @@
 !-----------------------------------------------------------------------
 
    use_gpu_state = .true.
-   use_verify_results = .false.
+   use_verify_results = .true.
 
    if (my_task == master_task) then
       open (nml_in, file=nml_filename, status='old',iostat=nml_error)
