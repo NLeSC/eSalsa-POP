@@ -61,7 +61,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR);
 void ddmix_gpu(double *VDC, double *TRCR);
 
 __global__ void buoydiff_kernel_onek(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k);
-__global__ void ddmix_kernelmm(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k, int end_k);
+__global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k);
 
 }
 
@@ -699,6 +699,8 @@ __global__ void buoydiff_kernel_onek(double *DBLOC, double *DBSFC, double *TEMP,
 
 
 void ddmix_gpu(double *VDC, double *TRCR) {
+	  cudaError_t err;
+	
 	  //allocate device memory
 	  double *d_VDC;
 	  double *d_VDC1;
@@ -727,9 +729,6 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  int array_size = NX_BLOCK*NY_BLOCK;
 	  int lps = 1; //levels to compute per stream
 	  int k = 0;
-	  nStreams = nStreams == -1 ? NSTREAMS : nStreams;
-	  k = 0; lps = KM/nStreams;
-	  if (lps * nStreams != KM) { fprintf(stderr, "Error: Levels Per Stream is not a divisor of nStreams!\n"); }
 
 	  //separate pointers for VDC1 and VDC2, skip first level because of k=0 in FORTRAN
 	  double *VDC1 = VDC+(NX_BLOCK*NY_BLOCK);
