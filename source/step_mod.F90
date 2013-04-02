@@ -723,47 +723,47 @@
 
          !check if GPU accelerated functions can be used
          if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
-           call gpumod_mwjf_state(TRACER(:,:,:,1,oldtime,iblock), &
+            call gpumod_mwjf_state(TRACER(:,:,:,1,oldtime,iblock), &
                            TRACER(:,:,:,2,oldtime,iblock), &
                            1, POP_km, &
                            RHOOUT=RHO(:,:,:,oldtime,iblock))
 
-           if (use_verify_results) then !correctness check
-              do k = 1,POP_km
-                 call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
+            if (use_verify_results) then !correctness check
+                do k = 1,POP_km
+                    call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
                                 TRACER(:,:,k,2,oldtime,iblock), &
                                 this_block,                     &
                                 RHOOUT=RHOREF(:,:,k))
-              enddo
-              call gpumod_compare(RHO(:,:,:,oldtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
-           endif
+                enddo
+                call gpumod_compare(RHO(:,:,:,oldtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
+            endif
 
-           call gpumod_mwjf_state(TRACER(:,:,:,1,curtime,iblock), &
+            call gpumod_mwjf_state(TRACER(:,:,:,1,curtime,iblock), &
                            TRACER(:,:,:,2,curtime,iblock), &
                            1, POP_km, &
                            RHOOUT=RHO(:,:,:,curtime,iblock))
 
-           if (use_verify_results) then !correctness check
-              do k = 1,POP_km
-                 call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
+            if (use_verify_results) then !correctness check
+                do k = 1,POP_km
+                    call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
                                 TRACER(:,:,k,2,curtime,iblock), &
                                 this_block,                     &
                                 RHOOUT=RHOREF(:,:,k))
-              enddo
-              call gpumod_compare(RHO(:,:,:,curtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
-           endif
+                enddo
+                call gpumod_compare(RHO(:,:,:,curtime,iblock), RHOREF, nx_block*ny_block*POP_km, 4)
+            endif
 
          else ! use CPU functions instead
-           do k = 1,POP_km  ! recalculate densities from averaged tracers
-              call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
+            do k = 1,POP_km  ! recalculate densities from averaged tracers
+                call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
                              TRACER(:,:,k,2,oldtime,iblock), &
                              this_block,                     &
                              RHOOUT=RHO(:,:,k,oldtime,iblock))
-              call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
+                call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
                              TRACER(:,:,k,2,curtime,iblock), &
                              this_block,                     &
                              RHOOUT=RHO(:,:,k,curtime,iblock))
-           enddo
+            enddo
          endif ! endif use GPU accelerated functions
 
          !*** correct after avg

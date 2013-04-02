@@ -36,6 +36,12 @@
       VVCREF,      &! copy for GPU result verification
       VDCREF        ! copy for GPU result verification
 
+    real (r8), dimension(:,:,:), pointer :: &
+      DBLOC,      &! buoyancy difference between adjacent levels
+      DBSFC,      &! buoyancy difference between level and surface
+      DBLOCREF,   &! for verfication
+      DBSFCREF     ! for verfication
+
 
 !EOP
 !BOC

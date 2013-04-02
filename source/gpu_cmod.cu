@@ -4,7 +4,7 @@
 #include "gpu_domain.h"
 
 //#define REUSE_TRCR 1
-#define USE_READ_ONLY_CACHE 1
+//#define USE_READ_ONLY_CACHE 1
 
 #define TMIN -2.0000000000000000
 #define TMAX 999.00000000000000
@@ -699,222 +699,307 @@ __global__ void buoydiff_kernel_onek(double *DBLOC, double *DBSFC, double *TEMP,
 
 
 void ddmix_gpu(double *VDC, double *TRCR) {
-	  //setup execution parameters, assuming 1D for now
-	  dim3 threads(256,1);
+	  //allocate device memory
+	  double *d_VDC;
+	  double *d_VDC1;
+	  double *d_VDC2;
+	  double *d_TRCR;
+
+	  err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
+	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_VDC: %s\n", cudaGetErrorString( err ));
+	  d_VDC1 = d_VDC+(NX_BLOCK*NY_BLOCK); //skip first level
+	  d_VDC2 = d_VDC1+(NX_BLOCK*NY_BLOCK*(KM+2));
+	#ifndef REUSE_TRCR
+	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
+	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+	#endif
+	  
+	  cudaDeviceSynchronize();
+	  CUDA_CHECK_ERROR("After memory setup");
+
+	  //setup execution parameters
+	  dim3 threads(16,16);
 	  dim3 grid(1,1);
-	  grid.x = (int)ceilf(((float)(NX_BLOCK*NY_BLOCK) / (float)threads.x));
-	  grid.y = (KM);
+	  grid.y = (int)ceilf((float)NY_BLOCK  / (float)(threads.y));
+	  grid.x = (int)ceilf((float)NX_BLOCK  / (float)(threads.x));
 
-	  //cudaDeviceSynchronize();
-	  //CUDA_CHECK_ERROR("Before ddmix_gpu kernel execution");
+	  //stream specific stuff
+	  int array_size = NX_BLOCK*NY_BLOCK;
+	  int lps = 1; //levels to compute per stream
+	  int k = 0;
+	  nStreams = nStreams == -1 ? NSTREAMS : nStreams;
+	  k = 0; lps = KM/nStreams;
+	  if (lps * nStreams != KM) { fprintf(stderr, "Error: Levels Per Stream is not a divisor of nStreams!\n"); }
 
-	#ifdef REUSE_TRCR
-	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM-1);
-	#else
-	  ddmix_kernelmm<<<grid,threads,0,stream[1]>>>(VDC, VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), TRCR, TRCR+(NX_BLOCK*NY_BLOCK*KM), 0, KM-1);
+	  //separate pointers for VDC1 and VDC2, skip first level because of k=0 in FORTRAN
+	  double *VDC1 = VDC+(NX_BLOCK*NY_BLOCK);
+	  double *VDC2 = VDC+(NX_BLOCK*NY_BLOCK)+(NX_BLOCK*NY_BLOCK*(KM+2));
+
+	  for (k=0; k<KM; k+=lps) {
+	    //cpy tracers
+	#ifndef REUSE_TRCR
+	    err = cudaMemcpyAsync(d_TRCR+k*array_size, TRCR+k*array_size, lps*array_size*sizeof(double), cudaMemcpyHostToDevice, stream[k]);
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device TRCR: %s\n", cudaGetErrorString( err ));
+	    err = cudaMemcpyAsync(d_TRCR+(NX_BLOCK*NY_BLOCK*KM)+k*array_size, TRCR+(NX_BLOCK*NY_BLOCK*KM)+k*array_size, lps*array_size*sizeof(double), cudaMemcpyHostToDevice, stream[k]);
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device TRCR: %s\n", cudaGetErrorString( err ));
+
+	    //record cuda event
+	    err = cudaEventRecord (event_htod[k], stream[k]);
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaEventRecord: %s\n", cudaGetErrorString( err ));
 	#endif
 
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("After ddmix_gpu kernel execution");
+	    if (k<KM-1) {
+	      //cpy vdc
+	      err = cudaMemcpyAsync(d_VDC1+k*array_size, VDC1+k*array_size, lps*array_size*sizeof(double), cudaMemcpyHostToDevice, stream[k]);
+	      if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device VDC1: %s\n", cudaGetErrorString( err ));
+	      err = cudaMemcpyAsync(d_VDC2+k*array_size, VDC2+k*array_size, lps*array_size*sizeof(double), cudaMemcpyHostToDevice, stream[k]);
+	      if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device VDC2: %s\n", cudaGetErrorString( err ));
+	    }
 
-    #ifdef REUSE_TRCR
-	    cudaFree(d_TRCR);
-    #endif
+	  }
+
+	  //call the kernel
+	  for (k=0; k<KM-1; k+=lps) {
+	    //wait for memcpys in stream K+1 to complete to guarantee correctness
+	#ifndef REUSE_TRCR
+	    if (k+lps < KM) {
+	      err = cudaStreamWaitEvent(stream[k], event_htod[k+lps], 0);
+	      if (err != cudaSuccess) fprintf(stderr, "Error in cudaStreamWaitEvent: %s\n", cudaGetErrorString( err ));
+	    }
+	#endif
+
+	    ddmix_kernel_onek<<<grid,threads,0,stream[k]>>>(d_VDC, d_VDC+(NX_BLOCK*NY_BLOCK*(KM+2)), d_TRCR, d_TRCR+(NX_BLOCK*NY_BLOCK*KM), k);
+	  }
+
+	  //device to host copies
+	  for (k=0; k<KM-1; k+=lps) {
+	    err = cudaMemcpyAsync(VDC1+k*array_size, d_VDC1+k*array_size, lps*array_size*sizeof(double), cudaMemcpyDeviceToHost, stream[k]);
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device VDC1: %s\n", cudaGetErrorString( err ));
+	    err = cudaMemcpyAsync(VDC2+k*array_size, d_VDC2+k*array_size, lps*array_size*sizeof(double), cudaMemcpyDeviceToHost, stream[k]);
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device VDC2: %s\n", cudaGetErrorString( err ));
+	  }
+
+	  //wait for completion
+	  cudaDeviceSynchronize();
+	  
+	  cudaFree(d_VDC);
+	  
+	#ifndef REUSE_TRCR
+	  cudaFree(d_TRCR);
+	#endif
+
 }
 
-__global__ void ddmix_kernelmm(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k, int end_k) {
-  double prandtl, talpha, sbeta, rrho;
-  double salt, temp, temp_kup, salt_kup, talpha_kup, sbeta_kup;
-  double alphadt, betads, vdc1, vdc2, diffdd;
+__global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k) {
+	double talpha, sbeta;
+	double salt, temp, temp_kup, salt_kup, talpha_kup, sbeta_kup;
+	double alphadt, betads, vdc1, vdc2, diffdd;
 
-  //obtain indices
-  int i = blockIdx.y * gridDim.x * blockDim.x + blockIdx.x * blockDim.x + threadIdx.x;
-  int k = start_k + (i / (NX_BLOCK*NY_BLOCK));
-  int index = i + start_k*(NX_BLOCK*NY_BLOCK);
-  int indexpk = index+(NX_BLOCK*NY_BLOCK);
+	//obtain indices
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int k = start_k;
 
-  //check bounds
-  if (i < NX_BLOCK*NY_BLOCK*(end_k-start_k)) {
+	//check bounds
+	if (j < NY_BLOCK && i < NX_BLOCK && k < KM-1) {
+		//kup  = 1
+		//knxt = 2
 
-	if (k < KM-1) {
 #ifdef USE_READ_ONLY_CACHE
-   temp_kup = __ldg(TEMP+index);
-   salt_kup = __ldg(SALT+index);
-   temp = __ldg(TEMP+indexpk);
-   salt = __ldg(SALT+indexpk);
+		temp_kup = __ldg( TEMP+(i+(j*NX_BLOCK)+(k*NX_BLOCK*NY_BLOCK)) );
+		salt_kup = __ldg( SALT+(i+(j*NX_BLOCK)+(k*NX_BLOCK*NY_BLOCK)) );
+		temp     = __ldg( TEMP+(i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)) );
+		salt     = __ldg( SALT+(i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)) );
 #else
-   temp_kup = TEMP[index];
-   salt_kup = SALT[index];
-   temp = TEMP[indexpk];
-   salt = SALT[indexpk];
+		temp_kup = TEMP[i+(j*NX_BLOCK)+(k*NX_BLOCK*NY_BLOCK)];
+		salt_kup = SALT[i+(j*NX_BLOCK)+(k*NX_BLOCK*NY_BLOCK)];
+		temp     = TEMP[i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)];
+		salt     = SALT[i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)];
 #endif
-	}
-	  
-   //inlined function state
-           double tq, sq, sqr, work1, work2, work3, work4, denomk;
-           tq = min(temp_kup, TMAX);
-           tq = max(tq, TMIN);
-           sq = min(salt_kup, SMAX);
-           sq = 1000.0 * max(sq, SMIN);
 
-           sqr = sqrt(sq);
+		vdc1 = VDC1[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
+		vdc2 = VDC2[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
 
-           work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
-                                 sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
 
-           work2 = d_mwjfdens0t0[k] + tq * (d_mwjfdens0t1[k] + tq * (d_mwjfdens0t2 +
-              tq * (d_mwjfdens0t3[k] + d_mwjfdens0t4 * tq))) +
-              sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
-              sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
+		//computed rrho here is actually not used and overwritten by next call to state
+		//   call state(1, 1, prandtl, salt_kup, &
+		//                    RHOFULL=rrho, &
+		//                    DRHODT=talpha_kup, DRHODS=sbeta_kup)
+		//inlined function state
+		double tq, sq, sqr, work1, work2, work3, work4, denomk;
+		tq = min(temp_kup, TMAX);
+		tq = max(tq, TMIN);
+		sq = min(salt_kup, SMAX);
+		sq = 1000.0 * max(sq, SMIN);
 
-           denomk = 1.0/work2;
-   //unused        rrho = work1*denomk;
+		sqr = sqrt(sq);
 
-           work3 = // dP_1/dT
-                   d_mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k] +
-                   3.0*d_mwjfnums0t3 * tq) + d_mwjfnums1t1 * sq;
+		work1 = d_mwjfnums0t0[k] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k] + d_mwjfnums0t3 * tq)) +
+				sq * (d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
 
-           work4 = // dP_2/dT
-                   d_mwjfdens0t1[k] + sq * d_mwjfdens1t1 +
-                   tq * (2.0*(d_mwjfdens0t2 + sq*sqr*d_mwjfdensqt2) +
-                   tq * (3.0*(d_mwjfdens0t3[k] + sq * d_mwjfdens1t3) +
-                   tq *  4.0*d_mwjfdens0t4));
+		work2 = d_mwjfdens0t0[k] + tq * (d_mwjfdens0t1[k] + tq * (d_mwjfdens0t2 +
+				tq * (d_mwjfdens0t3[k] + d_mwjfdens0t4 * tq))) +
+				sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
+						sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
 
-           talpha_kup = (work3 - work1*denomk*work4)*denomk;
+		denomk = 1.0/work2;
+		//unused        rrho = work1*denomk;
 
-                   work3 = // dP_1/dS
-                            d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
+		work3 = // dP_1/dT
+				d_mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k] +
+						3.0*d_mwjfnums0t3 * tq) + d_mwjfnums1t1 * sq;
 
-                   work4 = d_mwjfdens1t0 +   // dP_2/dS
-                            tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
-                            1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
+		work4 = // dP_2/dT
+				d_mwjfdens0t1[k] + sq * d_mwjfdens1t1 +
+				tq * (2.0*(d_mwjfdens0t2 + sq*sqr*d_mwjfdensqt2) +
+						tq * (3.0*(d_mwjfdens0t3[k] + sq * d_mwjfdens1t3) +
+								tq *  4.0*d_mwjfdens0t4));
 
-           sbeta_kup = (work3 - work1*denomk*work4)*denomk * 1000.0;
-   //end of inlined function state
-           //   for (k = start_k; k < end_k; k++) {
-           //   do k=1,KM
+		talpha_kup = (work3 - work1*denomk*work4)*denomk;
 
-                 if ( k < KM-1 ) {//changed to KM-1 because we start at 0
+		work3 = // dP_1/dS
+				d_mwjfnums1t0[k] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
 
-                    prandtl = max(temp, -2.0);
-                    //PRANDTL = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
+		work4 = d_mwjfdens1t0 +   // dP_2/dS
+				tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
+				1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
 
-           //         call state(k+1, k+1, prandtl, salt,              &
-           //                              RHOFULL=rrho, DRHODT=talpha, &
-           //                                            DRHODS=sbeta)
-           //inlined function state (k+1)
-                   double tq, sq, sqr, work1, work2, work3, work4, denomk;
-                   tq = min(temp, TMAX);
-                   tq = max(tq, TMIN);
-                   sq = min(salt, SMAX);
-                   sq = 1000.0 * max(sq, SMIN);
-                   sqr = sqrt(sq);
+		sbeta_kup = (work3 - work1*denomk*work4)*denomk * 1000.0;
+		//end of inlined function state
 
-                   work1 = d_mwjfnums0t0[k+1] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k+1] + d_mwjfnums0t3 * tq)) +
-                                         sq * (d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
-                   work2 = d_mwjfdens0t0[k+1] + tq * (d_mwjfdens0t1[k+1] + tq * (d_mwjfdens0t2 +
-                      tq * (d_mwjfdens0t3[k+1] + d_mwjfdens0t4 * tq))) +
-                      sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
-                      sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
-                   denomk = 1.0/work2;
-                   rrho = work1*denomk;
+		//   do k=1,KM
+		{
+			double prandtl = 0.0;
+			double rrho = 0;
 
-                   work3 = // dP_1/dT
-                           d_mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k+1] +
-                           3.0*d_mwjfnums0t3 * tq) + d_mwjfnums1t1 * sq;
-                   work4 = // dP_2/dT
-                           d_mwjfdens0t1[k+1] + sq * d_mwjfdens1t1 +
-                           tq * (2.0*(d_mwjfdens0t2 + sq*sqr*d_mwjfdensqt2) +
-                           tq * (3.0*(d_mwjfdens0t3[k+1] + sq * d_mwjfdens1t3) +
-                           tq *  4.0*d_mwjfdens0t4));
-                   talpha = (work3 - work1*denomk*work4)*denomk;
+			//redundant, already checked at bounds check
+			//      if ( k < (KM-1) ) {//changed to KM-1 because we start at 0
 
-                   work3 = // dP_1/dS
-                           d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
-                   work4 = d_mwjfdens1t0 +   // dP_2/dS
-                           tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
-                           1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
-                   sbeta = (work3 - work1*denomk*work4)*denomk * 1000.0;
-           //end of inlined function state
+			//       temp = TEMP[i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)];
+			prandtl = max(temp,(-2.0));
 
-                    alphadt = -0.5*(talpha_kup + talpha) * (temp_kup - temp);
-           //         ALPHADT = -p5*(TALPHA(:,:,kup) + TALPHA(:,:,knxt)) &
-           //                      *(TRCR(:,:,k,1) - TRCR(:,:,k+1,1))
+			//PRANDTL = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
 
-                    betads  = 0.5*(sbeta_kup + sbeta) * (salt_kup - salt);
-           //         BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
-           //                     *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
+			//       salt = SALT[i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)];
 
-           //         kup  = knxt
-           //         knxt = 3 - kup
+			//         call state(k+1, k+1, prandtl, salt,              &
+			//                              RHOFULL=rrho, DRHODT=talpha, &
+			//                                            DRHODS=sbeta)
+			//inlined function state (k+1)
+			double tq, sq, sqr, work1, work2, work3, work4, denomk;
+			tq = min(temp, TMAX);
+			tq = max(tq, TMIN);
+			sq = min(salt, SMAX);
+			sq = 1000.0 * max(sq, SMIN);
+			sqr = sqrt(sq);
 
-                 } else {
-                    alphadt = 0.0;
-                    betads  = 0.0;
-                 }
+			work1 = d_mwjfnums0t0[k+1] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k+1] + d_mwjfnums0t3 * tq)) +
+					sq * (d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
+			work2 = d_mwjfdens0t0[k+1] + tq * (d_mwjfdens0t1[k+1] + tq * (d_mwjfdens0t2 +
+					tq * (d_mwjfdens0t3[k+1] + d_mwjfdens0t4 * tq))) +
+					sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
+							sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
+			denomk = 1.0/work2;
+			rrho = work1*denomk;
 
-           //!-----------------------------------------------------------------------
-           //!
-           //!     salt fingering case
-           //!
-           //!-----------------------------------------------------------------------
+			work3 = // dP_1/dT
+					d_mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k+1] +
+							3.0*d_mwjfnums0t3 * tq) + d_mwjfnums1t1 * sq;
+			work4 = // dP_2/dT
+					d_mwjfdens0t1[k+1] + sq * d_mwjfdens1t1 +
+					tq * (2.0*(d_mwjfdens0t2 + sq*sqr*d_mwjfdensqt2) +
+							tq * (3.0*(d_mwjfdens0t3[k+1] + sq * d_mwjfdens1t3) +
+									tq *  4.0*d_mwjfdens0t4));
+			talpha = (work3 - work1*denomk*work4)*denomk;
 
-                 //references to VDC need k+1, because VDC contains an index k=0 in FORTRAN
-                 vdc1 = VDC1[indexpk];
-                 vdc2 = VDC2[indexpk];
+			work3 = // dP_1/dS
+					d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
+			work4 = d_mwjfdens1t0 +   // dP_2/dS
+					tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
+					1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
+			sbeta = (work3 - work1*denomk*work4)*denomk * 1000.0;
+			//end of inlined function state
 
-                 //where ( ALPHADT > BETADS .and. BETADS > c0 )
-                 if ((alphadt > betads) && (betads > 0.0)) {
+			alphadt = -0.5*(talpha_kup + talpha) * (temp_kup - temp);
+			//         ALPHADT = -p5*(TALPHA(:,:,kup) + TALPHA(:,:,knxt)) &
+			//                      *(TRCR(:,:,k,1) - TRCR(:,:,k+1,1))
 
-                    rrho       = min(alphadt/betads, RRHO0);
-                    //RRHO       = MIN(ALPHADT/BETADS, Rrho0)
-                    diffdd     = (1.0-((rrho-1.0)/(RRHO0-1.0)));
-                    diffdd     = diffdd * diffdd * diffdd;
-                    diffdd     = DSFMAX * diffdd;
-                    //DIFFDD     = dsfmax*(c1-(RRHO-c1)/(Rrho0-c1))**3
+			betads  = 0.5*(sbeta_kup + sbeta) * (salt_kup - salt);
+			//         BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
+			//                     *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
 
-                    vdc1 += 0.7*diffdd; //k+1 because k=0 is only zeros
+			//         kup  = knxt
+			//         knxt = 3 - kup
 
-                    vdc2 += diffdd;
-                    //VDC(:,:,k,1) = VDC(:,:,k,1) + 0.7*DIFFDD
-                    //VDC(:,:,k,2) = VDC(:,:,k,2) + DIFFDD
+			/* redundant, already checked at bounds check
+			} else {
+			 alphadt = 0.0;
+			 betads  = 0.0;
+			}
+			 */
 
-                 } //endwhere
-           //!-----------------------------------------------------------------------
-           //!
-           //!     diffusive convection
-           //!
-           //!-----------------------------------------------------------------------
+			//!-----------------------------------------------------------------------
+			//!
+			//!     salt fingering case
+			//!
+			//!-----------------------------------------------------------------------
 
-                 //where ( ALPHADT < c0 .and. BETADS < c0 .and. ALPHADT > BETADS )
-                 if ((alphadt < 0.0) && (betads < 0.0) && (alphadt > betads)) {
-                    rrho    = alphadt/ betads;
-                    //RRHO    = ALPHADT / BETADS
-                    diffdd  = 1.5e-2 * 0.909 * exp(4.6*exp(-0.54*(1.0/rrho-1.0)));
-                    //DIFFDD  = 1.5e-2_c_double*0.909_c_double* &
-                    //          exp(4.6_c_double*exp(-0.54_c_double*(c1/RRHO-c1)))
-                    prandtl = 0.15 *rrho;
-                    //PRANDTL = 0.15_c_double*RRHO
-                 } else { //elsewhere
-                    rrho    = 0.0;
-                    diffdd  = 0.0;
-                    prandtl = 0.0;
-                 } //endwhere
+			//      vdc1 = VDC1[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
+			//      vdc2 = VDC2[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
 
-                 //where (RRHO > p5) PRANDTL = (1.85_c_double - 0.85_c_double/RRHO)*RRHO
-                 if (rrho > 0.5) {
-                   //prandtl = (1.85 - (0.85/rrho))*rrho;
-                   //simplyfied
-                   prandtl = 1.85*rrho - 0.85;
-                 }
+			//where ( ALPHADT > BETADS .and. BETADS > c0 )
+			if ((alphadt > betads) && (betads > 0.0)) {
 
-                 //references to VDC need k+1, because VDC contains an index k=0 in FORTRAN
-                 VDC1[indexpk] = vdc1 + diffdd;
-                 VDC2[indexpk] = vdc2 + prandtl*diffdd;
+				rrho       = min(alphadt/betads, RRHO0);
+				//RRHO       = MIN(ALPHADT/BETADS, Rrho0)
+				diffdd     = 1.0-((rrho-1.0)/(RRHO0-1.0));
+				diffdd     = diffdd * diffdd * diffdd;
+				diffdd     = DSFMAX * diffdd;
+				//DIFFDD     = dsfmax*(c1-(RRHO-c1)/(Rrho0-c1))**3
 
-           //   } //end do-loop over k
+				vdc1 += 0.7*diffdd; //k+1 because k=0 is only zeros
+				vdc2 += diffdd;
+				//VDC(:,:,k,1) = VDC(:,:,k,1) + 0.7*DIFFDD
+				//VDC(:,:,k,2) = VDC(:,:,k,2) + DIFFDD
 
-  } //end bounds check
+			} //endwhere
+			//!-----------------------------------------------------------------------
+			//!
+			//!     diffusive convection
+			//!
+			//!-----------------------------------------------------------------------
+
+			//where ( ALPHADT < c0 .and. BETADS < c0 .and. ALPHADT > BETADS )
+			if ((alphadt < 0.0) && (betads < 0.0) && (alphadt > betads)) {
+				rrho    = alphadt/betads;
+				//RRHO    = ALPHADT / BETADS
+				diffdd  = 1.5e-2 * 0.909 * exp(4.6*exp(-0.54*((1.0/rrho)-1.0)));
+				//DIFFDD  = 1.5e-2_c_double*0.909_c_double* &
+				//          exp(4.6_c_double*exp(-0.54_c_double*(c1/RRHO-c1)))
+				prandtl = 0.15*rrho;
+				//PRANDTL = 0.15_c_double*RRHO
+			} else { //elsewhere
+				rrho    = 0.0;
+				diffdd  = 0.0;
+				prandtl = 0.0;
+
+			} //endwhere
+
+
+			//where (RRHO > p5) PRANDTL = (1.85_c_double - 0.85_c_double/RRHO)*RRHO
+			if (rrho > 0.5) {
+				//      prandtl = (1.85 - (0.85*(1.0/rrho)))*rrho;
+				//simplyfied
+				prandtl = (1.85*rrho) - 0.85;
+
+			}
+
+			VDC1[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK] = vdc1 + diffdd;
+			VDC2[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK] = vdc2 + prandtl*diffdd;
+
+		} //end do-loop over k
+
+	} //end bounds check
 
 }
 

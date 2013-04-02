@@ -969,23 +969,33 @@
 !
 !-----------------------------------------------------------------------
 
-         if (lpressure_avg .and. leapfrogts) then
+        if (lpressure_avg .and. leapfrogts) then
 
-           if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
-             call gpumod_mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+            if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+                call gpumod_mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
                         TRACER(:,:,:,2,newtime,iblock), &
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
-           else ! use CPU function instead
-             do k = 1,POP_km
-               call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+
+                if (use_verify_results) then
+                    do k = 1,POP_km
+                        call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                               TRACER(:,:,k,2,newtime,iblock), &
+                               this_block, RHOOUT=RHOREF(:,:,k))
+                    enddo
+                    call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km, 1)
+                endif
+
+            else ! use CPU function instead
+                do k = 1,POP_km
+                    call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
                          TRACER(:,:,k,2,newtime,iblock), &
                          this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
 
-             enddo
-           endif ! if gpus can be used
+                   enddo
+            endif ! if gpus can be used
 
-         endif ! if lpressure_avg .and. leapfrogts
+        endif ! if lpressure_avg .and. leapfrogts
 
 
 
