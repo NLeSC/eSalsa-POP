@@ -60,7 +60,7 @@ end subroutine mwjf_statepd_gpu
 
 subroutine gpu_compare(A, B, n, v) bind (c)
 	use iso_c_binding
-	real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
+	real (c_double), dimension(*) :: &
 		A, B
 	integer (c_int) :: n, v
 end subroutine gpu_compare

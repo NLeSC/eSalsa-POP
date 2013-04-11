@@ -386,7 +386,7 @@
 
 
  subroutine gpumod_compare(A, B, n, var_name)
-    real (r8), dimension(nx_block,ny_block,KM), intent(in) :: &
+    real (r8), dimension(*), intent(in) :: &
       A,             &! array 1
       B               ! array 2
 
