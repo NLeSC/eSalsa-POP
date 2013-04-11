@@ -6,10 +6,10 @@
 //#define REUSE_TRCR 1
 //#define USE_READ_ONLY_CACHE 1
 
-#define TMIN -2.0000000000000000
-#define TMAX 999.00000000000000
-#define SMIN 0.0000000000000000
-#define SMAX 0.99900001287460327
+#define TMIN -2.0
+#define TMAX 999.0
+#define SMIN 0.0
+#define SMAX 0.999
 
 #define RRHO0 2.55
 #define DSFMAX 1.0
