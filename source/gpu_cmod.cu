@@ -495,8 +495,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int print = 0;
   int zero_one = 0;
   int zero_two = 0;
-  //double eps = 0.00000000001;
-  double eps = 0.0000000000001;
+  double eps = 0.0000000001;
   
   if (vName < 0 || vName > 6) { vName = 0; }
 
@@ -793,7 +792,8 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k) {
 	double talpha, sbeta;
 	double salt, temp, temp_kup, salt_kup, talpha_kup, sbeta_kup;
-	double alphadt, betads, vdc1, vdc2, diffdd;
+	double alphadt, betads, diffdd;
+	double vdc1, vdc2;
 
 	//obtain indices
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -801,7 +801,7 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 	int k = start_k;
 
 	//check bounds
-	if (j < NY_BLOCK && i < NX_BLOCK && k < KM-1) {
+	if (j < NY_BLOCK && i < NX_BLOCK) {
 		//kup  = 1
 		//knxt = 2
 
@@ -819,7 +819,6 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 
 		vdc1 = VDC1[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
 		vdc2 = VDC2[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
-
 
 		//computed rrho here is actually not used and overwritten by next call to state
 		//   call state(1, 1, prandtl, salt_kup, &
@@ -867,76 +866,72 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 		sbeta_kup = (work3 - work1*denomk*work4)*denomk * 1000.0;
 		//end of inlined function state
 
-		//   do k=1,KM
-		{
-			double prandtl = 0.0;
-			double rrho = 0;
+		//real work starts here
+		//   for (k = start_k; k < end_k; k++) {
+		{ 
+			//   do k=1,KM
+			double prandtl = 0.0, rrho = 0.0;
 
-			//redundant, already checked at bounds check
-			//      if ( k < (KM-1) ) {//changed to KM-1 because we start at 0
 
-			//       temp = TEMP[i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)];
-			prandtl = max(temp,(-2.0));
+			if ( k < KM-1 ) {//changed to KM-1 because we start at 0
 
-			//PRANDTL = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
+				prandtl = max(temp, TMIN);
+				//PRANDTL = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
 
-			//       salt = SALT[i+(j*NX_BLOCK)+((k+1)*NX_BLOCK*NY_BLOCK)];
 
-			//         call state(k+1, k+1, prandtl, salt,              &
-			//                              RHOFULL=rrho, DRHODT=talpha, &
-			//                                            DRHODS=sbeta)
-			//inlined function state (k+1)
-			double tq, sq, sqr, work1, work2, work3, work4, denomk;
-			tq = min(temp, TMAX);
-			tq = max(tq, TMIN);
-			sq = min(salt, SMAX);
-			sq = 1000.0 * max(sq, SMIN);
-			sqr = sqrt(sq);
+				//         call state(k+1, k+1, prandtl, salt,              &
+				//                              RHOFULL=rrho, DRHODT=talpha, &
+				//                                            DRHODS=sbeta)
+				//inlined function state (k+1)
+				double tq, sq, sqr, work1, work2, work3, work4, denomk;
+				tq = min(temp, TMAX);
+				tq = max(tq, TMIN);
+				sq = min(salt, SMAX);
+				sq = 1000.0 * max(sq, SMIN);
+				sqr = sqrt(sq);
 
-			work1 = d_mwjfnums0t0[k+1] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k+1] + d_mwjfnums0t3 * tq)) +
-					sq * (d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
-			work2 = d_mwjfdens0t0[k+1] + tq * (d_mwjfdens0t1[k+1] + tq * (d_mwjfdens0t2 +
-					tq * (d_mwjfdens0t3[k+1] + d_mwjfdens0t4 * tq))) +
-					sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
-							sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
-			denomk = 1.0/work2;
-			rrho = work1*denomk;
+				work1 = d_mwjfnums0t0[k+1] + tq * (d_mwjfnums0t1 + tq * (d_mwjfnums0t2[k+1] + d_mwjfnums0t3 * tq)) +
+						sq * (d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + d_mwjfnums2t0 * sq);
+				work2 = d_mwjfdens0t0[k+1] + tq * (d_mwjfdens0t1[k+1] + tq * (d_mwjfdens0t2 +
+						tq * (d_mwjfdens0t3[k+1] + d_mwjfdens0t4 * tq))) +
+						sq * (d_mwjfdens1t0 + tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3)+
+								sqr * (d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2));
+				denomk = 1.0/work2;
+				rrho = work1*denomk;
 
-			work3 = // dP_1/dT
-					d_mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k+1] +
-							3.0*d_mwjfnums0t3 * tq) + d_mwjfnums1t1 * sq;
-			work4 = // dP_2/dT
-					d_mwjfdens0t1[k+1] + sq * d_mwjfdens1t1 +
-					tq * (2.0*(d_mwjfdens0t2 + sq*sqr*d_mwjfdensqt2) +
-							tq * (3.0*(d_mwjfdens0t3[k+1] + sq * d_mwjfdens1t3) +
-									tq *  4.0*d_mwjfdens0t4));
-			talpha = (work3 - work1*denomk*work4)*denomk;
+				work3 = // dP_1/dT
+						d_mwjfnums0t1 + tq * (2.0*d_mwjfnums0t2[k+1] +
+								3.0*d_mwjfnums0t3 * tq) + d_mwjfnums1t1 * sq;
+				work4 = // dP_2/dT
+						d_mwjfdens0t1[k+1] + sq * d_mwjfdens1t1 +
+						tq * (2.0*(d_mwjfdens0t2 + sq*sqr*d_mwjfdensqt2) +
+								tq * (3.0*(d_mwjfdens0t3[k+1] + sq * d_mwjfdens1t3) +
+										tq *  4.0*d_mwjfdens0t4));
+				talpha = (work3 - work1*denomk*work4)*denomk;
 
-			work3 = // dP_1/dS
-					d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
-			work4 = d_mwjfdens1t0 +   // dP_2/dS
-					tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
-					1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
-			sbeta = (work3 - work1*denomk*work4)*denomk * 1000.0;
-			//end of inlined function state
+				work3 = // dP_1/dS
+						d_mwjfnums1t0[k+1] + d_mwjfnums1t1 * tq + 2.0*d_mwjfnums2t0 * sq;
+				work4 = d_mwjfdens1t0 +   // dP_2/dS
+						tq * (d_mwjfdens1t1 + tq*tq*d_mwjfdens1t3) +
+						1.5*sqr*(d_mwjfdensqt0 + tq*tq*d_mwjfdensqt2);
+				sbeta = (work3 - work1*denomk*work4)*denomk * 1000.0;
+				//end of inlined function state
 
-			alphadt = -0.5*(talpha_kup + talpha) * (temp_kup - temp);
-			//         ALPHADT = -p5*(TALPHA(:,:,kup) + TALPHA(:,:,knxt)) &
-			//                      *(TRCR(:,:,k,1) - TRCR(:,:,k+1,1))
+				alphadt = -0.5*(talpha_kup + talpha) * (temp_kup - temp);
+				//         ALPHADT = -p5*(TALPHA(:,:,kup) + TALPHA(:,:,knxt)) &
+				//                      *(TRCR(:,:,k,1) - TRCR(:,:,k+1,1))
 
-			betads  = 0.5*(sbeta_kup + sbeta) * (salt_kup - salt);
-			//         BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
-			//                     *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
+				betads  = 0.5*(sbeta_kup + sbeta) * (salt_kup - salt);
+				//         BETADS  = p5*( SBETA(:,:,kup) +  SBETA(:,:,knxt)) &
+				//                     *(TRCR(:,:,k,2) - TRCR(:,:,k+1,2))
 
-			//         kup  = knxt
-			//         knxt = 3 - kup
+				//         kup  = knxt
+				//         knxt = 3 - kup
 
-			/* redundant, already checked at bounds check
 			} else {
-			 alphadt = 0.0;
-			 betads  = 0.0;
+				alphadt = 0.0;
+				betads  = 0.0;
 			}
-			 */
 
 			//!-----------------------------------------------------------------------
 			//!
@@ -944,15 +939,13 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 			//!
 			//!-----------------------------------------------------------------------
 
-			//      vdc1 = VDC1[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
-			//      vdc2 = VDC2[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK];
 
 			//where ( ALPHADT > BETADS .and. BETADS > c0 )
 			if ((alphadt > betads) && (betads > 0.0)) {
 
 				rrho       = min(alphadt/betads, RRHO0);
 				//RRHO       = MIN(ALPHADT/BETADS, Rrho0)
-				diffdd     = 1.0-((rrho-1.0)/(RRHO0-1.0));
+				diffdd     = (1.0-((rrho-1.0)/(RRHO0-1.0)));
 				diffdd     = diffdd * diffdd * diffdd;
 				diffdd     = DSFMAX * diffdd;
 				//DIFFDD     = dsfmax*(c1-(RRHO-c1)/(Rrho0-c1))**3
@@ -971,27 +964,25 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 
 			//where ( ALPHADT < c0 .and. BETADS < c0 .and. ALPHADT > BETADS )
 			if ((alphadt < 0.0) && (betads < 0.0) && (alphadt > betads)) {
-				rrho    = alphadt/betads;
+				rrho    = alphadt/ betads;
 				//RRHO    = ALPHADT / BETADS
-				diffdd  = 1.5e-2 * 0.909 * exp(4.6*exp(-0.54*((1.0/rrho)-1.0)));
+				diffdd  = 1.5e-2 * 0.909 * exp(4.6*exp(-0.54*(1.0/rrho-1.0)));
 				//DIFFDD  = 1.5e-2_c_double*0.909_c_double* &
 				//          exp(4.6_c_double*exp(-0.54_c_double*(c1/RRHO-c1)))
-				prandtl = 0.15*rrho;
+				prandtl = 0.15 *rrho;
 				//PRANDTL = 0.15_c_double*RRHO
 			} else { //elsewhere
 				rrho    = 0.0;
 				diffdd  = 0.0;
 				prandtl = 0.0;
-
 			} //endwhere
 
 
 			//where (RRHO > p5) PRANDTL = (1.85_c_double - 0.85_c_double/RRHO)*RRHO
 			if (rrho > 0.5) {
-				//      prandtl = (1.85 - (0.85*(1.0/rrho)))*rrho;
+				//prandtl = (1.85 - (0.85/rrho))*rrho;
 				//simplyfied
-				prandtl = (1.85*rrho) - 0.85;
-
+				prandtl = 1.85*rrho - 0.85;
 			}
 
 			VDC1[i + j*NX_BLOCK+(k+1)*NX_BLOCK*NY_BLOCK] = vdc1 + diffdd;
