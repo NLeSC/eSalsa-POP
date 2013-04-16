@@ -1,5 +1,5 @@
 eSalsa POP
-----------
+==========
 
 
 What is it? 
@@ -9,7 +9,8 @@ This package contains a modified version of the Parallel Ocean Model (POP)
 developed as part of the eSalsa Project. 
 
 The original version of POP can be found at: 
-<http://climate.lanl.gov/Models/POP/>.
+
+<http://climate.lanl.gov/Models/POP/>
 
 
 What is the eSalsa Project?
@@ -28,14 +29,16 @@ distributed computing techniques and accelerators (GPUs).
 
 For more information on the eSalsa project see:
  
-http://www.esciencecenter.nl/projects/project-portfolio/climate-research/
+<http://www.esciencecenter.nl/projects/project-portfolio/climate-research>
 
 
 The Latest Version
 ------------------
 
 Details of the latest version can be found on the eSalsa POP project 
-web site at <https://github.com/NLeSC/eSalsa-POP>.
+web site at:
+
+<https://github.com/NLeSC/eSalsa-POP>
 
 
 	
