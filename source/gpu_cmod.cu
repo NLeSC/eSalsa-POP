@@ -388,11 +388,11 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
 //unrolled for (k=start_k; k < end_k; k++)
 
 	    //tmax, tmin, smax, smin not really used in MWJF, replace with -2 and 999
-        tq = min(TEMPK[index], 999.0);	//d_tmax[k]
-        tq = max(tq, -2.0);				//d_tmin[k]
+        tq = min(TEMPK[index], TMAX);	//d_tmax[k]
+        tq = max(tq, TMIN);				//d_tmin[k]
 
-        sq = min(SALTK[index], 0.999);	//d_smax[k]
-        sq = 1000.0 * max(sq, 0.0);		//d_smin[k]
+        sq = min(SALTK[index], SMAX);	//d_smax[k]
+        sq = 1000.0 * max(sq, SMIN);		//d_smin[k]
 
         sqr = sqrt(sq);
 
@@ -407,7 +407,6 @@ __global__ void mwjf_state_1D(double *TEMPK, double *SALTK,
         denomk = 1.0/work2;
 //      if (present(RHOFULL)) then
         RHOOUT[index] = work1*denomk;
-        //RHOOUT[index] = 1337.0; //for debugging obviously
 //      endif
 
         if (n_outputs == 3) { 
@@ -462,11 +461,11 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
   if (i < (NX_BLOCK*NY_BLOCK)*(end_k-start_k)) {
 
 	    //tmax, tmin, smax, smin not really used in MWJF, replace with -2 and 999
-        tq = min(TEMPK[index], 999.0);	//d_tmax[k]
-        tq = max(tq, -2.0);				//d_tmin[k]
+        tq = min(TEMPK[index], TMAX);	//d_tmax[k]
+        tq = max(tq, TMIN);				//d_tmin[k]
 
-        sq = min(SALTK[index], 0.999);	//d_smax[k]
-        sq = 1000.0 * max(sq, 0.0);		//d_smin[k]
+        sq = min(SALTK[index], SMAX);	//d_smax[k]
+        sq = 1000.0 * max(sq, SMIN);		//d_smin[k]
 
         sqr = sqrt(sq);
 
@@ -495,7 +494,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int print = 0;
   int zero_one = 0;
   int zero_two = 0;
-  double eps = 0.0000000001;
+  double eps = 0.00000000001;
   
   if (vName < 0 || vName > 6) { vName = 0; }
 
@@ -633,11 +632,11 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 __device__ double state(double temp, double salt, int k) {
   double tq, sq, sqr, work1, work2;//, denomk;
 
-  tq = min(temp, 999.0);		//d_tmax[k]
-  tq = max(tq, -2.0);			//d_tmin[k]
+  tq = min(temp, TMAX);		//d_tmax[k]
+  tq = max(tq, TMIN);			//d_tmin[k]
 
-  sq = min(salt, 0.999);		//d_smax[k]
-  sq = 1000.0 * max(sq, 0.0);	//d_smin[k]
+  sq = min(salt, SMAX);		//d_smax[k]
+  sq = 1000.0 * max(sq, SMIN);	//d_smin[k]
 
   sqr = sqrt(sq);
 
@@ -871,7 +870,6 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 		{ 
 			//   do k=1,KM
 			double prandtl = 0.0, rrho = 0.0;
-
 
 			if ( k < KM-1 ) {//changed to KM-1 because we start at 0
 
