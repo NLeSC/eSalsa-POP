@@ -331,8 +331,9 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   
   //synchronize because we currently don't know when inputs or outputs will be used by CPU
   //the more this sync can be delayed the more overlap with CPU execution can be exploited
-  cudaDeviceSynchronize();
-  CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
+  
+  //cudaDeviceSynchronize();
+  //CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
   
 }
 
@@ -612,10 +613,6 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy device to host DBLOC: %s\n", cudaGetErrorString( err ));
 	  }
 	  
-      //wait for device to finish
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("After buoydiff_gpu kernel execution");
-
       //we might move the malloc-free pairs to initialization and finalization routines in the end.
 	  cudaFree(d_DBLOC);
 	  cudaFree(d_DBSFC);
@@ -626,6 +623,10 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 #else	  
 	  cudaFree(d_TRCR);
 #endif
+	  
+      //wait for device to finish
+	  cudaDeviceSynchronize();
+	  //CUDA_CHECK_ERROR("After buoydiff_gpu kernel execution");
 }
 
 //device version of state for rho only used in buoydiff GPU kernel
@@ -708,15 +709,16 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 
 	  err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_VDC: %s\n", cudaGetErrorString( err ));
-	  d_VDC1 = d_VDC+(NX_BLOCK*NY_BLOCK); //skip first level
+	  d_VDC1 = d_VDC+(NX_BLOCK*NY_BLOCK); //skip first level in VDC1 and VDC2
 	  d_VDC2 = d_VDC1+(NX_BLOCK*NY_BLOCK*(KM+2));
 	#ifndef REUSE_TRCR
 	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_TRCR %s\n", cudaGetErrorString( err ));
 	#endif
 	  
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("After memory setup");
+	  //only for debugging
+	  //cudaDeviceSynchronize();
+	  //CUDA_CHECK_ERROR("After memory setup");
 
 	  //setup execution parameters
 	  dim3 threads(16,16);
@@ -777,8 +779,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device VDC2: %s\n", cudaGetErrorString( err ));
 	  }
 
-	  //wait for completion
-	  cudaDeviceSynchronize();
+
 	  
 	  cudaFree(d_VDC);
 	  
@@ -786,6 +787,9 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  cudaFree(d_TRCR);
 	#endif
 
+	  //wait for completion
+	  //this sync is delayed to stimulate overlap with CPU computation of bldepth()
+	  //cudaDeviceSynchronize();
 }
 
 __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k) {

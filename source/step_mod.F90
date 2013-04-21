@@ -431,6 +431,11 @@
          return
       endif
 
+
+      !synchronize because we need to wait for for GPU results of RHO newtime to complete
+      !this sync is delayed to stimulate overlap between CPU and GPU computation
+      call gpumod_devsync
+
       call POP_HaloUpdate(RHO(:,:,:,newtime,:), &
                                POP_haloClinic,                 &
                                POP_gridHorzLocCenter,          &
@@ -769,6 +774,13 @@
          !*** correct after avg
          PGUESS(:,:,iblock) = p5*(PGUESS(:,:,iblock) + & 
                                    PSURF(:,:,newtime,iblock)) 
+
+
+         !if gpu, wait for results
+         if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+            call gpumod_devsync
+         endif
+
       end do ! block loop
       !$OMP END PARALLEL DO
 

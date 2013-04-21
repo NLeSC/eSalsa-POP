@@ -792,6 +792,10 @@ endif
 !  compute boundary layer diffusivities
 !
 !-----------------------------------------------------------------------
+      !synchronize because we need to wait for for GPU results of VDC to complete
+      !this sync is delayed to stimulate overlap between CPU and GPU computation
+      call gpumod_devsync
+
 
    call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
               KBL, GHAT, this_block) 

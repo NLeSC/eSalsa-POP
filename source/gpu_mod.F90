@@ -1,5 +1,3 @@
-!|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-
   module gpu_mod
 
 !BOP
@@ -119,8 +117,13 @@
 
    constants(46) = grav
 
-   this_block = get_block(blocks_clinic(1),1)
 
+!this is a hack that limits the number of blocks per process to 1
+!I should remove this and make sure that the KMT info is moved to the
+!GPU in a just-in-time fashion, that is, before the execution of buoydiff
+!currently pondering how I can make sure that the Fortran compiler won't
+!reorder these operations
+   this_block = get_block(blocks_clinic(1),1)
    bid = this_block%local_id
 
 !-----------------------------------------------------------------------

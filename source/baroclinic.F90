@@ -977,6 +977,8 @@
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
 
+                call gpumod_devsync
+
                 if (use_verify_results) then
                     do k = 1,POP_km
                         call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
@@ -1458,6 +1460,11 @@
                         TRACER(:,:,:,2,newtime,iblock), &
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
+
+        !---------------!
+        !there is no sync here so be very careful with using RHO newtime
+        !and call gpumod_devsync before using the variable
+
 
         if (use_verify_results) then
 !          if (my_task == master_task) then
