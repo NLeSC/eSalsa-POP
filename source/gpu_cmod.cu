@@ -631,7 +631,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaFree(d_DBSFC);
 	  
 	  //TRCR values may remain on the GPU for other vmix_kpp routines
-#ifdef REUSE_TRACER
+#ifdef REUSE_TRCR
 	 //do nothing 
 #else	  
 	  cudaFree(d_TRCR);
