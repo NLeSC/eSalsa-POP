@@ -203,8 +203,8 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*max_blocks_clinic))
     call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,max_blocks_clinic /))
 
-    call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
-    call c_f_pointer(cptr, RHOP, (/ nx_block,ny_block,km /))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*max_blocks_clinic))
+    call c_f_pointer(cptr, RHOP, (/ nx_block,ny_block,km,max_blocks_clinic /))
 
 !       real (r8), dimension(nx_block,ny_block,km) :: &
 !      DBLOC,      &! buoyancy difference between adjacent levels
