@@ -78,7 +78,7 @@ void cuda_init() {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
 
-    cudaSetDeviceFlags(cudaDeviceMapHost|cudaDeviceScheduleSpin|cudaDeviceScheduleBlockingSync);
+    cudaSetDeviceFlags(cudaDeviceMapHost|cudaDeviceScheduleSpin);
     cudaSetDevice(0);
   }
 }
