@@ -31,7 +31,7 @@ subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_t
     smin, smax,        &! valid salinity    range for level k
     pressz              ! ref pressure (bars) at each level
   integer (c_int) :: my_task, nblocks_clinic
-  integer (c_int), dimension(NX_BLOCK,NY_BLOCK,*) :: &
+  integer (c_int), dimension(*) :: &
     kmt
 end subroutine cuda_state_initialize
 

@@ -254,9 +254,9 @@ void cuda_state_initialize(double *constants, double *pressz,
   
   printf("Node %d: nblocks=%d\n", my_task, nblocks);
   
-  err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*nblocks);
+  err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*nblocks*sizeof(int));
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMalloc d_kmt\n");
-  err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*nblocks, cudaMemcpyHostToDevice);
+  err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*nblocks*sizeof(int), cudaMemcpyHostToDevice);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyHostToDevice KMT\n");
 
   //error checking
@@ -608,7 +608,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	    }
 
 	    buoydiff_kernel_onek<<<grid,threads,0,stream[k]>>>(d_DBLOC, d_DBSFC, d_TRCR, d_SALT, d_kmt+(bid*NX_BLOCK*NY_BLOCK), k, k+lps);
-
+	    
 	    err = cudaEventRecord (event_comp[k], stream[k]);
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaEventRecord htod: %s\n", cudaGetErrorString( err ));
 	  }
