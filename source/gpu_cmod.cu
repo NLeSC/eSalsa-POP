@@ -795,13 +795,14 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 
 	  cudaFree(d_VDC);
 	  
-	#ifndef REUSE_TRCR
+//	#ifndef REUSE_TRCR
 	  cudaFree(d_TRCR);
-	#endif
+//	#endif
 
 	  //wait for completion
 	  //this sync is delayed to stimulate overlap with CPU computation of bldepth()
-	  //cudaDeviceSynchronize();
+	  cudaDeviceSynchronize();
+	  CUDA_CHECK_ERROR("After ddmix_gpu kernel execution");
 }
 
 __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k) {
