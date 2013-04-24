@@ -57,7 +57,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 void gpu_compare(double *a1, double *a2, int *pN, int *pName);
 
-void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR);
+void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid);
 void ddmix_gpu(double *VDC, double *TRCR);
 
 __global__ void buoydiff_kernel_onek(double *DBLOC, double *DBSFC, double *TEMP, double *SALT, int *KMT, int start_k, int end_k);
