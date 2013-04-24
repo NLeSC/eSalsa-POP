@@ -39,6 +39,7 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="0.1069943796.1875265750" name="gpu_cmod.cu" rcbsApplicability="disable" resourcePath="source/gpu_cmod.cu" toolsToInvoke=""/>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
@@ -53,4 +54,10 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Default">
+			<resource resourceType="PROJECT" workspacePath="/eSalsa-POP"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 </cproject>

@@ -421,17 +421,9 @@
    integer (int_kind) ::  &
       bid             ! block id
 
-!    if (my_task == master_task) then
-!      write(stdout, *) ' tmin= ', tmin
-!      write(stdout, *) ' tmax= ', tmax
-!      write(stdout, *) ' smin= ', smin
-!      write(stdout, *) ' smax= ', smax
-!      write(stdout, *) ' pressz= ', pressz
-!    endif
-
    bid = this_block%local_id
 
-   write(stdout, *) ' my_task= ', my_task, ' bid= ', bid
+   !write(stdout, *) ' my_task= ', my_task, ' bid= ', bid
 
    call buoydiff_gpu(DBLOC, DBSFC, TRCR, bid)
 

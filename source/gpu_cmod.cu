@@ -252,7 +252,7 @@ void cuda_state_initialize(double *constants, double *pressz,
   my_task = *pmy_task;  
   int nblocks = *pnblocks;
   
-  printf("Node %d: nblocks=%d\n", my_task, nblocks);
+  //printf("Node %d: nblocks=%d\n", my_task, nblocks);
   
   err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*nblocks*sizeof(int));
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMalloc d_kmt\n");
@@ -793,7 +793,6 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  }
 
 
-	  
 	  cudaFree(d_VDC);
 	  
 	#ifndef REUSE_TRCR
