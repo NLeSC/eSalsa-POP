@@ -561,6 +561,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
 	  
 	  int bid = (*pbid) - 1; //-1 because fortran indices start at 0
+	  printf("Node %d: bid=%d\n", my_task, bid);
 
 	  err = cudaMalloc((void **)&d_DBLOC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
