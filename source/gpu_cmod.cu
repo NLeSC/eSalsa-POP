@@ -342,8 +342,8 @@ void mwjf_state_gpu(double *TEMPK, double *SALTK,
   //synchronize because we currently don't know when inputs or outputs will be used by CPU
   //the more this sync can be delayed the more overlap with CPU execution can be exploited
   
-  cudaDeviceSynchronize();
-  CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
+  //cudaDeviceSynchronize();
+  //CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
   
 }
 
@@ -362,8 +362,8 @@ void mwjf_statepd_gpu(double *TEMPK, double *SALTK,
   mwjf_statepd_1D<<<grid,threads,0,stream[1]>>>(TEMPK, SALTK, RHOOUT, start_k, end_k);
   
   //synchronize can be delayed to increase overlap with CPU execution
-  cudaDeviceSynchronize();
-  CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
+  //cudaDeviceSynchronize();
+  //CUDA_CHECK_ERROR("After mwjf_state_1D kernel execution");
   
 }
 
@@ -802,7 +802,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 
 	  //wait for completion
 	  //this sync is delayed to stimulate overlap with CPU computation of bldepth()
-	  cudaDeviceSynchronize();
+	  //cudaDeviceSynchronize();
 }
 
 __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, double *SALT, int start_k) {

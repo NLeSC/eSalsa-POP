@@ -543,6 +543,7 @@
          endif
 
 
+
         ! precompute potential density for tavg_PD in advt in tracer_update
         if (k == 1 .and. tavg_requested(tavg_PD) .and. use_gpu_state .and. &
             state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then

@@ -114,16 +114,6 @@
    constants(46) = grav
 
 
-!this is a hack that limits the number of blocks per process to 1
-!I should remove this and make sure that the KMT info is moved to the
-!GPU in a just-in-time fashion, that is, before the execution of buoydiff
-!currently pondering how I can make sure that the Fortran compiler won't
-!reorder these operations
-!   this_block = get_block(blocks_clinic(1),1)
-!   bid = this_block%local_id
-
-
-
 !-----------------------------------------------------------------------
 !
 !  read input namelist and set mixing type
@@ -166,9 +156,9 @@
       endif
 
       if (use_verify_results) then
-         write(stdout,'(a39)') ' GPU results verfication by CPU enabled'
+         write(stdout,'(a40)') ' GPU results verification by CPU enabled'
       else
-         write(stdout,'(a40)') ' GPU results verfication by CPU disabled'
+         write(stdout,'(a41)') ' GPU results verification by CPU disabled'
       endif
 
    endif
