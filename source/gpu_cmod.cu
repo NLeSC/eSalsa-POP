@@ -245,17 +245,23 @@ void cuda_state_initialize(double *constants, double *pressz,
   err = cudaMemcpyToSymbol(d_mwjfdens0t3, h_mwjfdens0t3, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens0t3\n");
 
+  //error checking
+  cudaDeviceSynchronize();
+  CUDA_CHECK_ERROR("After cudaMemcpyToSymbols");
+  
+  my_task = *pmy_task;  
   int nblocks = *pnblocks;
+  
+  printf("Node %d: nblocks=%d\n", my_task, nblocks);
   
   err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*nblocks);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMalloc d_kmt\n");
   err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*nblocks, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyHostToDevice KMT\n");
 
-  
   //error checking
   cudaDeviceSynchronize();
-  CUDA_CHECK_ERROR("After cudaMemcpyToSymbols");
+  CUDA_CHECK_ERROR("After cudaMemcpy KMT");
 
   //setup streams
   for (k=0; k<KM; k++) {
@@ -275,9 +281,8 @@ void cuda_state_initialize(double *constants, double *pressz,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("After cudaStream and event creates");
   
-  my_task = *pmy_task;
-  
-  printf("Node %d: nblocks=%d\n", my_task, nblocks);
+
+
   
 //debugging
 //  if (my_task == 0) {
