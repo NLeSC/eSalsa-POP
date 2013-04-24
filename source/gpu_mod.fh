@@ -73,7 +73,7 @@ subroutine buoydiff_gpu(DBLOC, DBSFC, TRCR, bid) bind (c)
             DBSFC      ! salinity    at level k
         real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM,2) :: &
             TRCR       ! temperature
-        integer (int_kind) ::  &
+        integer (c_int) ::  &
             bid        ! block id
 end subroutine buoydiff_gpu
 

@@ -81,14 +81,10 @@
 !
 !-----------------------------------------------------------------------
 
-   type (block) :: &
-      this_block          ! block information for current block
-
-   integer (POP_i4) ::  &
+   integer (int_kind) ::  &
       k,                  &! vertical level index
       nu,                 &! i/o unit
       nml_error          ! namelist i/o error flag
-      !bid                  ! block id
 
    character (char_len) :: &
       vmix_choice          ! input choice for desired parameterization
@@ -431,6 +427,8 @@
    real (r8), dimension(nx_block,ny_block,km), intent(out) :: &
       DBLOC,         &! buoyancy difference between adjacent levels
       DBSFC           ! buoyancy difference between level and surface
+
+
 
    integer (int_kind) ::  &
       bid             ! block id
