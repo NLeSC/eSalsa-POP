@@ -428,8 +428,6 @@
       DBLOC,         &! buoyancy difference between adjacent levels
       DBSFC           ! buoyancy difference between level and surface
 
-
-
    integer (int_kind) ::  &
       bid             ! block id
 
@@ -442,6 +440,8 @@
 !    endif
 
    bid = this_block%local_id
+
+   write(stdout, *) ' my_task= ', my_task, ' bid= ', bid
 
    call buoydiff_gpu(DBLOC, DBSFC, TRCR, bid)
 
