@@ -84,7 +84,7 @@
    type (block) :: &
       this_block          ! block information for current block
 
-   integer (int_kind) ::  &
+   integer (POP_i4) ::  &
       k,                  &! vertical level index
       nu,                 &! i/o unit
       nml_error          ! namelist i/o error flag
