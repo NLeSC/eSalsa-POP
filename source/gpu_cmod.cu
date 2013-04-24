@@ -78,7 +78,7 @@ void cuda_init() {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
 
-    cudaSetDeviceFlags(cudaDeviceMapHost);
+    cudaSetDeviceFlags(cudaDeviceMapHost|cudaDeviceScheduleSpin|cudaDeviceScheduleBlockingSync);
     cudaSetDevice(0);
   }
 }
@@ -276,6 +276,9 @@ void cuda_state_initialize(double *constants, double *pressz,
   CUDA_CHECK_ERROR("After cudaStream and event creates");
   
   my_task = *pmy_task;
+  
+  printf("Node %d: nblocks=%d\n", my_task, nblocks);
+  
 //debugging
 //  if (my_task == 0) {
 //    printf("GPU_CMOD using constants:\n");
@@ -552,8 +555,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  double *d_SALT;
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
 	  
-	  int bid = *pbid;
-	  bid -= 1; //fortran indices start at 0
+	  int bid = (*pbid) - 1; //-1 because fortran indices start at 0
 
 	  err = cudaMalloc((void **)&d_DBLOC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
