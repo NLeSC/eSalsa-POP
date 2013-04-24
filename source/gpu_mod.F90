@@ -87,8 +87,8 @@
    integer (int_kind) ::  &
       k,                  &! vertical level index
       nu,                 &! i/o unit
-      nml_error,          &! namelist i/o error flag
-      bid                  ! block id
+      nml_error          ! namelist i/o error flag
+      !bid                  ! block id
 
    character (char_len) :: &
       vmix_choice          ! input choice for desired parameterization
@@ -123,8 +123,10 @@
 !GPU in a just-in-time fashion, that is, before the execution of buoydiff
 !currently pondering how I can make sure that the Fortran compiler won't
 !reorder these operations
-   this_block = get_block(blocks_clinic(1),1)
-   bid = this_block%local_id
+!   this_block = get_block(blocks_clinic(1),1)
+!   bid = this_block%local_id
+
+
 
 !-----------------------------------------------------------------------
 !
@@ -254,7 +256,7 @@
   !-----------------------------------------------------------------------
 
     ! it is important that state_mod has already been initialized
-    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, KMT(:,:,bid))
+    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, nblocks_clinic, KMT(:,:,:))
 
     !write(stdout, *) ' grav= ', constants(46)
 
@@ -430,6 +432,9 @@
       DBLOC,         &! buoyancy difference between adjacent levels
       DBSFC           ! buoyancy difference between level and surface
 
+   integer (int_kind) ::  &
+      bid             ! block id
+
 !    if (my_task == master_task) then
 !      write(stdout, *) ' tmin= ', tmin
 !      write(stdout, *) ' tmax= ', tmax
@@ -438,7 +443,9 @@
 !      write(stdout, *) ' pressz= ', pressz
 !    endif
 
-   call buoydiff_gpu(DBLOC, DBSFC, TRCR)
+   bid = this_block%local_id
+
+   call buoydiff_gpu(DBLOC, DBSFC, TRCR, bid)
 
  end subroutine gpumod_buoydiff
 

@@ -38,7 +38,7 @@ void devsync();
 void my_cudamallochost(void **hostptr, int* size);
 
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *kmt);
+        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *pnblocks, int *kmt);
 
 //specific functions
 void mwjf_state_gpu(double *TEMPK, double *SALTK,
@@ -144,7 +144,7 @@ cudaEvent_t event_dtoh[KM];
 int my_task;
 
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *kmt) {
+        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *pnblocks, int *kmt) {
   cudaError_t err;
 	
   if (cuda_state_initialized == 0) {
@@ -245,9 +245,11 @@ void cuda_state_initialize(double *constants, double *pressz,
   err = cudaMemcpyToSymbol(d_mwjfdens0t3, h_mwjfdens0t3, KM*sizeof(double), 0, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyToSymbol d_mwjfdens0t3\n");
 
-  err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*sizeof(int));
+  int nblocks = *pnblocks;
+  
+  err = cudaMalloc(&d_kmt, NX_BLOCK*NY_BLOCK*nblocks);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMalloc d_kmt\n");
-  err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*sizeof(int), cudaMemcpyHostToDevice);
+  err = cudaMemcpy(d_kmt, kmt, NX_BLOCK*NY_BLOCK*nblocks, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) fprintf(stderr, "Error doing cudaMemcpyHostToDevice KMT\n");
 
   
@@ -541,7 +543,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
 
 double *d_TRCR;
 
-void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
+void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaError_t err;
 
 	  //allocate device memory
@@ -549,6 +551,9 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	  double *d_DBSFC;
 	  double *d_SALT;
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
+	  
+	  int bid = *pbid;
+	  bid -= 1; //fortran indices start at 0
 
 	  err = cudaMalloc((void **)&d_DBLOC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
@@ -594,7 +599,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR) {
 	      if (err != cudaSuccess) fprintf(stderr, "Error in cudaStreamWaitEvent htod k-1: %s\n", cudaGetErrorString( err ));
 	    }
 
-	    buoydiff_kernel_onek<<<grid,threads,0,stream[k]>>>(d_DBLOC, d_DBSFC, d_TRCR, d_SALT, d_kmt, k, k+lps);
+	    buoydiff_kernel_onek<<<grid,threads,0,stream[k]>>>(d_DBLOC, d_DBSFC, d_TRCR, d_SALT, d_kmt+(bid*NX_BLOCK*NY_BLOCK), k, k+lps);
 
 	    err = cudaEventRecord (event_comp[k], stream[k]);
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaEventRecord htod: %s\n", cudaGetErrorString( err ));
