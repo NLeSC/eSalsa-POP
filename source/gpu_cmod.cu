@@ -554,7 +554,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
 }
 
 double *d_TRCR;
-volatile int buoydiff_active = 0;
+volatile int buoydiff_active = -1;
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaError_t err;
@@ -737,8 +737,12 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  double *d_VDC2;
 	  double *d_TRCR;
 	  
-	  if (buoydiff_active == 1) {
+	  if (buoydiff_active != 0) {
 		fprintf(stderr,"Error! at start of ddmix(): buoydiff_active = %d\n",buoydiff_active);  
+	  }
+
+	  if (buoydiff_active == -1) {
+		  buoydiff_active = 0; 
 	  }
 	  
 	  //wait for buoydiff to finish
