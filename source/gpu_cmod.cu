@@ -729,7 +729,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  double *d_VDC1;
 	  double *d_VDC2;
 	  
-	  if (VDC == (double *) 0) {
+	  if (d_VDC == (double *) 0) {
 	    err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
 	    if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaMalloc d_VDC: %s\n", cudaGetErrorString( err ));
 	  }
