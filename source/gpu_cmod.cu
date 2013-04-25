@@ -553,8 +553,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   }
 }
 
-volatile double *d_TRCR = 0;
-volatile int buoydiff_active = -1;
+double *d_TRCR = 0;
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaError_t err;
@@ -564,11 +563,6 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  double *d_DBSFC;
 	  double *d_SALT;
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
-	  
-	  if (buoydiff_active != 0) {
-		fprintf(stderr,"Node %d: Error! at start of buoydiff(): buoydiff_active = %d\n",my_task,buoydiff_active);  
-	  }
-	  buoydiff_active = 1;
 	  
 	  int bid = (*pbid) - 1; //-1 because fortran indices start at 0
 	  //printf("Node %d: bid=%d\n", my_task, bid);
@@ -580,7 +574,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  
 	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
-	  d_SALT = d_TRCR+NX_BLOCK*NY_BLOCK*KM;
+	  d_SALT =d_TRCR+NX_BLOCK*NY_BLOCK*KM;
 	  
 	  //only used in debugging
 	  cudaDeviceSynchronize();
@@ -645,18 +639,11 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaFree(d_DBSFC);
 	  
 	  //TRCR values may remain on the GPU for other vmix_kpp routines
-#ifndef REUSE_TRCR
+	#ifndef REUSE_TRCR
 	  //not reusing trcr so free it
 	  err = cudaFree(d_TRCR);
 	  if (err != cudaSuccess) fprintf(stderr, "Error in buoydiff cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
-	  
-	  d_TRCR = (double *)-1;
-#endif
-	  
-	  if (buoydiff_active != 1) {
-		fprintf(stderr,"Node %d: Error! at end of buoydiff(): buoydiff_active = %d\n",my_task,buoydiff_active);  
-	  }
-	  buoydiff_active = 0;
+	#endif
 
 }
 
@@ -736,31 +723,10 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  double *d_VDC;
 	  double *d_VDC1;
 	  double *d_VDC2;
+	#ifndef REUSE_TRCR
 	  double *d_TRCR;
+	#endif
 	  
-	  if (buoydiff_active != 0) {
-		fprintf(stderr,"Node %d: Error! at start of ddmix(): buoydiff_active = %d\n",my_task,buoydiff_active);  
-	  }
-
-	  //if (buoydiff_active == -1) {
-		//  buoydiff_active = 0; 
-	  //}
-	  
-	  //wait for buoydiff to finish
-	  while (buoydiff_active != 0) {
-	    //busy wait, this might just deadlock
-	  }
-	  
-	  if (d_TRCR == (double *)-2) {
-		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = -2\n",my_task);  
-	  }
-	  if (d_TRCR == (double *)-1) {
-		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = -1\n",my_task);  
-	  }
-	  if (d_TRCR == 0) {
-		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = 0\n",my_task);  
-	  }
-
 	  err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaMalloc d_VDC: %s\n", cudaGetErrorString( err ));
 	  d_VDC1 = d_VDC+(NX_BLOCK*NY_BLOCK); //skip first level in VDC1 and VDC2
@@ -834,20 +800,16 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMemcpy host to device VDC2: %s\n", cudaGetErrorString( err ));
 	  }
 
-
 	  //wait for completion
 	  //this sync is delayed to stimulate overlap with CPU computation of bldepth()
 	  cudaDeviceSynchronize();
 	  CUDA_CHECK_ERROR("After ddmix_gpu kernel execution");
-	  
 	  
 	  cudaFree(d_VDC);
 	 
 	  //whether or not trcr was reused, we should free it now
 	  err = cudaFree(d_TRCR);
 	  if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
-	  
-	  d_TRCR = (double *)-2;
 
 }
 
