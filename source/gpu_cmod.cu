@@ -582,8 +582,8 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  d_SALT =d_TRCR+NX_BLOCK*NY_BLOCK*KM;
 	  
 	  //only used in debugging
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("After buoydiff memory setup");
+	  //cudaDeviceSynchronize();
+	  //CUDA_CHECK_ERROR("After buoydiff memory setup");
 
 	  //setup execution parameters
 	  dim3 threads(32,8);
@@ -744,8 +744,8 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	#endif
 	  
 	  //only for debugging
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("After ddmix memory setup");
+	  //cudaDeviceSynchronize();
+	  //CUDA_CHECK_ERROR("After ddmix memory setup");
 
 	  //setup execution parameters
 	  dim3 threads(16,16);
@@ -808,8 +808,8 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 
 	  //wait for completion
 	  //this sync is delayed to stimulate overlap with CPU computation of bldepth()
-	  cudaDeviceSynchronize();
-	  CUDA_CHECK_ERROR("After ddmix_gpu kernel execution");
+	  //cudaDeviceSynchronize();
+	  //CUDA_CHECK_ERROR("After ddmix_gpu kernel execution");
 	  
 	  
 	  
