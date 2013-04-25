@@ -553,7 +553,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   }
 }
 
-double *d_TRCR = 0;
+volatile double *d_TRCR = 0;
 volatile int buoydiff_active = -1;
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
@@ -742,9 +742,9 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 		fprintf(stderr,"Node %d: Error! at start of ddmix(): buoydiff_active = %d\n",my_task,buoydiff_active);  
 	  }
 
-	  if (buoydiff_active == -1) {
-		  buoydiff_active = 0; 
-	  }
+	  //if (buoydiff_active == -1) {
+		//  buoydiff_active = 0; 
+	  //}
 	  
 	  //wait for buoydiff to finish
 	  while (buoydiff_active != 0) {
