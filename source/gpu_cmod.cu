@@ -650,7 +650,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 #else
 	  //not reusing trcr so free it
 	  cudaFree(d_TRCR);
-	  d_TRCR = 0;
+	  d_TRCR = -1;
 #endif
 	  
 	  if (buoydiff_active != 1) {
@@ -751,6 +751,9 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	    //busy wait, this might just deadlock
 	  }
 	  
+	  if (d_TRCR == 0) {
+		fprintf(stderr,"Error! at start of ddmix(): d_TRCR = -1\n");  
+	  }
 	  if (d_TRCR == 0) {
 		fprintf(stderr,"Error! at start of ddmix(): d_TRCR = 0\n");  
 	  }
