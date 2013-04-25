@@ -581,7 +581,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
 	  d_SALT = d_TRCR+NX_BLOCK*NY_BLOCK*KM;
-
+	  
 	  //only used in debugging
 	  //cudaDeviceSynchronize();
 	  //CUDA_CHECK_ERROR("After memory setup");
