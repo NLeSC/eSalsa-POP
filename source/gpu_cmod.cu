@@ -566,7 +566,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
 	  
 	  if (buoydiff_active != 0) {
-		fprintf(stderr,"Error! at start of buoydiff(): buoydiff_active = %d\n",buoydiff_active);  
+		fprintf(stderr,"Node %d: Error! at start of buoydiff(): buoydiff_active = %d\n",my_task,buoydiff_active);  
 	  }
 	  buoydiff_active = 1;
 	  
@@ -645,16 +645,14 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaFree(d_DBSFC);
 	  
 	  //TRCR values may remain on the GPU for other vmix_kpp routines
-#ifdef REUSE_TRCR
-      //if reusing trcr we should not free it
-#else
+#ifndef REUSE_TRCR
 	  //not reusing trcr so free it
 	  cudaFree(d_TRCR);
 	  d_TRCR = -1;
 #endif
 	  
 	  if (buoydiff_active != 1) {
-		fprintf(stderr,"Error! at end of buoydiff(): buoydiff_active = %d\n",buoydiff_active);  
+		fprintf(stderr,"Node %d: Error! at end of buoydiff(): buoydiff_active = %d\n",my_task,buoydiff_active);  
 	  }
 	  buoydiff_active = 0;
 
@@ -739,7 +737,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  double *d_TRCR;
 	  
 	  if (buoydiff_active != 0) {
-		fprintf(stderr,"Error! at start of ddmix(): buoydiff_active = %d\n",buoydiff_active);  
+		fprintf(stderr,"Node %d: Error! at start of ddmix(): buoydiff_active = %d\n",my_task,buoydiff_active);  
 	  }
 
 	  if (buoydiff_active == -1) {
@@ -752,10 +750,10 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  }
 	  
 	  if (d_TRCR == 0) {
-		fprintf(stderr,"Error! at start of ddmix(): d_TRCR = -1\n");  
+		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = -1\n",my_task);  
 	  }
 	  if (d_TRCR == 0) {
-		fprintf(stderr,"Error! at start of ddmix(): d_TRCR = 0\n");  
+		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = 0\n",my_task);  
 	  }
 
 	  err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
