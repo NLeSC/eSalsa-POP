@@ -3,7 +3,7 @@
 
 #include "gpu_domain.h"
 
-#define REUSE_TRCR 1
+//#define REUSE_TRCR 1
 //#define USE_READ_ONLY_CACHE 1
 
 #define TMIN -2.0
