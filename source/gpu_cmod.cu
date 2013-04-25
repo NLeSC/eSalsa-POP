@@ -3,7 +3,7 @@
 
 #include "gpu_domain.h"
 
-//#define REUSE_TRCR 1
+#define REUSE_TRCR 1
 //#define USE_READ_ONLY_CACHE 1
 
 #define TMIN -2.0
@@ -647,7 +647,9 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  //TRCR values may remain on the GPU for other vmix_kpp routines
 #ifndef REUSE_TRCR
 	  //not reusing trcr so free it
-	  cudaFree(d_TRCR);
+	  err = cudaFree(d_TRCR);
+	  if (err != cudaSuccess) fprintf(stderr, "Error in buoydiff cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
+	  
 	  d_TRCR = (double *)-1;
 #endif
 	  
@@ -842,7 +844,9 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  cudaFree(d_VDC);
 	 
 	  //whether or not trcr was reused, we should free it now
-	  cudaFree(d_TRCR);
+	  err = cudaFree(d_TRCR);
+	  if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
+	  
 	  d_TRCR = (double *)-2;
 
 }
