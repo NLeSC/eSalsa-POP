@@ -553,27 +553,32 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   }
 }
 
-double *d_TRCR = 0;
+double *d_TRCR  = (double *) 0;
+double *d_DBLOC = (double *) 0;
+double *d_DBSFC = (double *) 0;
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaError_t err;
 
 	  //allocate device memory
-	  double *d_DBLOC;
-	  double *d_DBSFC;
 	  double *d_SALT;
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
 	  
 	  int bid = (*pbid) - 1; //-1 because fortran indices start at 0
 	  //printf("Node %d: bid=%d\n", my_task, bid);
-
-	  err = cudaMalloc((void **)&d_DBLOC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
-	  err = cudaMalloc((void **)&d_DBSFC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBSFC: %s\n", cudaGetErrorString( err ));
+      if (d_DBLOC == (double *) 0) {
+	    err = cudaMalloc((void **)&d_DBLOC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBLOC: %s\n", cudaGetErrorString( err ));
+      }
+      if (d_DBSFC == (double *) 0) {
+	    err = cudaMalloc((void **)&d_DBSFC, NX_BLOCK*NY_BLOCK*KM*sizeof(double));
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_DBSFC: %s\n", cudaGetErrorString( err ));
+      }
 	  
-	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+      if (d_TRCR == (double *) 0) {
+	    err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
+	    if (err != cudaSuccess) fprintf(stderr, "Error in cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+      }
 	  d_SALT =d_TRCR+NX_BLOCK*NY_BLOCK*KM;
 	  
 	  //only used in debugging
@@ -635,14 +640,14 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  CUDA_CHECK_ERROR("After buoydiff_gpu kernel execution");
 	  
       //we might move the malloc-free pairs to initialization and finalization routines in the end.
-	  cudaFree(d_DBLOC);
-	  cudaFree(d_DBSFC);
+	  //cudaFree(d_DBLOC);
+	  //cudaFree(d_DBSFC);
 	  
 	  //TRCR values may remain on the GPU for other vmix_kpp routines
 	#ifndef REUSE_TRCR
 	  //not reusing trcr so free it
-	  err = cudaFree(d_TRCR);
-	  if (err != cudaSuccess) fprintf(stderr, "Error in buoydiff cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
+	  //err = cudaFree(d_TRCR);
+	  //if (err != cudaSuccess) fprintf(stderr, "Error in buoydiff cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
 	#endif
 
 }
@@ -715,26 +720,27 @@ __global__ void buoydiff_kernel_onek(double *DBLOC, double *DBSFC, double *TEMP,
   }//end of bounds check
 }
 
+double *d_VDC = (double *) 0;
 
 void ddmix_gpu(double *VDC, double *TRCR) {
 	  cudaError_t err;
 	
 	  //allocate device memory
-	  double *d_VDC;
 	  double *d_VDC1;
 	  double *d_VDC2;
-	#ifndef REUSE_TRCR
-	  double *d_TRCR;
-	#endif
 	  
-	  err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaMalloc d_VDC: %s\n", cudaGetErrorString( err ));
+	  if (VDC == (double *) 0) {
+	    err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
+	    if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaMalloc d_VDC: %s\n", cudaGetErrorString( err ));
+	  }
 	  d_VDC1 = d_VDC+(NX_BLOCK*NY_BLOCK); //skip first level in VDC1 and VDC2
 	  d_VDC2 = d_VDC1+(NX_BLOCK*NY_BLOCK*(KM+2));
 	  
 	#ifndef REUSE_TRCR
-	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
-	  if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+	  if (d_TRCR == (double *) 0) {
+	    err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
+	    if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaMalloc d_TRCR %s\n", cudaGetErrorString( err ));
+	  }
 	#endif
 	  
 	  //only for debugging
@@ -805,11 +811,12 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  cudaDeviceSynchronize();
 	  CUDA_CHECK_ERROR("After ddmix_gpu kernel execution");
 	  
-	  cudaFree(d_VDC);
-	 
-	  //whether or not trcr was reused, we should free it now
-	  err = cudaFree(d_TRCR);
-	  if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
+	  
+	  
+	  //cudaFree(d_VDC);
+	  //whether or not trcr was reused, we could free it now
+	  //err = cudaFree(d_TRCR);
+	  //if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaFree() d_TRCR: %s\n", cudaGetErrorString( err ));
 
 }
 
