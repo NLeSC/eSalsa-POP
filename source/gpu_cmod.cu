@@ -83,7 +83,7 @@ void cuda_init() {
     cudaSetDeviceFlags(cudaDeviceMapHost|cudaDeviceScheduleSpin);
     cudaSetDevice(0);
     
-    cudaDeviceReset();
+    cudaDeviceReset() ;
     
   }
 }
