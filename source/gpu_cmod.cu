@@ -749,10 +749,10 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	    //busy wait, this might just deadlock
 	  }
 	  
-	  if (d_TRCR == -2) {
+	  if (d_TRCR == (double *)-2) {
 		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = -2\n",my_task);  
 	  }
-	  if (d_TRCR == -1) {
+	  if (d_TRCR == (double *)-1) {
 		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = -1\n",my_task);  
 	  }
 	  if (d_TRCR == 0) {
