@@ -553,7 +553,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   }
 }
 
-double *d_TRCR;
+double *d_TRCR = 0;
 volatile int buoydiff_active = -1;
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
@@ -650,6 +650,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 #else
 	  //not reusing trcr so free it
 	  cudaFree(d_TRCR);
+	  d_TRCR = 0;
 #endif
 	  
 	  if (buoydiff_active != 1) {
@@ -749,6 +750,10 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  while (buoydiff_active != 0) {
 	    //busy wait, this might just deadlock
 	  }
+	  
+	  if (d_TRCR == 0) {
+		fprintf(stderr,"Error! at start of ddmix(): d_TRCR = 0\n");  
+	  }
 
 	  err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in ddmix cudaMalloc d_VDC: %s\n", cudaGetErrorString( err ));
@@ -834,7 +839,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	 
 	  //whether or not trcr was reused, we should free it now
 	  cudaFree(d_TRCR);
-
+	  d_TRCR = 0;
 
 }
 
