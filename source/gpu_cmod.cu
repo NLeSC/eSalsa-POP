@@ -749,7 +749,10 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	    //busy wait, this might just deadlock
 	  }
 	  
-	  if (d_TRCR == 0) {
+	  if (d_TRCR == -2) {
+		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = -2\n",my_task);  
+	  }
+	  if (d_TRCR == -1) {
 		fprintf(stderr,"Node %d: Error! at start of ddmix(): d_TRCR = -1\n",my_task);  
 	  }
 	  if (d_TRCR == 0) {
@@ -840,7 +843,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	 
 	  //whether or not trcr was reused, we should free it now
 	  cudaFree(d_TRCR);
-	  d_TRCR = 0;
+	  d_TRCR = -2;
 
 }
 
