@@ -77,9 +77,14 @@ int cuda_initialized = 0;
 void cuda_init() {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
+    
+    cudaDeviceReset() 
 
     cudaSetDeviceFlags(cudaDeviceMapHost|cudaDeviceScheduleSpin);
     cudaSetDevice(0);
+    
+    cudaDeviceReset() 
+    
   }
 }
 
@@ -632,8 +637,9 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  
 	  //TRCR values may remain on the GPU for other vmix_kpp routines
 #ifdef REUSE_TRCR
-	 //do nothing 
-#else	  
+      //if reusing trcr we should not free it
+#else
+	  //not reusing trcr so free it
 	  cudaFree(d_TRCR);
 #endif
 	  
@@ -724,6 +730,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_VDC: %s\n", cudaGetErrorString( err ));
 	  d_VDC1 = d_VDC+(NX_BLOCK*NY_BLOCK); //skip first level in VDC1 and VDC2
 	  d_VDC2 = d_VDC1+(NX_BLOCK*NY_BLOCK*(KM+2));
+	  
 	#ifndef REUSE_TRCR
 	  err = cudaMalloc((void **)&d_TRCR, NX_BLOCK*NY_BLOCK*KM*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_TRCR %s\n", cudaGetErrorString( err ));
@@ -794,10 +801,10 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 
 
 	  cudaFree(d_VDC);
-	  
-//	#ifndef REUSE_TRCR
+	 
+	  //whether or not trcr was reused, we should free it now
 	  cudaFree(d_TRCR);
-//	#endif
+
 
 	  //wait for completion
 	  //this sync is delayed to stimulate overlap with CPU computation of bldepth()
