@@ -70,7 +70,6 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 
 //functions
 
-
 int cuda_initialized = 0;
 
 //Fortran entry for initializing CUDA
@@ -555,6 +554,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
 }
 
 double *d_TRCR;
+volatile int buoydiff_active = 0;
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  cudaError_t err;
@@ -564,6 +564,12 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  double *d_DBSFC;
 	  double *d_SALT;
 	  double *SALT = TRCR+NX_BLOCK*NY_BLOCK*KM;
+	  
+	  if (buoydiff_active != 0) {
+		fprintf(stderr,"Error! at start of buoydiff(): buoydiff_active = %d\n",buoydiff_active);  
+	  }
+	  buoydiff_active = 1;
+	  
 	  
 	  int bid = (*pbid) - 1; //-1 because fortran indices start at 0
 	  //printf("Node %d: bid=%d\n", my_task, bid);
@@ -642,6 +648,11 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 	  //not reusing trcr so free it
 	  cudaFree(d_TRCR);
 #endif
+	  
+	  if (buoydiff_active != 1) {
+		fprintf(stderr,"Error! at end of buoydiff(): buoydiff_active = %d\n",buoydiff_active);  
+	  }
+	  buoydiff_active = 0;
 	  
       //wait for device to finish
 	  cudaDeviceSynchronize();
@@ -725,6 +736,15 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	  double *d_VDC1;
 	  double *d_VDC2;
 	  double *d_TRCR;
+	  
+	  if (buoydiff_active == 1) {
+		fprintf(stderr,"Error! at start of ddmix(): buoydiff_active = %d\n",buoydiff_active);  
+	  }
+	  
+	  //wait for buoydiff to finish
+	  while (buoydiff_active != 0) {
+	    //busy wait, this might just deadlock
+	  }
 
 	  err = cudaMalloc((void **)&d_VDC, NX_BLOCK*NY_BLOCK*(KM+2)*2*sizeof(double));
 	  if (err != cudaSuccess) fprintf(stderr, "Error in popMalloc d_VDC: %s\n", cudaGetErrorString( err ));
