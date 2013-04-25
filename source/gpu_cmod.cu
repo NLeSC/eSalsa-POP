@@ -648,7 +648,7 @@ void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid) {
 #ifndef REUSE_TRCR
 	  //not reusing trcr so free it
 	  cudaFree(d_TRCR);
-	  d_TRCR = -1;
+	  d_TRCR = (double *)-1;
 #endif
 	  
 	  if (buoydiff_active != 1) {
@@ -843,7 +843,7 @@ void ddmix_gpu(double *VDC, double *TRCR) {
 	 
 	  //whether or not trcr was reused, we should free it now
 	  cudaFree(d_TRCR);
-	  d_TRCR = -2;
+	  d_TRCR = (double *)-2;
 
 }
 
