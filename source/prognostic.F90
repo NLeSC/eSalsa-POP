@@ -65,7 +65,6 @@
    real (r8), dimension(:,:,:), pointer :: &
       RHOREF    ! 3d density fields used to check for correctness of GPU routines
 
-
    real (r8), dimension(nx_block,ny_block,3,max_blocks_clinic), &
       target :: &
       PSURF,    &! surface pressure for all blocks at 3 time levels
