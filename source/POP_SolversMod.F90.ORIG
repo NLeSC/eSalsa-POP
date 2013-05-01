@@ -177,18 +177,11 @@
 !-----------------------------------------------------------------------
 
    integer (POP_i4) :: &
-      numProcs, &          ! number of processors in barotropic distrib
-      numBlocksTropic, &
-      istat
+      numProcs           ! number of processors in barotropic distrib
 
-!   real (POP_r8), dimension(size(sfcPressure,dim=1), &
-!                            size(sfcPressure,dim=2), &
-!                            size(sfcPressure,dim=3)) :: &
-!      pressTropic,     &! surface pressure in barotropic distribution
-!      rhsTropic         ! right hand side  in barotropic distribution
-
-! JASON FIXED?
-   real (POP_r8), dimension (:,:,:), allocatable :: &
+   real (POP_r8), dimension(size(sfcPressure,dim=1), &
+                            size(sfcPressure,dim=2), &
+                            size(sfcPressure,dim=3)) :: &
       pressTropic,     &! surface pressure in barotropic distribution
       rhsTropic         ! right hand side  in barotropic distribution
 
@@ -199,21 +192,6 @@
 !-----------------------------------------------------------------------
 
    errorCode = POP_Success
-
-! JASON part of fix!
-   call POP_DistributionGet(POP_distrbTropic, errorCode, &
-                            numLocalBlocks = numBlocksTropic)
-
-   if (errorCode /= POP_Success) then
-      call POP_ErrorSet(errorCode, &
-         'POP_SolversInit: error retrieving tropic local block count')
-      return
-   endif
-
-   allocate(pressTropic(size(sfcPressure,dim=1), size(sfcPressure,dim=2), numBlocksTropic), &
-            rhsTropic(size(sfcPressure,dim=1), size(sfcPressure,dim=2), numBlocksTropic), &
-            stat=istat)
-! JASON end fix!
 
    call POP_RedistributeBlocks(btropWgtCenter,  POP_distrbTropic, &
                                centerWgtClinic, POP_distrbClinic, errorCode)
@@ -300,9 +278,6 @@
          'POP_SolversRun: error redistributing pressure back')
       return
    endif
-
-! JASON part of fix
-   deallocate(pressTropic, rhsTropic, stat=istat)
 
 !-----------------------------------------------------------------------
 !EOC
@@ -1285,6 +1260,11 @@
       numBlocks,       &! number of local blocks
       iblock            ! local block counter
 
+#ifdef JASON_TIMER
+   integer (POP_i4) :: &
+      timeStart, timeMid, timeEnd, timeTemp1, timeTemp2, sumHalo, sumReduce
+#endif
+
    real (POP_r8) :: & ! scalar results
       cgAlpha, cgBeta, cgSigma, cgDelta, cgRhoOld, cgRho, rr
 
@@ -1302,15 +1282,24 @@
    real (POP_r8), dimension(2) :: &
       sumN               ! global sum results for multiple arrays
 
+
 !-----------------------------------------------------------------------
 !
 !  initialize some scalars
 !
 !-----------------------------------------------------------------------
 
+#ifdef JASON_TIMER
+   call system_clock(count=timeStart)
+   write (*,*) 'JASON: ChronGear start'
+
+   sumHalo = 0;
+   sumReduce = 0;
+#endif
+
    errorCode = POP_Success
 
-
+!  Retrieve number of local blocks from distribution
    call POP_DistributionGet(POP_distrbTropic, errorCode, &
                             numLocalBlocks = numBlocks)
 
@@ -1365,8 +1354,6 @@
          end do
       endif
 
-     
-
       ! use S as a temp here for Ax
 
       call btropOperator(S,X,iblock)
@@ -1409,7 +1396,6 @@
          end do
       endif
 
-
       !---- Compute intermediate result for dot product
       !---- update conjugate direction vector S
       do j=1,ny
@@ -1432,9 +1418,16 @@
    end do
    !$OMP END PARALLEL DO
 
+! SWAPPED HALO AND REDUCE!
+
+!   call system_clock(count=timeTemp1)
+
    call POP_HaloUpdate(Q, POP_haloTropic, POP_gridHorzLocCenter, &
                           POP_fieldKindScalar, errorCode)
 
+!   call system_clock(count=timeTemp2)
+
+!   sumHalo = sumHalo + (timeTemp2 - timeTemp1);
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
@@ -1442,12 +1435,16 @@
       return
    endif
 
+!   call system_clock(count=timeTemp1)
 
    !---- Form dot products
    sumN = POP_GlobalSum(WORKN, POP_distrbTropic,        &
                                POP_gridHorzLocCenter,   &
                                errorCode, mMask = mMaskTropic)
 
+!   call system_clock(count=timeTemp2)
+
+!   sumReduce = sumReduce + (timeTemp2 - timeTemp1);
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
@@ -1472,6 +1469,10 @@
 
    end do
    !$OMP END PARALLEL DO
+
+#ifdef JASON_TIMER
+   call system_clock(count=timeMid)
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -1514,24 +1515,34 @@
       end do
       !$OMP END PARALLEL DO
 
+!      call system_clock(count=timeTemp1)
+
       call POP_HaloUpdate(AZ, POP_haloTropic, POP_gridHorzLocCenter, &
                               POP_fieldKindScalar, errorCode)
 
+!      call system_clock(count=timeTemp2)
 
-      if (errorCode /= POP_Success) then
-         call POP_ErrorSet(errorCode, &
-            'POP_SolversChronGear: error updating AZ halo')
-         return
-      endif
+!      sumHalo = sumHalo + (timeTemp2 - timeTemp1);
+
+!      call system_clock(count=timeTemp1)
 
       sumN = POP_GlobalSum(WORKN, POP_distrbTropic,        &
                                   POP_gridHorzLocCenter,   &
                                   errorCode, mMask = mMaskTropic)
 
+!      call system_clock(count=timeTemp2)
+
+!      sumReduce = sumReduce + (timeTemp2 - timeTemp1);
 
       if (errorCode /= POP_Success) then
          call POP_ErrorSet(errorCode, &
             'POP_SolversChronGear: error in dot products')
+         return
+      endif
+
+      if (errorCode /= POP_Success) then
+         call POP_ErrorSet(errorCode, &
+            'POP_SolversChronGear: error updating AZ halo')
          return
       endif
 
@@ -1631,6 +1642,12 @@
          return
       endif
    endif
+
+#ifdef JASON_TIMER
+   call system_clock(count=timeEnd)
+   write(*,*) 'JASON chrongear done: ', (timeEnd-timeStart), (timeMid-timeStart), (timeEnd-timeMid), sumHalo, sumReduce
+#endif
+
 
 !-----------------------------------------------------------------------
 !EOC

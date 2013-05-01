@@ -1988,11 +1988,11 @@ function POP_DistributionCreatePredefined(numProcs, &
         write(*,*) 'POP_masterTask: total nodes', clusters*nodesPerCluster
         write(*,*) 'POP_masterTask: total cores', clusters*nodesPerCluster*coresPerNode
 
-        if (maxBlocksPerCore > POP_maxBlocksClinic) call POP_ErrorSet(errorCode, &
-                               'Blocks per core exceeds POP_maxBlocksClinic')
-
-        if (maxBlocksPerCore > POP_maxBlocksTropic) call POP_ErrorSet(errorCode, &
-                               'Blocks per core exceeds POP_maxBlocksTropic')
+!        if (maxBlocksPerCore > POP_maxBlocksClinic) call POP_ErrorSet(errorCode, &
+!                               'Blocks per core exceeds POP_maxBlocksClinic')
+!
+!        if (maxBlocksPerCore > POP_maxBlocksTropic) call POP_ErrorSet(errorCode, &
+!                               'Blocks per core exceeds POP_maxBlocksTropic')
 
         do i=1,numBlockLocs
            read(nu, rec=(10+i), iostat=ioerr) newDistrb%blockLocation(i)

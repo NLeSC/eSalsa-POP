@@ -1256,11 +1256,11 @@ function create_distrb_predefined(nprocs, distribution_file)
         write(*,*) 'POP_masterTask: total nodes', clusters*nodesPerCluster
         write(*,*) 'POP_masterTask: total cores', clusters*nodesPerCluster*coresPerNode
 
-        if (maxBlocksPerCore > max_blocks_clinic) call exit_POP(sigAbort, &
-                               'Blocks per core exceeds max_blocks_clinic')
-
-        if (maxBlocksPerCore > max_blocks_tropic) call exit_POP(sigAbort, &
-                               'Blocks per core exceeds max_blocks_tropic')
+!        if (maxBlocksPerCore > max_blocks_clinic) call exit_POP(sigAbort, &
+!                               'Blocks per core exceeds max_blocks_clinic')
+!
+!        if (maxBlocksPerCore > max_blocks_tropic) call exit_POP(sigAbort, &
+!                               'Blocks per core exceeds max_blocks_tropic')
 
         do i=1,numBlockLocs
            read(nu, rec=(10+i), iostat=ioerr) dist%proc(i)
