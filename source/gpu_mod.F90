@@ -187,14 +187,14 @@
   !
   !-----------------------------------------------------------------------
 
-    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nt*3*max_blocks_clinic))
-    call c_f_pointer(cptr, TRACER, (/ nx_block,ny_block,km,nt,3,max_blocks_clinic /))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nt*3*nblocks_clinic))
+    call c_f_pointer(cptr, TRACER, (/ nx_block,ny_block,km,nt,3,nblocks_clinic /))
 
-    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*max_blocks_clinic))
-    call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,max_blocks_clinic /))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*nblocks_clinic))
+    call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,nblocks_clinic /))
 
-    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*max_blocks_clinic))
-    call c_f_pointer(cptr, RHOP, (/ nx_block,ny_block,km,max_blocks_clinic /))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nblocks_clinic))
+    call c_f_pointer(cptr, RHOP, (/ nx_block,ny_block,km,nblocks_clinic /))
 
 !       real (r8), dimension(nx_block,ny_block,km) :: &
 !      DBLOC,      &! buoyancy difference between adjacent levels
@@ -208,8 +208,8 @@
 
       !allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
       !          VVC(nx_block,ny_block,km,      nblocks_clinic))
-    call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*max_blocks_clinic))
-    call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,(km+2),2,max_blocks_clinic /))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*nblocks_clinic))
+    call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,(km+2),2,nblocks_clinic /))
 
 
     !VDC = RESHAPE(VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
@@ -219,8 +219,8 @@
     !apparantly c_f_pointer doesnt like the ':' in the array shape statement
     !call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
 
-    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*max_blocks_clinic))
-    call c_f_pointer(cptr, VVC, (/ nx_block,ny_block,km,max_blocks_clinic /))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nblocks_clinic))
+    call c_f_pointer(cptr, VVC, (/ nx_block,ny_block,km,nblocks_clinic /))
 
 
     ! arrays used for correctness checks
