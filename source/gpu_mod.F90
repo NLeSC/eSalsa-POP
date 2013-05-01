@@ -391,6 +391,9 @@
     integer (int_kind), intent(in), optional :: &
       var_name
 
+   !first wait for GPU results to come in
+   call devsync
+
    if (present(var_name)) then
      call gpu_compare(A, B, n, var_name)
    else
