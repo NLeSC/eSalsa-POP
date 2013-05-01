@@ -150,4 +150,5 @@ include $(DEPENDS)
 
 %.o: %.cu
 	@echo $(POPARCH) Compiling with implicit rule $(CUFLAGS) $<
+	@cd $(POPEXEDIR)/compile && $(NVCC) $(CUFLAGS) -ptx $<
 	@cd $(POPEXEDIR)/compile && $(NVCC) $(CUFLAGS) -c $(notdir $<)

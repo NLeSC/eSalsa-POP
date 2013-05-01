@@ -11,17 +11,17 @@ MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
 #CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
 CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
 
-F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
-LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl $(CUDALIB) -lcudart -lstdc++   -shared-intel -i-dynamic
-CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc
+F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 
+F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 
+LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3  -lcurl $(CUDALIB) -lcudart -lstdc++   -shared-intel -i-dynamic
+CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc -O3 
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
 
-NVCC = nvcc 
+NVCC = nvcc -O3 
 
 
 
@@ -78,9 +78,9 @@ CFLAGS = $(ABI)
 
 ifeq ($(OPTIMIZE),yes)
 #  CFLAGS := $(CFLAGS) -O 
-  CFLAGS := $(CFLAGS) -O3
+  CFLAGS := $(CFLAGS) 
 else
-  CFLAGS := $(CFLAGS) -g -check all -ftrapuv
+  CFLAGS := $(CFLAGS) -O3 -check all -ftrapuv
 endif
 
 CFLAGS := $(CFLAGS)
@@ -100,17 +100,17 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) -O3
-#  FFLAGS = $(FBASE) -g
+  FFLAGS = $(FBASE) 
+#  FFLAGS = $(FBASE) -O3
 else
-  FFLAGS = $(FBASE) -g -check bounds
+  FFLAGS = $(FBASE) -O3 -check bounds
 endif
 
 #DAS4 specific
 FFLAGS := $(FFLAGS) -convert  big_endian
 FFLAGS := $(FFLAGS) -mcmodel=medium -shared-intel -i-dynamic
 #-i-dynamic
-#FFLAGS := $(FFLAGS) 
+
  
 
 #----------------------------------------------------------------------------
@@ -119,13 +119,19 @@ FFLAGS := $(FFLAGS) -mcmodel=medium -shared-intel -i-dynamic
 #
 #----------------------------------------------------------------------------
 
-CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
+
+#CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
+
 #-prec-sqrt=true -fmad=false
 
 ifeq ($(OPTIMIZE),yes)
-  CUFLAGS := $(CUFLAGS) -O3
+  CUFLAGS := $(CUFLAGS)
 endif
- 
+
+CUFLAGS := $(CUFLAGS) 
+
+
 #----------------------------------------------------------------------------
 #
 #                           Loader Flags and Libraries
