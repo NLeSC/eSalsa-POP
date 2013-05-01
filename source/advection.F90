@@ -41,7 +41,7 @@
        POP_haloClinic
    use broadcast, only: broadcast_scalar, broadcast_array
    use diagnostics, only: cfl_advect
-   use state_mod, only: state
+   use state_mod
    use operators, only: zcurl
    use tavg, only: tavg_requested, ltavg_on, define_tavg_field,             &
        accumulate_tavg_field
@@ -49,9 +49,11 @@
    use time_management, only: max_blocks_clinic, km, nt, mix_pass, c2dtt
    use timers, only: timer_start, timer_stop, get_timer
    use exit_mod, only: sigAbort, exit_pop
-   use prognostic, only: UVEL, VVEL, curtime, tracer_d
+   use prognostic, only: UVEL, VVEL, curtime, tracer_d, RHOP
    use passive_tracers, only: tadvect_ctype_passive_tracers
    use registry
+
+   use gpu_mod
 
    implicit none
    private
@@ -141,7 +143,7 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (POP_i4) :: &
+   integer (POP_i4), public :: &
       tavg_WVEL,         &! Vertical Velocity
       tavg_UEU,          &! flux of zonal momentum across east  face
       tavg_VNU,          &! flux of zonal momentum across north face
@@ -1718,21 +1720,50 @@
           tavg_requested(tavg_VRHO) .or.  &
           tavg_requested(tavg_WRHO)) then
 
-         call state(k,1,TRCR(:,:,k,1),                         &
-                        TRCR(:,:,k,2), this_block, &
-                        RHOFULL=RHOK1)
+         ! if GPU acelerated functions can be used
+         if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+            ! Potential Density values are precomputed for all levels and stored in RHOP
+            if (k == 1) call gpumod_devsync
 
-         if (k == 1) then
-            RHOK1M = RHOK1
-         else
-            call state(k-1,1,TRCR(:,:,k,1),                         &
-                             TRCR(:,:,k,2), this_block, &
-                             RHOFULL=RHOK1M)
-         endif
+            if (use_verify_results) then  ! correctness checks
+              call state(k,1, TRCR(:,:,k,1),                         &
+                            TRCR(:,:,k,2), this_block, &
+                            RHOOUT=RHOK1)
+              call gpumod_compare(RHOP(:,:,k), RHOK1, nx_block*ny_block, 5)
+            endif
+
+            ! for the tavgs other than PD we pass info the old way
+            ! this may involve unnecessary copying
+            if (tavg_requested(tavg_RHOU) .or.  &
+                tavg_requested(tavg_RHOV) .or.  &
+                tavg_requested(tavg_URHO) .or.  &
+                tavg_requested(tavg_VRHO) .or.  &
+                tavg_requested(tavg_WRHO)) then
+              RHOK1 = RHOP(:,:,k);
+              RHOK1M = RHOP(:,:,k);
+            endif
+         else !use CPU functionality instead
+             call state(k,1,TRCR(:,:,k,1),                         &
+                            TRCR(:,:,k,2), this_block, &
+                            RHOFULL=RHOK1)
+
+             if (k == 1) then
+                RHOK1M = RHOK1
+             else
+                call state(k-1,1,TRCR(:,:,k,1),                         &
+                                 TRCR(:,:,k,2), this_block, &
+                                 RHOFULL=RHOK1M)
+             endif
+
+         endif !endif use GPU accelerated functions
       endif
 
       if (tavg_requested(tavg_PD)) then
-         call accumulate_tavg_field(RHOK1,tavg_PD,bid,k)
+        if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+          call accumulate_tavg_field(RHOP(:,:,k),tavg_PD,bid,k)
+        else
+          call accumulate_tavg_field(RHOK1,tavg_PD,bid,k)
+        endif
       endif
 
       if (tavg_requested(tavg_URHO)) then

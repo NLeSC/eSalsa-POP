@@ -1,0 +1,90 @@
+! file containing the interface block needed to interface with the underlying C code
+! this file is stored separately to keep gpu_mod a bit more clean
+!
+! author: Ben van Werkhoven
+
+
+
+
+interface
+
+subroutine cuda_init() bind (c)
+  use iso_c_binding
+end subroutine cuda_init
+
+subroutine devsync() bind (c)
+  use iso_c_binding
+end subroutine devsync
+
+subroutine my_cudamallochost(hostptr, size) bind (c)
+  use iso_c_binding
+  type(C_PTR), intent(out) :: hostptr
+  integer (c_int), intent(in) :: size
+end subroutine my_cudaMallocHost
+
+subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, nblocks_clinic, kmt) bind (c)
+  use iso_c_binding
+  real (c_double), dimension(46) :: &
+    constants		! array used for passing constants to the GPU
+  real (c_double), dimension(KM) :: &
+    tmin, tmax,        &! valid temperature range for level k
+    smin, smax,        &! valid salinity    range for level k
+    pressz              ! ref pressure (bars) at each level
+  integer (c_int) :: my_task, nblocks_clinic
+  integer (c_int), dimension(*) :: &
+    kmt
+end subroutine cuda_state_initialize
+
+
+
+subroutine mwjf_state_gpu(TEMP, SALT, RHOOUT, DRHODT, DRHODS, n_outputs, start_k, end_k) bind (c)
+        use iso_c_binding
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
+            TEMP,    &! temperature at level k
+            SALT,    &! salinity    at level k
+            RHOOUT,  &! perturbation density of water
+            DRHODT,  &! derivative of density with respect to temperature
+            DRHODS    ! derivative of density with respect to salinity
+        integer (c_int) :: n_outputs, start_k, end_k
+end subroutine mwjf_state_gpu
+
+subroutine mwjf_statepd_gpu(TEMP, SALT, RHOOUT, start_k, end_k) bind (c)
+        use iso_c_binding
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
+            TEMP,    &! temperature at level k
+            SALT,    &! salinity    at level k
+            RHOOUT
+        integer (c_int) :: start_k, end_k
+end subroutine mwjf_statepd_gpu
+
+
+subroutine gpu_compare(A, B, n, v) bind (c)
+	use iso_c_binding
+	real (c_double), dimension(*) :: &
+		A, B
+	integer (c_int) :: n, v
+end subroutine gpu_compare
+
+
+subroutine buoydiff_gpu(DBLOC, DBSFC, TRCR, bid) bind (c)
+        use iso_c_binding
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM) :: &
+            DBLOC,    &! temperature at level k
+            DBSFC      ! salinity    at level k
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM,2) :: &
+            TRCR       ! temperature
+        integer (c_int) ::  &
+            bid        ! block id
+end subroutine buoydiff_gpu
+
+
+subroutine ddmix_gpu(VDC, TRCR) bind (c)
+        use iso_c_binding
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,0:KM+1,2) :: &
+            VDC        ! diffusivity for tracer diffusion
+        real (c_double), dimension(NX_BLOCK,NY_BLOCK,KM,2) :: &
+            TRCR       ! temperature
+end subroutine ddmix_gpu
+
+
+end interface

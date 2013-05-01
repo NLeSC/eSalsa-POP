@@ -55,12 +55,36 @@ VPATH = $(SRCDIRS)
 
 #----------------------------------------------------------------------------
 #
+# Define .cu sources that must be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+SOURCES = 
+CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+ifneq (,$(CUSRCS))
+	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
+             $(SOURCES)
+endif
+
+#----------------------------------------------------------------------------
+#
+# Define .h sources that must be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+HSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.h)))
+ifneq (,$(HSRCS))
+	SOURCES	:= $(addprefix $(POPEXEDIR)/compile/, $(notdir $(HSRCS))) \
+             $(SOURCES)
+endif
+
+#----------------------------------------------------------------------------
+#
 # Define .F sources that must be preprocessed into the build directory as .f
 # and add .f version to list of target source files.
 #
 #----------------------------------------------------------------------------
 
-SOURCES = 
 FSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.F)))
 ifneq (,$(FSRCS))
   SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(FSRCS:.F=.f))) \
@@ -90,6 +114,8 @@ ifneq (,$(CSRCS))
   SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CSRCS:.C=.c))) \
              $(SOURCES)
 endif
+
+
 
 #----------------------------------------------------------------------------
 #
@@ -144,6 +170,29 @@ endif
 
 #----------------------------------------------------------------------------
 #
+# Define .cu sources that need to be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+#.PHONY: bogus
+
+#bogus:
+#  @echo "sources before adding .cu files: $(SOURCES)"
+
+#LCUSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+
+#bogus:
+#  @echo '.cu files found by wildcard statement: $(LCUSRCS)'
+
+#SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(LCUSRCS))) \
+#           $(SOURCES)
+
+#bogus:
+#  @echo "sources after adding .cu files: $(SOURCES)"
+
+
+#----------------------------------------------------------------------------
+#
 # Preprocess all source files.  Implicit rules should take care of all cases.
 #
 #----------------------------------------------------------------------------
@@ -195,5 +244,13 @@ $(POPEXEDIR)/compile/%.f90: %.f90
 $(POPEXEDIR)/compile/%.c: %.c
 	@echo '$(POPARCH) preprocessing ' $<
 	@$(Cp) $< $(POPEXEDIR)/compile/$*.c
+
+$(POPEXEDIR)/compile/%.cu: %.cu
+	@echo '$(POPARCH) preprocessing ' $<
+	@$(Cp) $< $(POPEXEDIR)/compile/$*.cu
+	
+$(POPEXEDIR)/compile/%.h: %.h
+	@echo '$(POPARCH) copying ' $<
+	@$(Cp) $< $(POPEXEDIR)/compile/$*.h
 
 #----------------------------------------------------------------------------

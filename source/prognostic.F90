@@ -35,7 +35,44 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-#ifdef JASON_FIX_DATA
+#ifdef BEN_GPU
+
+! BEN: changed to pointer for gpu extensions
+   real (r8), dimension(:,:,:,:,:,:), pointer :: &
+      TRACER ! 3d tracer fields for all blocks at 3 time levels
+
+   type (tracer_field), dimension(nt) :: &
+      tracer_d ! descriptors for each tracer
+
+   real (r8), dimension(nx_block,ny_block,km,3,max_blocks_clinic), &
+      target :: &
+      UVEL, &! 3d horizontal velocity for all blocks at 3 time lvls
+      VVEL ! 3d horizontal velocity for all blocks at 3 time lvls
+
+! BEN: changed to allocatable for gpu extensions
+   real (r8), dimension(:,:,:,:,:), pointer :: &
+      RHO ! 3d density fields, for all blocks at 3 time lvls
+
+   real (r8), dimension(:,:,:), pointer :: &
+      RHOP ! 3d density field, used to store potential density for tavg_PD
+
+   real (r8), dimension(:,:,:), pointer :: &
+      RHOREF ! 3d density fields used to check for correctness of GPU routines
+
+   real (r8), dimension(nx_block,ny_block,3,max_blocks_clinic), &
+      target :: &
+      PSURF, &! surface pressure for all blocks at 3 time levels
+      GRADPX, &! surface-pressure gradient for all blocks at
+      GRADPY, &! 3 time levels
+      UBTROP, &! barotropic velocities for all blocks at
+      VBTROP ! 3 time levels
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+      target :: &
+      PGUESS ! next guess for surface pressure
+
+#elif defined JASON_FIX_DATA
+
    real (r8), dimension(:,:,:,:,:,:), allocatable, target :: &
       TRACER     ! 3d tracer fields for all blocks at 3 time levels
 
@@ -78,11 +115,12 @@
       GRADPX,   &! surface-pressure gradient for all blocks at
       GRADPY,   &!   3 time levels
       UBTROP,   &! barotropic velocities for all blocks at
-      VBTROP     !   3 time levels 
+      VBTROP     !   3 time levels
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       target :: &
       PGUESS     ! next guess for surface pressure
+
 #endif
 
    integer (int_kind) :: &! time indices for prognostic arrays
@@ -115,6 +153,7 @@
 
 !EOP
 !BOC
+
 !-----------------------------------------------------------------------
 !
 !     initialize prognostic arrays to zero - they will be filled

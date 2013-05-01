@@ -29,13 +29,13 @@
        field_type_scalar, c0, c1, c2, grav, ndelim_fmt,                      &
        hflux_factor, salinity_factor, salt_to_ppt
    use prognostic, only: TRACER, UVEL, VVEL, mixtime, &
-       RHO, newtime, oldtime, curtime, PSURF
+       RHO, RHOREF, newtime, oldtime, curtime, PSURF, RHOP
    use broadcast, only: broadcast_scalar
    use communicate, only: my_task, master_task
    use grid, only: FCOR, DZU, HUR, KMU, KMT, sfc_layer_type,                 &
        sfc_layer_varthick, partial_bottom_cells, dz, DZT, CALCT, dzw, dzr,   &
        FCORT, TAREA_R
-   use advection, only: advu, advt, comp_flux_vel_ghost
+   use advection, only: advu, advt, comp_flux_vel_ghost, tavg_PD
    use pressure_grad, only: lpressure_avg, gradp
    use horizontal_mix, only: hdiffu, hdifft
    use vertical_mix, only: vmix_coeffs, implicit_vertical_mix, vdiffu,       &
@@ -46,7 +46,7 @@
        DIAG_TRACER_HDIFF_2D, DIAG_PE_2D, DIAG_TRACER_ADV_2D,                 &
        DIAG_TRACER_SFC_FLX, DIAG_TRACER_VDIFF_2D, DIAG_TRACER_SOURCE_2D
    use movie, only: define_movie_field, movie_requested, update_movie_field
-   use state_mod, only: state
+   use state_mod
    use ice, only: liceform, ice_formation, increment_tlast_ice
    use time_management, only: mix_pass, leapfrogts, impcor, c2dtu, beta,     &
        gamma, c2dtt
@@ -65,6 +65,8 @@
    use floats, only: define_float_field, float_requested, update_float_buffer
    use operators, only: zcurl
    use exit_mod, only: sigAbort, exit_pop
+
+   use gpu_mod
 
    implicit none
    private
@@ -540,6 +542,18 @@
                                this_block, SMF=SMF(:,:,:,iblock))
          endif
 
+
+
+        ! precompute potential density for tavg_PD in advt in tracer_update
+        if (k == 1 .and. tavg_requested(tavg_PD) .and. use_gpu_state .and. &
+            state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+
+            call gpumod_mwjf_statePD(TRACER (:,:,:,1,curtime,iblock), &
+                              TRACER (:,:,:,2,curtime,iblock), &
+                              1, POP_km, RHOP)
+
+        endif
+
 !-----------------------------------------------------------------------
 !
 !        calculate level k tracers at new time
@@ -950,6 +964,47 @@
 
 !-----------------------------------------------------------------------
 !
+!        if pressure averaging is on and it is a leapfrog time step
+!        we need the updated density for the pressure averaging
+!        loops have been split as k-loop is unrolled on GPU
+!
+!-----------------------------------------------------------------------
+
+        if (lpressure_avg .and. leapfrogts) then
+
+            if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+                call gpumod_mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+                        TRACER(:,:,:,2,newtime,iblock), &
+                        1, POP_km, &
+                        RHOOUT=RHO(:,:,:,newtime,iblock))
+
+                call gpumod_devsync
+
+                if (use_verify_results) then
+                    do k = 1,POP_km
+                        call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                               TRACER(:,:,k,2,newtime,iblock), &
+                               this_block, RHOOUT=RHOREF(:,:,k))
+                    enddo
+                    call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km, 1)
+                endif
+
+            else ! use CPU function instead
+                do k = 1,POP_km
+                    call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                         TRACER(:,:,k,2,newtime,iblock), &
+                         this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+
+                   enddo
+            endif ! if gpus can be used
+
+        endif ! if lpressure_avg .and. leapfrogts
+
+
+
+
+!-----------------------------------------------------------------------
+!
 !     initialize arrays for vertical sums.
 !
 !-----------------------------------------------------------------------
@@ -964,18 +1019,7 @@
          if (k == 1) km1 = 1
          if (k == POP_km) kp1 = POP_km
 
-!-----------------------------------------------------------------------
-!
-!        if pressure averaging is on and it is a leapfrog time step
-!        we need the updated density for the pressure averaging
-!
-!-----------------------------------------------------------------------
 
-         if (lpressure_avg .and. leapfrogts) then
-            call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                           TRACER(:,:,k,2,newtime,iblock), &
-                           this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
-         endif
 
 !-----------------------------------------------------------------------
 !
@@ -1401,16 +1445,51 @@
 !-----------------------------------------------------------------------
 !
 !     compute new density based on new tracers
+!     use GPU acceleration if possible
 !
 !-----------------------------------------------------------------------
+      if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
 
-      do k = 1,POP_km  ! recalculate new density
+!        if (my_task == master_task) then
+!          write(stdout,'(a25)') 'Going to run state on GPU'
+!        endif
+        !zero the current array for debugging purposes
+        !RHO(:,:,:,newtime,iblock) = c0;
+        !RHOREF = c0;
 
-         call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
-                        TRACER(:,:,k,2,newtime,iblock), & 
-                        this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+        call gpumod_mwjf_state(TRACER(:,:,:,1,newtime,iblock), &
+                        TRACER(:,:,:,2,newtime,iblock), &
+                        1, POP_km, &
+                        RHOOUT=RHO(:,:,:,newtime,iblock))
 
-      enddo
+        !---------------!
+        !there is no sync here so be very careful with using RHO newtime
+        !and call gpumod_devsync before using the variable
+
+
+        if (use_verify_results) then
+!          if (my_task == master_task) then
+!            write(stdout,'(a38)') 'Finished state on GPU, checking result'
+!          endif
+           do k = 1,POP_km  ! recalculate new density
+            call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                           TRACER(:,:,k,2,newtime,iblock), &
+                           this_block, RHOOUT=RHOREF(:,:,k))
+           enddo
+!          if (my_task == master_task) then
+!            write(stdout,'(a21)') 'Finished state on CPU'
+!          endif
+           call gpumod_compare(RHO(:,:,:,newtime,iblock), RHOREF, nx_block*ny_block*POP_km, 1)
+        endif
+
+      else
+        do k = 1,POP_km  ! recalculate new density
+          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
+                         TRACER(:,:,k,2,newtime,iblock), &
+                         this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+
+        enddo
+      endif
 
 !-----------------------------------------------------------------------
 !

@@ -60,7 +60,7 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(km) :: & 
+   real (r8), dimension(km), public :: &
       tmin, tmax,        &! valid temperature range for level k
       smin, smax,        &! valid salinity    range for level k
       pressz              ! ref pressure (bars) at each level
@@ -71,20 +71,20 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), parameter :: &
+   integer (int_kind), parameter, public :: &
       state_type_jmcd       = 1,    &! integer ids for state choice
       state_type_mwjf       = 2,    &
       state_type_polynomial = 3,    &
       state_type_linear     = 4
 
-   integer (int_kind) ::    &
+   integer (int_kind), public ::    &
       state_itype           ! input state type chosen
 
-   integer (int_kind) ::    &
+   integer (int_kind), public ::    &
       state_range_iopt,     &! option for checking valid T,S range
       state_range_freq       ! freq (in steps) for checking T,S range
 
-   integer (int_kind), parameter :: &
+   integer (int_kind), parameter, public :: &
       state_range_ignore  = 1, &! do not check T,S range
       state_range_check   = 2, &! check T,S range and report invalid
       state_range_enforce = 3   ! force polynomial eval within range
@@ -167,7 +167,7 @@
    !*** these constants will be used to construct the numerator
    !*** factor unit change (kg/m^3 -> g/cm^3) into numerator terms
 
-   real (r8), parameter ::                     &
+   real (r8), parameter, public ::                     &
       mwjfnp0s0t0 =   9.99843699e+2_r8 * p001, &
       mwjfnp0s0t1 =   7.35212840e+0_r8 * p001, &
       mwjfnp0s0t2 =  -5.45928211e-2_r8 * p001, &
@@ -183,7 +183,7 @@
 
    !*** these constants will be used to construct the denominator
 
-   real (kind=r8), parameter ::          &
+   real (kind=r8), parameter, public ::          &
       mwjfdp0s0t0 =   1.0e+0_r8,         &
       mwjfdp0s0t1 =   7.28606739e-3_r8,  &
       mwjfdp0s0t2 =  -4.60835542e-5_r8,  &
@@ -872,6 +872,12 @@
       tmax = 999.0_r8  ! unlimited on the high end
       smin =   0.0_r8  ! limited   on the low  end
       smax = 0.999_r8  ! unlimited on the high end
+
+!      write(stdout, *) ' tmin= ', tmin(1)
+!      write(stdout, *) ' tmax= ', tmax(1)
+!      write(stdout, *) ' smin= ', smin(1)
+!      write(stdout, *) ' smax= ', smax(1)
+!      write(stdout, *) ' pressz= ', pressz
 
 !-----------------------------------------------------------------------
 !

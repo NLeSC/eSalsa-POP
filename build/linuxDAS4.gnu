@@ -7,20 +7,26 @@
 #  modules.
 #
 #-----------------------------------------------------------------------
-#
-# MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
-# MPIINC = -I/cm/shared/apps/openmpi/intel/64/1.4.4/include/
 
-F77 = mpif77
-F90 = mpif90
-LD = mpif90 -lcurl -shared-intel -mcmodel=medium -lirc
-CC = cc
+MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
+#CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
+CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
+
+F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
+F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90
+LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl $(CUDALIB) -lcudart -lstdc++   -shared-intel -i-dynamic
+CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc
+
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
- 
+
+NVCC = nvcc 
+
+
+
 #  Enable MPI library for parallel code, yes/no.
 
 MPI = yes
@@ -29,11 +35,13 @@ MPI = yes
 
 # These have been loaded as a module so no values necessary
 
+#intel compiler
+#NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
+#NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
+
 #with -mcmodel=medium
-NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
-#/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/include
-NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
-#/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/lib
+NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/include
+NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/lib
 
 #  Enable trapping and traceback of floating point exceptions, yes/no.
 #  Note - Requires 'setenv TRAP_FPE "ALL=ABORT,TRACE"' for traceback.
@@ -67,8 +75,8 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
-  CFLAGS := $(CFLAGS) -O2
-#  CFLAGS := $(CFLAGS) -g
+#  CFLAGS := $(CFLAGS) -O 
+  CFLAGS := $(CFLAGS) -O3
 else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
 endif
@@ -97,9 +105,24 @@ else
 endif
 
 #DAS4 specific
-FFLAGS := $(FFLAGS) -convert big_endian
-FFLAGS := $(FFLAGS) -check bounds -shared-intel -mcmodel=medium
-FFLAGS := $(FFLAGS) -heap-arrays 1024
+FFLAGS := $(FFLAGS) -convert  big_endian
+FFLAGS := $(FFLAGS) -mcmodel=medium -shared-intel -i-dynamic
+#-i-dynamic
+#FFLAGS := $(FFLAGS) 
+ 
+
+#----------------------------------------------------------------------------
+#
+#                           CUDA Flags
+#
+#----------------------------------------------------------------------------
+
+CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
+#-prec-sqrt=true -fmad=false
+
+ifeq ($(OPTIMIZE),yes)
+  CUFLAGS := $(CUFLAGS) -O3
+endif
  
 #----------------------------------------------------------------------------
 #

@@ -35,6 +35,9 @@
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
 
+   use gpu_mod
+   use global_vars
+
    implicit none
    private
    save
@@ -57,6 +60,8 @@
 
    real (r8), public ::   &
       bckgrnd_vdc2         ! variation in diffusivity
+
+
 
 !EOP
 !BOC
@@ -695,8 +700,6 @@
       STABLE       ! = 1 for stable forcing; = 0 for unstable forcing
  
    real (r8), dimension(nx_block,ny_block,km) :: &
-      DBLOC,      &! buoyancy difference between adjacent levels
-      DBSFC,      &! buoyancy difference between level and surface
       GHAT         ! non-local mixing coefficient
 
    real (r8), dimension(nx_block,ny_block,0:km+1) :: &
@@ -719,9 +722,19 @@
 !  compute buoyancy differences at each vertical level.
 !
 !-----------------------------------------------------------------------
+if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
 
-   call buoydiff(DBLOC, DBSFC, TRCR, this_block)
+    call gpumod_buoydiff(DBLOC, DBSFC, TRCR, this_block)
 
+    if (use_verify_results) then
+        call buoydiff(DBLOCREF, DBSFCREF, TRCR, this_block)
+
+        call gpumod_compare(DBLOCREF, DBLOC, nx_block*ny_block*km, 2)
+        call gpumod_compare(DBSFCREF, DBSFC, nx_block*ny_block*km, 3)
+    endif
+else
+    call buoydiff(DBLOC, DBSFC, TRCR, this_block)
+endif
 
 !-----------------------------------------------------------------------
 !
@@ -739,7 +752,24 @@
 !
 !-----------------------------------------------------------------------
 
-   if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
+!   if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
+   if (ldbl_diff) then
+     if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+       !VDC is an inout parameter to ddmix, therefore to check the result we first have to store it.
+       if (use_verify_results) then
+         VDCREF = VDC; !hopefully this copies the array and does mess with pointers
+       endif
+
+       call gpumod_ddmix(VDC, TRCR, this_block)
+
+       if (use_verify_results) then
+         call ddmix(VDCREF, TRCR, this_block)
+         call gpumod_compare(VDCREF, VDC, nx_block*ny_block*(km+2)*2, 6)
+       endif
+     else
+       call ddmix(VDC, TRCR, this_block)
+     endif
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -762,6 +792,10 @@
 !  compute boundary layer diffusivities
 !
 !-----------------------------------------------------------------------
+      !synchronize because we need to wait for for GPU results of VDC to complete
+      !this sync is delayed to stimulate overlap between CPU and GPU computation
+      call gpumod_devsync
+
 
    call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
               KBL, GHAT, this_block) 
@@ -1464,39 +1498,39 @@
 
    if ( lcheckekmo ) then
 
-      HEKMAN = -zgrid(km) + eps
-      HLIMIT = -zgrid(km) + eps
+       HEKMAN = -zgrid(km) + eps
+       HLIMIT = -zgrid(km) + eps
 
-      if ( lshort_wave ) then
-         select case (sw_absorption_type)
+       if ( lshort_wave ) then
+           select case (sw_absorption_type)
 
-         case ('top-layer')
+               case ('top-layer')
 
-            BFSFC = BO + BOSOL
+                   BFSFC = BO + BOSOL
          
-         case ('jerlov')
+               case ('jerlov')
 
-            call sw_absorb_frac(-z_up,absorb_frac)
-            BFSFC = BO + BOSOL * (c1 - absorb_frac)
+                   call sw_absorb_frac(-z_up,absorb_frac)
+                   BFSFC = BO + BOSOL * (c1 - absorb_frac)
 
-         case ('chlorophyll')
+               case ('chlorophyll')
 
-            call sw_trans_chl(1,this_block)
-            BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
+                   call sw_trans_chl(1,this_block)
+                   BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
 
-         end select
+           end select
 
-      else
-         BFSFC = BO
-      endif
+       else
+           BFSFC = BO
+       endif
 
-      STABLE = merge(c1, c0, BFSFC >= c0)
+       STABLE = merge(c1, c0, BFSFC >= c0)
 
-      BFSFC  = BFSFC + STABLE*eps
+       BFSFC  = BFSFC + STABLE*eps
 
-      WORK =   STABLE * cmonob*USTAR*USTAR*USTAR/vonkar/BFSFC &
-            + (STABLE -c1)*zgrid(km)
-      HMONOB(:,:,kup) = merge( -z_up+eps, WORK, WORK <= -z_up )
+       WORK =   STABLE * cmonob*USTAR*USTAR*USTAR/vonkar/BFSFC &
+           + (STABLE -c1)*zgrid(km)
+       HMONOB(:,:,kup) = merge( -z_up+eps, WORK, WORK <= -z_up )
    endif
 
    RSH_HBLT = c0
@@ -2612,7 +2646,9 @@
             DBLOC(i,j,k-1) = c0
          endif
 
-         if (k-1 >= KMT(i,j,bid)) DBLOC(i,j,k-1) = c0
+         if (k-1 >= KMT(i,j,bid)) then
+           DBLOC(i,j,k-1) = c0
+         endif
       end do
       end do
 
