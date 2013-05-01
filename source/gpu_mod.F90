@@ -272,7 +272,11 @@
 !cudaDeviceSynchronize()
  subroutine gpumod_devsync
 
-   call devsync
+   if (use_gpu_state) then
+
+     call devsync
+
+   endif
 
  end subroutine gpumod_devsync
 
