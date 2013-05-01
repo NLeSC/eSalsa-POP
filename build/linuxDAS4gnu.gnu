@@ -11,17 +11,17 @@
 #CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
 CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
 
-F77 = mpif90 -p -O3
-F90 = mpif90 -p -O3
-LD = mpif90 -p -O3 -lcurl $(CUDALIB) -lcudart -lstdc++
-CC = gcc -p -O3
+F77 = mpif90 -O0 -g
+F90 = mpif90 -O0 -g
+LD = mpif90 -O0 -g  -lcurl $(CUDALIB) -lcudart -lstdc++
+CC = gcc -O0 -g
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
 
-NVCC = nvcc 
+NVCC = nvcc -O0 -g
  
 #  Enable MPI library for parallel code, yes/no.
 
@@ -73,6 +73,7 @@ CFLAGS = $(ABI)
 
 ifeq ($(OPTIMIZE),yes)
 #  CFLAGS := $(CFLAGS) -O 
+  CFLAGS := $(CFLAGS)  
 else
   CFLAGS := $(CFLAGS) -check all -ftrapuv
 endif
@@ -94,7 +95,7 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-#  FFLAGS = $(FBASE) -O3
+#  FFLAGS = $(FBASE) 
   FFLAGS = $(FBASE)
 else
   FFLAGS = $(FBASE) -check bounds
@@ -112,11 +113,16 @@ FFLAGS := $(FFLAGS)
 #
 #----------------------------------------------------------------------------
 
-CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
+#CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
+
+#CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
+
+CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
+
 #-prec-sqrt=true -fmad=false
 
 ifeq ($(OPTIMIZE),yes)
-  CUFLAGS := $(CUFLAGS) -O3
+  CUFLAGS := $(CUFLAGS) 
 endif
 
 #----------------------------------------------------------------------------
