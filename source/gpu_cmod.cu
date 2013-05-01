@@ -77,12 +77,12 @@ void cuda_init() {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
     
-    cudaDeviceReset();
+    //cudaDeviceReset();
 
-    cudaSetDeviceFlags(cudaDeviceMapHost|cudaDeviceScheduleSpin);
+    cudaSetDeviceFlags(cudaDeviceMapHost);
     cudaSetDevice(0);
     
-    cudaDeviceReset() ;
+    //cudaDeviceReset() ;
     
   }
 }

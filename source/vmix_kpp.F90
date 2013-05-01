@@ -1498,39 +1498,39 @@ endif
 
    if ( lcheckekmo ) then
 
-      HEKMAN = -zgrid(km) + eps
-      HLIMIT = -zgrid(km) + eps
+       HEKMAN = -zgrid(km) + eps
+       HLIMIT = -zgrid(km) + eps
 
-      if ( lshort_wave ) then
-         select case (sw_absorption_type)
+       if ( lshort_wave ) then
+           select case (sw_absorption_type)
 
-         case ('top-layer')
+               case ('top-layer')
 
-            BFSFC = BO + BOSOL
+                   BFSFC = BO + BOSOL
          
-         case ('jerlov')
+               case ('jerlov')
 
-            call sw_absorb_frac(-z_up,absorb_frac)
-            BFSFC = BO + BOSOL * (c1 - absorb_frac)
+                   call sw_absorb_frac(-z_up,absorb_frac)
+                   BFSFC = BO + BOSOL * (c1 - absorb_frac)
 
-         case ('chlorophyll')
+               case ('chlorophyll')
 
-            call sw_trans_chl(1,this_block)
-            BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
+                   call sw_trans_chl(1,this_block)
+                   BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
 
-         end select
+           end select
 
-      else
-         BFSFC = BO
-      endif
+       else
+           BFSFC = BO
+       endif
 
-      STABLE = merge(c1, c0, BFSFC >= c0)
+       STABLE = merge(c1, c0, BFSFC >= c0)
 
-      BFSFC  = BFSFC + STABLE*eps
+       BFSFC  = BFSFC + STABLE*eps
 
-      WORK =   STABLE * cmonob*USTAR*USTAR*USTAR/vonkar/BFSFC &
-            + (STABLE -c1)*zgrid(km)
-      HMONOB(:,:,kup) = merge( -z_up+eps, WORK, WORK <= -z_up )
+       WORK =   STABLE * cmonob*USTAR*USTAR*USTAR/vonkar/BFSFC &
+           + (STABLE -c1)*zgrid(km)
+       HMONOB(:,:,kup) = merge( -z_up+eps, WORK, WORK <= -z_up )
    endif
 
    RSH_HBLT = c0
