@@ -67,7 +67,7 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
-  CFLAGS := $(CFLAGS) -O3 -march=corei7
+  CFLAGS := $(CFLAGS) -O3 
 # -mcmodel=medium
 else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
@@ -87,7 +87,7 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) -O3 -march=corei7 -fconvert=swap 
+  FFLAGS = $(FBASE) -O3 -fconvert=swap 
 #-fmax-stack-var-size=536870912
 #-mcmodel=medium
 else
@@ -100,7 +100,7 @@ endif
 #
 #----------------------------------------------------------------------------
 
-CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64 -gencode arch=compute_20,code=sm_20 
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
 #CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
 #-prec-sqrt=true -fmad=false
