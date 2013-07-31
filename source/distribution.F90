@@ -1262,6 +1262,9 @@ function create_distrb_predefined(nprocs, distribution_file)
 !        if (maxBlocksPerCore > max_blocks_tropic) call exit_POP(sigAbort, &
 !                               'Blocks per core exceeds max_blocks_tropic')
 
+        if (maxBlocksPerCore > max_blocks_clinic) write(*,*) 'WARNING: Blocks per core exceeds max_blocks_clinic'
+        if (maxBlocksPerCore > max_blocks_tropic) write(*,*) 'WARNING: Blocks per core exceeds max_blocks_tropic'
+
         do i=1,numBlockLocs
            read(nu, rec=(10+i), iostat=ioerr) dist%proc(i)
         enddo

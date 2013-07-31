@@ -1994,6 +1994,9 @@ function POP_DistributionCreatePredefined(numProcs, &
 !        if (maxBlocksPerCore > POP_maxBlocksTropic) call POP_ErrorSet(errorCode, &
 !                               'Blocks per core exceeds POP_maxBlocksTropic')
 
+        if (maxBlocksPerCore > POP_maxBlocksClinic) write(*,*) 'WARNING: Blocks per core exceeds POP_maxBlocksClinic'
+        if (maxBlocksPerCore > POP_maxBlocksTropic) write(*,*) 'WARNING: Blocks per core exceeds POP_maxBlocksTropic'
+
         do i=1,numBlockLocs
            read(nu, rec=(10+i), iostat=ioerr) newDistrb%blockLocation(i)
         enddo 

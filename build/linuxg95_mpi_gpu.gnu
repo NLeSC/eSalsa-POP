@@ -1,3 +1,4 @@
+
 #-----------------------------------------------------------------------
 #
 # File:  sgialtix_mpi.gnu
@@ -7,25 +8,17 @@
 #  modules.
 #
 #-----------------------------------------------------------------------
-
-MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
-#CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
-CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
-
-F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 
-F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 
-LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3  -lcurl $(CUDALIB) -lcudart -lstdc++   -shared-intel -i-dynamic
-CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc -O3 
+F77 = mpif77
+F90 = mpif90
+LD = mpif90 
+CC = cc
 
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
-
-NVCC = nvcc -O3 
-
-
+NVCC = nvcc 
 
 #  Enable MPI library for parallel code, yes/no.
 
@@ -34,14 +27,8 @@ MPI = yes
 # Adjust these to point to where netcdf is installed
 
 # These have been loaded as a module so no values necessary
-
-#intel compiler
-#NETCDFINC = -I/cm/shared/apps/netcdf/intel/64/4.1.1/include
-#NETCDFLIB = -L/cm/shared/apps/netcdf/intel/64/4.1.1/lib
-
-#with -mcmodel=medium
-NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/include
-NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-icc-bin-medium/lib
+NETCDFINC = -I/cm/shared/apps/netcdf/gcc/64/4.1.1/include
+NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
 
 #  Enable trapping and traceback of floating point exceptions, yes/no.
 #  Note - Requires 'setenv TRAP_FPE "ALL=ABORT,TRACE"' for traceback.
@@ -54,15 +41,20 @@ TRAP_FPE = no
 
 #DCOUPL              = -Dcoupled
 DHIRES               = -D_HIRES
-#PRINT                = -DJASON_PRINT
+#PRINT                = -DJASON_PRINT 
 #PRINT_HALO           = -DJASON_PRINT_HALO
 #PRINT_REDIST         = -DJASON_PRINT_REDIST
 #PRINT_LOOP           = -DJASON_PRINT_LOOP
-#TIMER                = -DJASON_TIMER
-LOG_FILE             = -DJASON_SIMPLE_LOG_FILENAME
+#TIMER                = -DJASON_TIMER 
+#FIX_DATA             = -DJASON_FIX_DATA
+#LOG_FILE             = -DJASON_SIMPLE_LOG_FILENAME
+FLOW                 = -D_USE_FLOW_CONTROL
+#SEND                 = -DJASON_PRINT_SEND  
+FLUSH                = -DJASON_FLUSH
+GPU                  = -DBEN_GPU
 
 Cpp_opts =   \
-      $(DCOUPL) $(DHIRES) $(TIMER) $(PRINT) $(PRINT_LOOP) $(LOG_FILE)
+      $(DCOUPL) $(DHIRES) $(TIMER) $(PRINT) $(PRINT_LOOP) $(LOG_FILE) $(FLOW) $(FIX_DATA) $(SEND) $(FLUSH) $(PRINT_REDIST) $(GPU)
 
 Cpp_opts := $(Cpp_opts) -DPOSIX 
  
@@ -75,14 +67,11 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
-#  CFLAGS := $(CFLAGS) -O 
-  CFLAGS := $(CFLAGS) 
+  CFLAGS := $(CFLAGS) -O3 -march=corei7
+# -mcmodel=medium
 else
-  CFLAGS := $(CFLAGS) -O3 -check all -ftrapuv
+  CFLAGS := $(CFLAGS) -g -check all -ftrapuv
 endif
-
-CFLAGS := $(CFLAGS)
-CFLAGS := $(CFLAGS) 
  
 #----------------------------------------------------------------------------
 #
@@ -98,18 +87,12 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) 
-#  FFLAGS = $(FBASE) -O3
+  FFLAGS = $(FBASE) -O3 -march=corei7 -fconvert=swap 
+#-fmax-stack-var-size=536870912
+#-mcmodel=medium
 else
-  FFLAGS = $(FBASE) -O3 -check bounds
+  FFLAGS = $(FBASE) -g -check bounds -fconvert=swap
 endif
-
-#DAS4 specific
-FFLAGS := $(FFLAGS) -convert  big_endian
-FFLAGS := $(FFLAGS) -mcmodel=medium -shared-intel -i-dynamic
-#-i-dynamic
-
- 
 
 #----------------------------------------------------------------------------
 #
@@ -117,8 +100,7 @@ FFLAGS := $(FFLAGS) -mcmodel=medium -shared-intel -i-dynamic
 #
 #----------------------------------------------------------------------------
 
-CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
-
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64 -gencode arch=compute_20,code=sm_20 
 #CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
 #-prec-sqrt=true -fmad=false
@@ -127,9 +109,8 @@ ifeq ($(OPTIMIZE),yes)
   CUFLAGS := $(CUFLAGS)
 endif
 
-CUFLAGS := $(CUFLAGS) 
-
-
+CUFLAGS := $(CUFLAGS)
+ 
 #----------------------------------------------------------------------------
 #
 #                           Loader Flags and Libraries
@@ -138,11 +119,10 @@ CUFLAGS := $(CUFLAGS)
  
 LDFLAGS = $(ABI) 
  
-LIBS = $(NETCDFLIB) -lnetcdf -lirc
+LIBS = $(NETCDFLIB) -L/cm/shared/apps/cuda50/toolkit/current/lib64/ -lnetcdf -lcurl -lcudart -lstdc++ 
  
 ifeq ($(MPI),yes)
-#  LIBS := $(LIBS) $(MPI_LD_FLAGS) -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/ -lmpi 
-  LIBS := $(LIBS) -lmpi -lirc
+  LIBS := $(LIBS) $(MPI_LD_FLAGS) -lmpi 
 endif
 
 ifeq ($(TRAP_FPE),yes)

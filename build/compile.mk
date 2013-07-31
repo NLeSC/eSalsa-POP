@@ -133,6 +133,9 @@ include $(DEPENDS)
 #----------------------------------------------------------------------------
  
 # Cancel the implicit gmake rules for compiling
+#
+# 	@cd $(POPEXEDIR)/compile && $(NVCC) $(CUFLAGS) -ptx $<
+
 %.o : %.f
 %.o : %.f90
 %.o : %.c
