@@ -49,7 +49,7 @@ To make full use of eSalsa POP, the eSalsa Tools package can be used:
 
 In addition, it can be combined with the (very experimental) eSalsa MPI implementation:
 
-<https://github.com/NLeSC/eSalsa-MPI>
+<https://github.com/NLeSC/eSalsa-MPI/develop>
 
 
 The Latest Version
