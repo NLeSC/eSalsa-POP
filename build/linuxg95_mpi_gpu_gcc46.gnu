@@ -27,8 +27,8 @@ MPI = yes
 # Adjust these to point to where netcdf is installed
 
 # These have been loaded as a module so no values necessary
-NETCDFINC = -I/cm/shared/apps/netcdf/gcc/64/4.1.1/include
-NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
+NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-gcc4.6-small/include
+NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-gcc4.6-small/lib
 
 #  Enable trapping and traceback of floating point exceptions, yes/no.
 #  Note - Requires 'setenv TRAP_FPE "ALL=ABORT,TRACE"' for traceback.
@@ -67,7 +67,7 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
-  CFLAGS := $(CFLAGS) -O3 
+  CFLAGS := $(CFLAGS) -O3 -march=corei7
 # -mcmodel=medium
 else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
@@ -87,7 +87,7 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) -O3 -fconvert=swap 
+  FFLAGS = $(FBASE) -O3 -march=corei7 -fconvert=swap 
 #-fmax-stack-var-size=536870912
 #-mcmodel=medium
 else
@@ -100,7 +100,7 @@ endif
 #
 #----------------------------------------------------------------------------
 
-CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64 -gencode arch=compute_20,code=sm_20 
 #CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
 #-prec-sqrt=true -fmad=false
@@ -119,7 +119,7 @@ CUFLAGS := $(CUFLAGS)
  
 LDFLAGS = $(ABI) 
  
-LIBS = $(NETCDFLIB) -L/cm/shared/apps/cuda50/toolkit/current/lib64/ -lnetcdf -lcurl -lcudart -lstdc++ 
+LIBS = $(NETCDFLIB) -L/var/scratch/jason/gcc/rtf/lib64/ -L/var/scratch/jason/gcc/rtf/lib/gcc/x86_64-unknown-linux-gnu/4.6.2/ -L/cm/shared/apps/cuda50/toolkit/current/lib64/ -lnetcdf -lcurl -lcudart -lstdc++ 
  
 ifeq ($(MPI),yes)
   LIBS := $(LIBS) $(MPI_LD_FLAGS) -lmpi 
