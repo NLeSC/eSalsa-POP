@@ -32,6 +32,26 @@ For more information on the eSalsa project see:
 <http://www.esciencecenter.nl/projects/project-portfolio/climate-research>
 
 
+The Latest Release
+------------------
+
+Details of the releases of eSalsa POP can be found at:
+
+<https://github.com/NLeSC/eSalsa-POP/releases>
+
+
+Dependencies
+------------
+
+To make full use of eSalsa POP, the eSalsa Tools package can be used:
+
+<https://github.com/NLeSC/eSalsa-Tools>
+
+In addition, it can be combined with the (very experimental) eSalsa MPI implementation:
+
+<https://github.com/NLeSC/eSalsa-MPI>
+
+
 The Latest Version
 ------------------
 
