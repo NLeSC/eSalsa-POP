@@ -31,6 +31,10 @@ For more information on the eSalsa project see:
  
 <http://www.esciencecenter.nl/projects/project-portfolio/climate-research>
 
+The research into accelerating POP using GPUs is funded by COMMIT:
+
+<http://www.commit-nl.nl>
+
 
 The Latest Release
 ------------------
