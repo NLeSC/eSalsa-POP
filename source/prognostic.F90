@@ -35,6 +35,7 @@
 
 ! !PUBLIC DATA MEMBERS:
 
+#define BEN_GPU 1
 
 #if defined JASON_FIX_DATA && BEN_GPU
 #error "Can not use BEN_GPU and JASON_FIX_DATA at the same time!"
