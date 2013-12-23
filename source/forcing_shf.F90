@@ -25,6 +25,8 @@
    use prognostic
    use tavg
    use exit_mod
+   !gpu extension
+   use global_vars
 
    implicit none
    private
@@ -40,7 +42,6 @@
 
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       public, target :: &
-      SHF_QSW,          & ! incoming short wave
       SHF_QSW_RAW         ! no masking, no diurnal cycle
 
    logical (log_kind), public :: &

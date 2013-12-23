@@ -18,6 +18,7 @@ module forcing_fields
    use blocks,      only: nx_block, ny_block
    use constants,   only: c0
    use domain_size, only: max_blocks_clinic,nt
+   use global_vars
       
    implicit none
    save
@@ -44,15 +45,8 @@ module forcing_fields
    integer(kind=int_kind), public :: &
       ATM_CO2_nf_ind = 0    ! bottom atm level prognostic co2
 
-
-   real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), &
+  real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       public, target :: &
-      SMF,  &!  surface momentum fluxes (wind stress)
-      SMFT   !  surface momentum fluxes on T points if avail
-
-   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
-      public, target :: &
-      STF,  &!  surface tracer fluxes
       TFW    ! tracer content in freshwater flux
 
 

@@ -184,9 +184,7 @@
 
 #ifdef BEN_GPU
 
-      allocate ( UVEL   (nx_block,ny_block,km,3,max_blocks_clinic), &
-                 VVEL   (nx_block,ny_block,km,3,max_blocks_clinic), &
-                 PSURF  (nx_block,ny_block,3,max_blocks_clinic), &
+      allocate ( PSURF  (nx_block,ny_block,3,max_blocks_clinic), &
                  GRADPX (nx_block,ny_block,3,max_blocks_clinic), &
                  GRADPY (nx_block,ny_block,3,max_blocks_clinic), &
                  UBTROP (nx_block,ny_block,3,max_blocks_clinic), &

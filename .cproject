@@ -39,7 +39,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="0.1069943796.1875265750" name="gpu_cmod.cu" rcbsApplicability="disable" resourcePath="source/gpu_cmod.cu" toolsToInvoke=""/>
+					<fileInfo id="0.1069943796.1875265750" name="gpu_cmod.cu" rcbsApplicability="disable" resourcePath="source/gpu_cmod.cu" toolsToInvoke="org.eclipse.ptp.rdt.managedbuild.tool.gnu.cpp.compiler.base.1641790661">
+						<tool id="org.eclipse.ptp.rdt.managedbuild.tool.gnu.cpp.compiler.base.1641790661" name="Remote GCC C++ Compiler" superClass="org.eclipse.ptp.rdt.managedbuild.tool.gnu.cpp.compiler.base">
+							<inputType id="org.eclipse.ptp.rdt.managedbuild.tool.gnu.cpp.compiler.input.1907432159" superClass="org.eclipse.ptp.rdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

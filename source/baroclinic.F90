@@ -544,15 +544,6 @@
 
 
 
-        ! precompute potential density for tavg_PD in advt in tracer_update
-        if (k == 1 .and. tavg_requested(tavg_PD) .and. use_gpu_state .and. &
-            state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
-
-            call gpumod_mwjf_statePD(TRACER (:,:,:,1,curtime,iblock), &
-                              TRACER (:,:,:,2,curtime,iblock), &
-                              1, POP_km, RHOP)
-
-        endif
 
 !-----------------------------------------------------------------------
 !
@@ -560,6 +551,15 @@
 !
 !-----------------------------------------------------------------------
 
+         ! precompute potential density for tavg_PD in advt in tracer_update
+         if (k == 1 .and. tavg_requested(tavg_PD) .and. use_gpu_state .and. &
+             state_range_iopt == state_range_enforce .and. state_itype == state_type_mwjf) then
+
+             call gpumod_mwjf_statePD(TRACER (:,:,:,1,curtime,iblock), &
+                 TRACER (:,:,:,2,curtime,iblock), &
+                 1, POP_km, RHOP)
+
+         endif
 
          call tracer_update(k, WTK,                             &
                                TRACER (:,:,:,:,newtime,iblock), &
@@ -1462,10 +1462,8 @@
                         1, POP_km, &
                         RHOOUT=RHO(:,:,:,newtime,iblock))
 
-        !---------------!
-        !there is no sync here so be very careful with using RHO newtime
-        !and call gpumod_devsync before using the variable
-
+        !sync could be delayed further, but currently isn't
+        call gpumod_devsync
 
         if (use_verify_results) then
 !          if (my_task == master_task) then

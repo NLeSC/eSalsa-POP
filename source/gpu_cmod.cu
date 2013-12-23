@@ -36,6 +36,7 @@ void cuda_init();
 void devsync();
 
 void my_cudamallochost(void **hostptr, int* size);
+void my_cudamallochostint(void **hostptr, int* size);
 
 void cuda_state_initialize(double *constants, double *pressz,
         double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *pnblocks, int *kmt);
@@ -56,6 +57,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 		double *RHOOUT, int start_k, int end_k);
 
 void gpu_compare(double *a1, double *a2, int *pN, int *pName);
+void gpu_compareint(double *a1, double *a2, int *pN, int *pName);
 
 void buoydiff_gpu(double *DBLOC, double *DBSFC, double *TRCR, int *pbid);
 void ddmix_gpu(double *VDC, double *TRCR);
@@ -76,13 +78,9 @@ int cuda_initialized = 0;
 void cuda_init() {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
-    
-    //cudaDeviceReset();
 
     cudaSetDeviceFlags(cudaDeviceMapHost);
     cudaSetDevice(0);
-    
-    //cudaDeviceReset() ;
     
   }
 }
@@ -99,6 +97,16 @@ void my_cudamallochost(void **hostptr, int *p_size) {
 //  if (err != cudaSuccess) fprintf(stderr, "Error in cudaMallocHost: %s\n", cudaGetErrorString( err ));
 
   err = cudaHostAlloc((void **)hostptr, (*p_size)*sizeof(double), cudaHostAllocMapped);
+  if (err != cudaSuccess) fprintf(stderr, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
+  if (err != cudaSuccess) fprintf(stdout, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
+ 
+}
+
+//Fortran entry for allocating pinned memory
+void my_cudamallochostint(void **hostptr, int *p_size) {
+  cudaError_t err;
+
+  err = cudaHostAlloc((void **)hostptr, (*p_size)*sizeof(int), cudaHostAllocMapped);
   if (err != cudaSuccess) fprintf(stderr, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
   if (err != cudaSuccess) fprintf(stdout, "Error in cudaHostAlloc: %s\n", cudaGetErrorString( err ));
  
@@ -499,8 +507,10 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 }
 
-const char *var_names[7] = { "ERROR", "RHOOUT", "DBLOC", "DBSFC", "STEPMOD_RHO", "ADVT_PD", "VDC" };
+#DEFINE VARNAMES 14
 
+const char *var_names[VARNAMES] = { "ERROR", "RHOOUT", "DBLOC", "DBSFC", "STEPMOD_RHO", "ADVT_PD", "VDC", "VISC",
+								"KBL", "BFSFC", "HBLT", "USTAR", "STABLE", "GHAT"};
 
 void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int N = *pN;
@@ -511,7 +521,7 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
   int zero_two = 0;
   double eps = 0.00000000001;
   
-  if (vName < 0 || vName > 6) { vName = 0; }
+  if (vName < 0 || vName > VARNAMES) { vName = 0; }
 
   for (i=0; i<N; i++) {
 
@@ -552,6 +562,41 @@ void gpu_compare (double *a1, double *a2, int *pN, int *pName) {
     }
   }
 }
+
+
+void gpu_compareint (int *a1, int *a2, int *pN, int *pName) {
+  int N = *pN;
+  int vName = *pName;
+  int i=0, res=0;
+  int print = 0;
+  double eps = 0.00000000001;
+  
+  if (vName < 0 || vName > VARNAMES) { vName = 0; }
+
+  for (i=0; i<N; i++) {
+
+    int diff = a1[i]-a2[i];
+    if (diff == 0) {
+        res++;
+        if (print < 10) {
+          print++;
+          fprintf(stderr, "Node %d: %s Error detected at integer i=%d, \t a1= \t %d \t a2= \t %d\n",my_task,var_names[vName],i,a1[i],a2[i]);
+        }
+    }
+
+  }
+
+  if (res > 0) {
+    if (vName == 0) {
+      fprintf(stdout,"Node %d: Number of errors in GPU integer result: %d\n",my_task,res);
+    } else {
+	  fprintf(stdout,"Node %d: Number of errors in %s GPU integer result: %d\n",my_task,var_names[vName],res);
+    }
+  }
+}
+
+
+
 
 double *d_TRCR  = (double *) 0;
 double *d_DBLOC = (double *) 0;

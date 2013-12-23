@@ -17,7 +17,7 @@
    use grid
    use state_mod     ! access to preszz, tmin, tmax, smin, smax, etc
    use domain_size   ! included for use of nx_block,ny_block,km,
-   use prognostic    ! include for reference to TRACER
+   use prognostic    ! include for reference to TRACER, RHO, UVEL, VVEL, etc
    use global_vars
    use iso_c_binding
 
@@ -193,45 +193,94 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*nblocks_clinic))
     call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,nblocks_clinic /))
 
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*nblocks_clinic))
+    call c_f_pointer(cptr, UVEL, (/ nx_block,ny_block,km,3,nblocks_clinic /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km*3*nblocks_clinic))
+    call c_f_pointer(cptr, VVEL, (/ nx_block,ny_block,km,3,nblocks_clinic /))
+
+
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nblocks_clinic))
     call c_f_pointer(cptr, RHOP, (/ nx_block,ny_block,km,nblocks_clinic /))
+
 
 !       real (r8), dimension(nx_block,ny_block,km) :: &
 !      DBLOC,      &! buoyancy difference between adjacent levels
 !      DBSFC,      &! buoyancy difference between level and surface
 
+!used in buoydiff
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
     call c_f_pointer(cptr, DBLOC, (/ nx_block,ny_block,km /))
 
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
     call c_f_pointer(cptr, DBSFC, (/ nx_block,ny_block,km /))
 
+!used in ri_iwmix, ddmix, etc
       !allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
       !          VVC(nx_block,ny_block,km,      nblocks_clinic))
     call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*nblocks_clinic))
-    call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,(km+2),2,nblocks_clinic /))
+    call c_f_pointer(cptr, VDC_ALLOC, (/ nx_block,ny_block,(km+2),2,nblocks_clinic /))
+    VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic) => VDC_ALLOC
+    !the pointer alias above fixes the issue that c_f_pointer
+    !only takes the size of the dimension into account and does not
+    !support things like 0:km+1 and would otherwise default indexing
 
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)))
+    call c_f_pointer(cptr, VISC, (/ nx_block,ny_block,(km+2) /))
 
-    !VDC = RESHAPE(VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
-    !for some reason the '0:km+1' is not allowed in an array shape array
-    !I hope this doesn't cause any errors in the rest of the code
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*nt*nblocks_clinic))
+    call c_f_pointer(cptr, STF, (/ nx_block,ny_block,nt,nblocks_clinic /))
 
-    !apparantly c_f_pointer doesnt like the ':' in the array shape statement
-    !call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*nblocks_clinic))
+    call c_f_pointer(cptr, SHF_QSW, (/ nx_block,ny_block,nblocks_clinic /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*nblocks_clinic))
+    call c_f_pointer(cptr, KPP_HBLT, (/ nx_block,ny_block,nblocks_clinic /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block))
+    call c_f_pointer(cptr, BFSFC, (/ nx_block,ny_block /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block))
+    call c_f_pointer(cptr, USTAR, (/ nx_block,ny_block /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block))
+    call c_f_pointer(cptr, STABLE, (/ nx_block,ny_block /))
+
+    call my_cudaMallocHostInt(cptr, (nx_block*ny_block))
+    call c_f_pointer(cptr, KBL, (/ nx_block,ny_block /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*2*nblocks_clinic))
+    call c_f_pointer(cptr, SMFT, (/ nx_block,ny_block,2,nblocks_clinic /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*2*nblocks_clinic))
+    call c_f_pointer(cptr, SMF, (/ nx_block,ny_block,2,nblocks_clinic /))
+
+    call my_cudaMallocHost(cptr, (nx_block*ny_block*km))
+    call c_f_pointer(cptr, GHAT, (/ nx_block,ny_block,km /))
+
 
     call my_cudaMallocHost(cptr, (nx_block*ny_block*km*nblocks_clinic))
     call c_f_pointer(cptr, VVC, (/ nx_block,ny_block,km,nblocks_clinic /))
 
 
+
     ! arrays used for correctness checks
     if (use_verify_results) then
-      allocate(RHOREF(nx_block,ny_block,km), &
-               DBLOCREF(nx_block,ny_block,km), &
-               DBSFCREF(nx_block,ny_block,km))
+        allocate(RHOREF(nx_block,ny_block,km), &
+                 DBLOCREF(nx_block,ny_block,km), &
+                 DBSFCREF(nx_block,ny_block,km))
 
-      allocate(VDCREF(nx_block,ny_block,0:km+1,2))
+        allocate(VDCREF(nx_block,ny_block,0:km+1,2))
+        allocate(VISCREF(nx_block,ny_block,0:km+1))
 
-      allocate(VVCREF(nx_block,ny_block,km,max_blocks_clinic))
+        allocate(KBLREF(nx_block,ny_block), &
+                 HBLTREF(nx_block,ny_block), &
+                 BFSFCREF(nx_block,ny_block), &
+                 USTARREF(nx_block,ny_block), &
+                 STABLEREF(nx_block,ny_block), &
+                 GHATREF(nx_block,ny_block,km) )
+
+        allocate(VVCREF(nx_block,ny_block,km,max_blocks_clinic))
     endif
 
   !-----------------------------------------------------------------------
@@ -395,7 +444,11 @@
    call devsync
 
    if (present(var_name)) then
-     call gpu_compare(A, B, n, var_name)
+     if (var_name == 8) then
+       call gpu_compareint(A, B, n, var_name)
+     else
+       call gpu_compare(A, B, n, var_name)
+     endif
    else
      call gpu_compare(A, B, n, 0)
    endif
@@ -465,6 +518,10 @@
    call ddmix_gpu(VDC, TRCR)
 
  end subroutine gpumod_ddmix
+
+
+
+
 
  end module gpu_mod
 

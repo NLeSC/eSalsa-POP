@@ -22,6 +22,12 @@ subroutine my_cudamallochost(hostptr, size) bind (c)
   integer (c_int), intent(in) :: size
 end subroutine my_cudaMallocHost
 
+subroutine my_cudamallochostint(hostptr, size) bind (c)
+  use iso_c_binding
+  type(C_PTR), intent(out) :: hostptr
+  integer (c_int), intent(in) :: size
+end subroutine my_cudaMallocHost
+
 subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, nblocks_clinic, kmt) bind (c)
   use iso_c_binding
   real (c_double), dimension(46) :: &
@@ -64,6 +70,13 @@ subroutine gpu_compare(A, B, n, v) bind (c)
 		A, B
 	integer (c_int) :: n, v
 end subroutine gpu_compare
+
+subroutine gpu_compareint(A, B, n, v) bind (c)
+	use iso_c_binding
+	real (c_double), dimension(*) :: &
+		A, B
+	integer (c_int) :: n, v
+end subroutine gpu_compareint
 
 
 subroutine buoydiff_gpu(DBLOC, DBSFC, TRCR, bid) bind (c)

@@ -432,10 +432,6 @@
       endif
 
 
-      !synchronize because we need to wait for for GPU results of RHO newtime to complete
-      !this sync is delayed to stimulate overlap between CPU and GPU computation
-      call gpumod_devsync
-
       call POP_HaloUpdate(RHO(:,:,:,newtime,:), &
                                POP_haloClinic,                 &
                                POP_gridHorzLocCenter,          &
