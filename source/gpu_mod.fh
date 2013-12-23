@@ -26,7 +26,7 @@ subroutine my_cudamallochostint(hostptr, size) bind (c)
   use iso_c_binding
   type(C_PTR), intent(out) :: hostptr
   integer (c_int), intent(in) :: size
-end subroutine my_cudaMallocHost
+end subroutine my_cudaMallocHostInt
 
 subroutine cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, nblocks_clinic, kmt) bind (c)
   use iso_c_binding

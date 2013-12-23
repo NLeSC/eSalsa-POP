@@ -507,7 +507,7 @@ __global__ void mwjf_statepd_1D(double *TEMPK, double *SALTK,
 
 }
 
-#DEFINE VARNAMES 14
+#define VARNAMES 14
 
 const char *var_names[VARNAMES] = { "ERROR", "RHOOUT", "DBLOC", "DBSFC", "STEPMOD_RHO", "ADVT_PD", "VDC", "VISC",
 								"KBL", "BFSFC", "HBLT", "USTAR", "STABLE", "GHAT"};

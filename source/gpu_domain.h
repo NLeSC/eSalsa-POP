@@ -1,5 +1,5 @@
 
-#define KM 42
-#define NX_BLOCK 64
-#define NY_BLOCK 64
-#define NSTREAMS 42
+#define KM 40
+#define NX_BLOCK 80
+#define NY_BLOCK 96
+#define NSTREAMS 40

@@ -26,7 +26,8 @@
    use communicate, only: my_task, master_task
    use broadcast, only: broadcast_scalar
    use prognostic, only: TRACER, tracer_d, curtime, oldtime
-   use forcing_shf, only: SHF_QSW_RAW, SHF_QSW
+   use forcing_shf, only: SHF_QSW_RAW
+   use global_vars, only: SHF_QSW
    use io_types, only: stdout, nml_in, nml_filename, io_field_desc, &
        datafile
    use exit_mod, only: sigAbort, exit_pop
