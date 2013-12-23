@@ -61,6 +61,7 @@
       KPP_HBLT     ! boundary layer depth
 
    real (r8), dimension(:,:), pointer :: &
+      HBLTREF,    &! for verification
       BFSFC,       &! surface buoyancy forcing
       BFSFCREF,    &! surface buoyancy forcing
       USTAR,       &! surface friction velocity

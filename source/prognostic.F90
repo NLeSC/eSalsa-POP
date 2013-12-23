@@ -56,7 +56,7 @@
 !      UVEL, &! 3d horizontal velocity for all blocks at 3 time lvls
 !      VVEL ! 3d horizontal velocity for all blocks at 3 time lvls
 
-   real (r8), dimension(:,:,:,:,:), allocatable, target :: &
+   real (r8), dimension(:,:,:,:,:), pointer :: &
       UVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls
       VVEL       ! 3d horizontal velocity for all blocks at 3 time lvls
 

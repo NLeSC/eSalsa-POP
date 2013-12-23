@@ -808,11 +808,11 @@ if (use_gpu_state .and. state_range_iopt == state_range_enforce .and. state_ityp
     if (use_verify_results) then
         if (present(SMFT)) then
             call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
-                    KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, &
+                    HBLTREF, USTARREF, BFSFCREF, STABLEREF, KBLREF, &
                     this_block, SMFT=SMFT)
         else
             call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
-                    KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, &
+                    HBLTREF, USTARREF, BFSFCREF, STABLEREF, KBLREF, &
                     this_block, SMF=SMF)
         endif
         call gpumod_devsync
@@ -857,7 +857,7 @@ if (use_gpu_state) then
 
     if (use_verify_results) then
         call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
-              KBL, GHAT, this_block)
+              KBL, GHATREF, this_block)
         call gpumod_devsync
 
         call gpumod_compare(GHATREF, GHAT, nx_block*ny_block*km, 13)
