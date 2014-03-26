@@ -29,7 +29,8 @@
 
 ! !PUBLIC DATA MEMBERS:
    real (r8), dimension(:,:,:,:,:), pointer :: &
-      VDC             ! pointer used for pinned memory allocation, aliased to VDC
+      VDC,         &! pointer used to point to pinned memory allocation
+      VDC_ALLOC     ! pointer used for allocation
 
    real (r8), dimension(:,:,:,:), pointer :: &
       VVC,         &! momentum viscosity

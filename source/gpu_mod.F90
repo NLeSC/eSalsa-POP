@@ -209,7 +209,13 @@
       !allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
       !          VVC(nx_block,ny_block,km,      nblocks_clinic))
     call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*nblocks_clinic))
-    call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,(km+2),2,nblocks_clinic /))
+    call c_f_pointer(cptr, VDC_ALLOC, (/ nx_block,ny_block,(km+2),2,nblocks_clinic /))
+
+    VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic) => VDC_ALLOC
+
+    !the pointer alias above fixes the issue that c_f_pointer
+    !only takes the size of the dimension into account and does not
+    !support things like 0:km+1 and would otherwise default indexing
 
 
     !VDC = RESHAPE(VDC, (/ nx_block,ny_block,0:km+1,2,max_blocks_clinic /))
