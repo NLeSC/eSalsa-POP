@@ -29,7 +29,9 @@
 
 ! !PUBLIC DATA MEMBERS:
    real (r8), dimension(:,:,:,:,:), pointer :: &
-      VDC,         &! pointer used to point to pinned memory allocation
+      VDC         ! pointer used to point to pinned memory allocation
+
+   real (r8), dimension(:), pointer :: &
       VDC_ALLOC     ! pointer used for allocation
 
    real (r8), dimension(:,:,:,:), pointer :: &
