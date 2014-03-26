@@ -211,7 +211,7 @@
     call my_cudaMallocHost(cptr, (nx_block*ny_block*(km+2)*2*nblocks_clinic))
     call c_f_pointer(cptr, VDC_ALLOC, (/ nx_block,ny_block,(km+2),2,nblocks_clinic /))
 
-    VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic) => VDC_ALLOC
+    VDC(1:nx_block,1:ny_block,0:km+1,1:2,1:nblocks_clinic) => VDC_ALLOC
 
     !the pointer alias above fixes the issue that c_f_pointer
     !only takes the size of the dimension into account and does not
