@@ -77,7 +77,7 @@ void cuda_init(int *pmy_task) {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
     
-    my_task = *pmy_task;
+    int my_task = *pmy_task;
     
     int deviceCount = 0;
     cudaError_t err = cudaGetDeviceCount(&deviceCount);
