@@ -32,13 +32,13 @@
 //declared in extern C block to prevent C++ compilers from mangling function names
 extern "C" {
 
-void cuda_init();
+void cuda_init(int *pmy_task);
 void devsync();
 
 void my_cudamallochost(void **hostptr, int* size);
 
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *pnblocks, int *kmt);
+        double *tmin, double *tmax, double *smin, double *smax, int *pnblocks, int *kmt);
 
 //specific functions
 void mwjf_state_gpu(double *TEMPK, double *SALTK,
@@ -153,7 +153,7 @@ cudaEvent_t event_dtoh[KM];
 int my_task;
 
 void cuda_state_initialize(double *constants, double *pressz,
-        double *tmin, double *tmax, double *smin, double *smax, int *pmy_task, int *pnblocks, int *kmt) {
+        double *tmin, double *tmax, double *smin, double *smax, int *pnblocks, int *kmt) {
   cudaError_t err;
 	
   if (cuda_state_initialized == 0) {
@@ -258,7 +258,6 @@ void cuda_state_initialize(double *constants, double *pressz,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("After cudaMemcpyToSymbols");
   
-  //my_task = *pmy_task;   //already set in cuda initialization
   int nblocks = *pnblocks;
   
   //printf("Node %d: nblocks=%d\n", my_task, nblocks);

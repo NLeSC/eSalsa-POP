@@ -178,7 +178,7 @@
   !
   !-----------------------------------------------------------------------
 
-    call cuda_init()
+    call cuda_init(my_task)
 
 
   !-----------------------------------------------------------------------
@@ -248,7 +248,7 @@
   !-----------------------------------------------------------------------
 
     ! it is important that state_mod has already been initialized
-    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, my_task, nblocks_clinic, KMT)
+    call cuda_state_initialize(constants, pressz, tmin, tmax, smin, smax, nblocks_clinic, KMT)
 
     !write(stdout, *) ' grav= ', constants(46)
 
