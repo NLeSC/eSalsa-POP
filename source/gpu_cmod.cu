@@ -83,7 +83,7 @@ void cuda_init(int *pmy_task) {
     cudaError_t err = cudaGetDeviceCount(&deviceCount);
     if (err != cudaSuccess) fprintf(stderr, "Error in cuda initialization: %s\n", cudaGetErrorString( err ));
 
-    int dev = my_task%deviceCount
+    int dev = my_task%deviceCount;
     
     cudaSetDeviceFlags(cudaDeviceMapHost);
     cudaSetDevice(dev);

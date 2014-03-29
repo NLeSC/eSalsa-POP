@@ -10,7 +10,7 @@ interface
 
 subroutine cuda_init(my_task) bind (c)
   use iso_c_binding
-  integer (c_int) :: my_task, 
+  integer (c_int) :: my_task
 end subroutine cuda_init
 
 subroutine devsync() bind (c)
