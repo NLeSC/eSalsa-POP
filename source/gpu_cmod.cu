@@ -66,7 +66,7 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 }
 
 
-
+int my_task;
 
 //functions
 
@@ -77,7 +77,7 @@ void cuda_init(int *pmy_task) {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
     
-    int my_task = *pmy_task;
+    my_task = *pmy_task;
     
     int deviceCount = 0;
     cudaError_t err = cudaGetDeviceCount(&deviceCount);
@@ -149,8 +149,6 @@ cudaEvent_t event_comp[KM];
 cudaEvent_t event_dtoh[KM];
 
 
-//debugging
-int my_task;
 
 void cuda_state_initialize(double *constants, double *pressz,
         double *tmin, double *tmax, double *smin, double *smax, int *pnblocks, int *kmt) {
