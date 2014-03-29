@@ -73,16 +73,21 @@ __global__ void ddmix_kernel_onek(double *VDC1, double *VDC2, double *TEMP, doub
 int cuda_initialized = 0;
 
 //Fortran entry for initializing CUDA
-void cuda_init() {
+void cuda_init(int *pmy_task) {
   if (cuda_initialized == 0) {
     cuda_initialized = 1;
     
-    //cudaDeviceReset();
-
-    cudaSetDeviceFlags(cudaDeviceMapHost);
-    cudaSetDevice(0);
+    my_task = *pmy_task;
     
-    //cudaDeviceReset() ;
+    int deviceCount = 0;
+    cudaError_t err = cudaGetDeviceCount(&deviceCount);
+    if (err != cudaSuccess) fprintf(stderr, "Error in cuda initialization: %s\n", cudaGetErrorString( err ));
+
+    int dev = my_task%deviceCount
+    
+    cudaSetDeviceFlags(cudaDeviceMapHost);
+    cudaSetDevice(dev);
+
     
   }
 }
@@ -253,7 +258,7 @@ void cuda_state_initialize(double *constants, double *pressz,
   cudaDeviceSynchronize();
   CUDA_CHECK_ERROR("After cudaMemcpyToSymbols");
   
-  my_task = *pmy_task;  
+  //my_task = *pmy_task;   //already set in cuda initialization
   int nblocks = *pnblocks;
   
   //printf("Node %d: nblocks=%d\n", my_task, nblocks);
