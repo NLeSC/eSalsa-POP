@@ -21,6 +21,7 @@
    use spacecurve_mod
    use exit_mod
    use io_types
+   use domain_size
 
    implicit none
    private
@@ -1150,15 +1151,17 @@ function create_distrb_predefined(nprocs, distribution_file)
       height         ,&! topology width
       tileWidth      ,&! block width
       tileHeight     ,&! block height
-      cores          ,&! cores
-      numProcessorsX ,&! cores in X direction
-      numProcessorsY ,&! cores in Y direction
+      clusters       ,&! clusters
+      nodesPerCluster,&! nodes per cluster
+      coresPerNode   ,&! cores in node
+      minBlocksPerCore,&! minimum blocks per core
+      maxBlocksPerCore,&! maximum blocks per core
       numBlockLocs   ,&! number of block locations
-      n, pid ,&! dummy loop indices
-      local_block ,&! block location on this processor
-      nu ,&! i/o unit number
-      ioerr ,&! i/o error flag
-      reclength ! record length
+      n, pid,i       ,&! dummy loop indices
+      local_block    ,&! block location on this processor
+      nu             ,&! i/o unit number
+      ioerr          ,&! i/o error flag
+      reclength        ! record length
 
    integer (int_kind), dimension(:), allocatable :: &
       proc_tmp ! temp processor id
@@ -1172,7 +1175,9 @@ function create_distrb_predefined(nprocs, distribution_file)
 !
 !----------------------------------------------------------------------
 
-   write(*,*) 'JASON: loading predefined distribution: ', distribution_file
+   if (my_task == master_task) then   
+       write(*,*) 'Loading predefined distribution: ', distribution_file
+   endif
 
    call create_communicator(dist%communicator, nprocs)
 
@@ -1202,7 +1207,8 @@ function create_distrb_predefined(nprocs, distribution_file)
 !
 !-----------------------------------------------------------------------
 
-    INQUIRE(iolength=reclength) dist%proc
+!    INQUIRE(iolength=reclength) dist%proc
+    reclength=4
 
     call get_unit(nu)
 
@@ -1212,7 +1218,7 @@ function create_distrb_predefined(nprocs, distribution_file)
 
     if (my_task == master_task) then
         open(nu, file=distribution_file,status='old',form='unformatted', &
-                  access='direct', recl=4, iostat=ioerr)
+                  access='direct', recl=reclength, iostat=ioerr)
     endif
 
     call broadcast_scalar(ioerr, master_task)
@@ -1228,22 +1234,36 @@ function create_distrb_predefined(nprocs, distribution_file)
         read(nu, rec=2, iostat=ioerr) height
         read(nu, rec=3, iostat=ioerr) tileWidth
         read(nu, rec=4, iostat=ioerr) tileHeight
-        read(nu, rec=5, iostat=ioerr) cores
-        read(nu, rec=6, iostat=ioerr) numProcessorsX
-        read(nu, rec=7, iostat=ioerr) numProcessorsY
-        read(nu, rec=8, iostat=ioerr) numBlockLocs
+        read(nu, rec=5, iostat=ioerr) clusters
+        read(nu, rec=6, iostat=ioerr) nodesPerCluster
+        read(nu, rec=7, iostat=ioerr) coresPerNode
+        read(nu, rec=8, iostat=ioerr) minBlocksPerCore
+        read(nu, rec=9, iostat=ioerr) maxBlocksPerCore
+        read(nu, rec=10, iostat=ioerr) numBlockLocs
 
         write(*,*) 'POP_masterTask: distribution file width', width
         write(*,*) 'POP_masterTask: distribution file height', height
         write(*,*) 'POP_masterTask: distribution file tileWidth', tileWidth
         write(*,*) 'POP_masterTask: distribution file tileHeight', tileHeight
-        write(*,*) 'POP_masterTask: distribution file cores', cores
-        write(*,*) 'POP_masterTask: distribution file numProcessorsX', numProcessorsX
-        write(*,*) 'POP_masterTask: distribution file numProcessorsY', numProcessorsY
+        write(*,*) 'POP_masterTask: distribution file clusters', clusters
+        write(*,*) 'POP_masterTask: distribution file nodes per cluster', nodesPerCluster
+        write(*,*) 'POP_masterTask: distribution file cores per node', coresPerNode
+        write(*,*) 'POP_masterTask: distribution file min blocks per core', minBlocksPerCore
+        write(*,*) 'POP_masterTask: distribution file max blocks per core', maxBlocksPerCore 
+
         write(*,*) 'POP_masterTask: distribution file numBlockLocs', numBlockLocs
 
-        do n=1,numBlockLocs
-           read(nu, rec=(8+n), iostat=ioerr) dist%proc(n)
+        write(*,*) 'POP_masterTask: total nodes', clusters*nodesPerCluster
+        write(*,*) 'POP_masterTask: total cores', clusters*nodesPerCluster*coresPerNode
+
+!        if (maxBlocksPerCore > max_blocks_clinic) call exit_POP(sigAbort, &
+!                               'Blocks per core exceeds max_blocks_clinic')
+!
+!        if (maxBlocksPerCore > max_blocks_tropic) call exit_POP(sigAbort, &
+!                               'Blocks per core exceeds max_blocks_tropic')
+
+        do i=1,numBlockLocs
+           read(nu, rec=(10+i), iostat=ioerr) dist%proc(i)
         enddo
 
 !        read(nu, rec=1, iostat=ioerr) dist%proc

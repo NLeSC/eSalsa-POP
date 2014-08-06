@@ -2,6 +2,7 @@
 
  module POP_DistributionMod
 
+
 !BOP
 ! !MODULE: POP_DistributionMod
 !
@@ -22,6 +23,7 @@
    use POP_CommMod
    use POP_BlocksMod
    use POP_BroadcastMod
+   use POP_DomainSizeMod, only : POP_maxBlocksClinic, POP_maxBlocksTropic
    
    use spacecurve_mod
    use io_types
@@ -1873,21 +1875,23 @@ function POP_DistributionCreatePredefined(numProcs, &
       proc_tmp            ! temp processor id
 
    integer (POP_i4) :: &
-      width          ,&! topology width
-      height         ,&! topology width
-      tileWidth      ,&! block width
-      tileHeight     ,&! block height
-      cores          ,&! cores
-      numProcessorsX ,&! cores in X direction
-      numProcessorsY ,&! cores in Y direction
-      numBlockLocs   ,&! number of block locations
-      nu        ,&! i/o unit number
-      ioerr     ,&! i/o error flag
-      reclength ,&! record length
-      i         ,&! dummy loop indices
-      istat     ,&! status flag for allocation
-      processor ,&! processor position in cartesian decomp
-      localID     ! block location on this processor
+      width           ,&! topology width
+      height          ,&! topology height
+      tileWidth       ,&! block width
+      tileHeight      ,&! block height
+      clusters        ,&! clusters
+      nodesPerCluster ,&! nodes per cluster
+      coresPerNode    ,&! cores per node
+      minBlocksPerCore,&! minimum blocks per core
+      maxBlocksPerCore,&! maximum blocks per core
+      numBlockLocs    ,&! number of block locations
+      nu              ,&! i/o unit number
+      ioerr           ,&! i/o error flag
+      reclength       ,&! record length
+      i               ,&! dummy loop indices
+      istat           ,&! status flag for allocation
+      processor       ,&! processor position in cartesian decomp
+      localID           ! block location on this processor
 
 !----------------------------------------------------------------------
 !
@@ -1934,7 +1938,9 @@ function POP_DistributionCreatePredefined(numProcs, &
 !
 !-----------------------------------------------------------------------
 
-    INQUIRE(iolength=reclength) newDistrb%blockLocation
+! Ben: i'm completely puzzled as to why this inquire is not working
+!    INQUIRE(iolength=reclength) width
+    reclength=4
 
     call get_unit(nu)
 
@@ -1943,8 +1949,8 @@ function POP_DistributionCreatePredefined(numProcs, &
 #endif
 
     if (POP_myTask == POP_masterTask) then
-        open(nu, file=distribution_file,status='old',form='unformatted', &
-                  access='direct', recl=4, iostat=ioerr)
+        open(nu, file=distribution_file, status='old', form='unformatted', &
+                  access='direct', recl=reclength, iostat=ioerr)
     endif
 
     call POP_Broadcast(ioerr, POP_masterTask, errorCode)
@@ -1957,28 +1963,42 @@ function POP_DistributionCreatePredefined(numProcs, &
 
     if (POP_myTask == POP_masterTask) then
 
+        write(*,*) 'POP_masterTask opening distribution: reclength = ', reclength
         write(*,*) 'POP_masterTask reading distribution file'
 
         read(nu, rec=1, iostat=ioerr) width
         read(nu, rec=2, iostat=ioerr) height
         read(nu, rec=3, iostat=ioerr) tileWidth
         read(nu, rec=4, iostat=ioerr) tileHeight
-        read(nu, rec=5, iostat=ioerr) cores
-        read(nu, rec=6, iostat=ioerr) numProcessorsX
-        read(nu, rec=7, iostat=ioerr) numProcessorsY
-        read(nu, rec=8, iostat=ioerr) numBlockLocs
+        read(nu, rec=5, iostat=ioerr) clusters
+        read(nu, rec=6, iostat=ioerr) nodesPerCluster
+        read(nu, rec=7, iostat=ioerr) coresPerNode
+        read(nu, rec=8, iostat=ioerr) minBlocksPerCore
+        read(nu, rec=9, iostat=ioerr) maxBlocksPerCore
+        read(nu, rec=10, iostat=ioerr) numBlockLocs
 
         write(*,*) 'POP_masterTask: distribution file width', width
         write(*,*) 'POP_masterTask: distribution file height', height
         write(*,*) 'POP_masterTask: distribution file blockWidth', tileWidth
         write(*,*) 'POP_masterTask: distribution file blockHeight', tileHeight
-        write(*,*) 'POP_masterTask: distribution file cores', cores
-        write(*,*) 'POP_masterTask: distribution file numProcessorsX', numProcessorsX
-        write(*,*) 'POP_masterTask: distribution file numProcessorsY', numProcessorsY
+        write(*,*) 'POP_masterTask: distribution file clusters', clusters
+        write(*,*) 'POP_masterTask: distribution file nodes per cluster', nodesPerCluster
+        write(*,*) 'POP_masterTask: distribution file cores per node', coresPerNode
+        write(*,*) 'POP_masterTask: distribution file min blocks per core', minBlocksPerCore
+        write(*,*) 'POP_masterTask: distribution file max blocks per core', maxBlocksPerCore 
         write(*,*) 'POP_masterTask: distribution file numBlockLocs', numBlockLocs
 
+        write(*,*) 'POP_masterTask: total nodes', clusters*nodesPerCluster
+        write(*,*) 'POP_masterTask: total cores', clusters*nodesPerCluster*coresPerNode
+
+!        if (maxBlocksPerCore > POP_maxBlocksClinic) call POP_ErrorSet(errorCode, &
+!                               'Blocks per core exceeds POP_maxBlocksClinic')
+!
+!        if (maxBlocksPerCore > POP_maxBlocksTropic) call POP_ErrorSet(errorCode, &
+!                               'Blocks per core exceeds POP_maxBlocksTropic')
+
         do i=1,numBlockLocs
-           read(nu, rec=(8+i), iostat=ioerr) newDistrb%blockLocation(i)
+           read(nu, rec=(10+i), iostat=ioerr) newDistrb%blockLocation(i)
         enddo 
         close(nu)
     endif
