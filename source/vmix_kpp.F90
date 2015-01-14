@@ -612,10 +612,12 @@
 
  end subroutine init_vmix_kpp
 
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: vmix_coeffs_kpp
 ! !INTERFACE:
+
 
  subroutine vmix_coeffs_kpp(VDC, VVC, TRCR, UUU, VVV, RHOMIX, STF, SHF_QSW, &
                             this_block, convect_diff, convect_visc, &
@@ -648,11 +650,11 @@
    real (r8), dimension(nx_block,ny_block), intent(in) :: &
       SHF_QSW             ! short-wave forcing
 
-   real (r8), dimension(nx_block,ny_block,2), intent(in), optional :: &
+ real (r8), dimension(nx_block,ny_block,2), intent(in), optional :: &
       SMF,               &! surface momentum forcing at U points
       SMFT                ! surface momentum forcing at T points
-                         ! *** either one or the other (not
-                         ! *** both) should be passed
+                          ! *** either one or the other (not
+                          ! *** both) should be passed
 
    real (r8), intent(in) :: &
       convect_diff,      &! diffusivity to mimic convection
@@ -937,13 +939,478 @@
 
  end subroutine vmix_coeffs_kpp
 
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: vmix_coeffs_kpp_gpu
+! !INTERFACE:
+
+ subroutine vmix_coeffs_kpp_gpu(VDC, VVC, TRCR, UUU, VVV, RHOMIX, STF, SHF_QSW, &
+                            this_block, convect_diff, convect_visc, &
+                            SMF, SMFT)
+
+! !DESCRIPTION:
+!  This routine will call the GPU entry point function, which steers the GPU
+!  computations. This routine also performs all the actions that can not be
+!  performed by the GPU.
+!
+! !REVISION HISTORY:
+!  None yet.
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TRCR                ! tracers at current time
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      UUU,VVV             ! velocities at current time
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      RHOMIX              ! density at mix time
+
+   real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
+      STF                 ! surface forcing for all tracers
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      SHF_QSW             ! short-wave forcing
+
+   real (r8), dimension(nx_block,ny_block,2), intent(in), optional :: &
+      SMF,               &! surface momentum forcing at U points
+      SMFT                ! surface momentum forcing at T points
+                         ! *** either one or the other (not
+                         ! *** both) should be passed
+
+   real (r8), intent(in) :: &
+      convect_diff,      &! diffusivity to mimic convection
+      convect_visc        ! viscosity   to mimic convection
+
+   type (block), intent(in) :: &
+      this_block          ! block information for current block
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km), intent(inout) ::      &
+      VVC        ! viscosity for momentum diffusion
+
+   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+      VDC        ! diffusivity for tracer diffusion
+
+!EOP
+
+   integer (int_kind) :: &
+      bid                 ! local block address for this block
+
+!-----------------------------------------------------------------------
+!
+! initialize
+!
+!-----------------------------------------------------------------------
+
+   if (.not. present(SMF) .or. present(SMFT)) then
+      call exit_POP(sigAbort, &
+                    'ERROR KPP GPU: must supply SMF and not SMFT')
+   end if
+
+   bid = this_block%local_id
+
+   call vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
+                            this_block, convect_diff, convect_visc, &
+                            SMF, HMXL(:,:,bid), KPP_HBLT(:,:,bid), KPP_SRC(:,:,:,:,bid))
+
+
+!any removed tavg_requested stuff should go here
+
+
+
+
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine vmix_coeffs_kpp_gpu
+
+
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: vmix_coeffs_kpp_gpu_entry
+! !INTERFACE:
+
+ subroutine vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
+                            this_block, convect_diff, convect_visc, &
+                            SMF, HMXL, KPP_HBLT, KPP_SRC)
+
+! !DESCRIPTION:
+!  This is the main GPU driver routine which calculates the vertical
+!  mixing coefficients for the KPP mixing scheme as outlined in 
+!  Large, McWilliams and Doney, Reviews of Geophysics, 32, 363 
+!  (November 1994). The non-local mixing is also computed here, but
+!  is treated as a source term in baroclinic. This routine will be
+!  translated to C.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TRCR                ! tracers at current time
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      UUU,VVV             ! velocities at current time
+
+   real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
+      STF                 ! surface forcing for all tracers
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      SHF_QSW             ! short-wave forcing
+
+   real (r8), dimension(nx_block,ny_block,2), intent(in) :: &
+      SMF                 ! surface momentum forcing at U points
+
+   real (r8), intent(in) :: &
+      convect_diff,      &! diffusivity to mimic convection
+      convect_visc        ! viscosity   to mimic convection
+
+   type (block), intent(in) :: &
+      this_block          ! block information for current block
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+      VDC        ! diffusivity for tracer diffusion
+
+! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km), intent(out) ::      &
+      VVC        ! viscosity for momentum diffusion
+
+  real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      HMXL,               &! mixed layer depth
+      KPP_HBLT             ! boundary layer depth
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(out) :: &
+      KPP_SRC              ! non-local mixing (treated as source term)
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      k,                 &! vertical level index 
+      i,j,               &! horizontal loop indices
+      n,                 &! tracer index
+      mt2                 ! index for separating temp from other trcrs
+
+   integer (int_kind), dimension(nx_block,ny_block) :: &
+      KBL                   ! index of first lvl below hbl
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      USTAR,      &! surface friction velocity
+      BFSFC,      &! surface buoyancy forcing
+      STABLE       ! = 1 for stable forcing; = 0 for unstable forcing
+ 
+   real (r8), dimension(nx_block,ny_block,km) :: &
+      DBLOC,      &! buoyancy difference between adjacent levels
+      DBSFC,      &! buoyancy difference between level and surface
+      GHAT         ! non-local mixing coefficient
+
+   real (r8), dimension(nx_block,ny_block,0:km+1) :: &
+      VISC        ! local temp for viscosity
+
+
+  bid = this_block%local_id
+
+
+!-----------------------------------------------------------------------
+!
+!  compute buoyancy differences at each vertical level.
+!
+!-----------------------------------------------------------------------
+
+   call buoydiff(DBLOC, DBSFC, TRCR, this_block)
+
+
+!-----------------------------------------------------------------------
+!
+!  compute mixing due to shear instability, internal waves and
+!  convection
+!
+!-----------------------------------------------------------------------
+
+   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, this_block)
+
+!-----------------------------------------------------------------------
+!
+!  compute double diffusion if desired
+!
+!-----------------------------------------------------------------------
+
+   call ddmix(VDC, TRCR, this_block)
+
+!-----------------------------------------------------------------------
+!
+!     compute boundary layer depth
+!
+!-----------------------------------------------------------------------
+
+   call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
+                    KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
+                    this_block, SMF)
+
+!-----------------------------------------------------------------------
+!
+!  compute boundary layer diffusivities
+!
+!-----------------------------------------------------------------------
+
+   call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
+              KBL, GHAT, this_block) 
+
+!-----------------------------------------------------------------------
+!
+!  consider interior convection:
+!
+!-----------------------------------------------------------------------
+
+   call interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, & 
+                    VISC, convect_diff, convect_visc, this_block, VDC, VVC, KPP_SRC, HMXL)
+
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine vmix_coeffs_kpp_gpu_entry
+
+
+
+
+
+subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, VISC, convect_diff, &
+                                      convect_visc, this_block, VDC, VVC, KPP_SRC, HMXL)
+
+! DESCRIPTION:
+!
+! This routine implements the final part of vmix_coeffs_kpp.
+! It is rewritten into a separate routine for the purpose of creating a 
+! GPU implementation of the entire vertical mixing scheme.
+! Previously USTAR and BFSFC were reused as temps by this final part,
+! these were renamed to WORK3 and WORK4 respectively.
+!
+
+! PARAMETERS
+
+! INPUTS:
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      DBLOC,      &! buoyancy difference between adjacent levels
+      DBSFC,      &! buoyancy difference between level and surface
+      GHAT         ! non-local mixing coefficient
+
+   real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
+      STF                 ! surface forcing for all tracers
+
+   integer (int_kind), dimension(nx_block,ny_block), intent(in) :: &
+      KBL                   ! index of first lvl below hbl
+
+   real (r8), intent(in) :: &
+      convect_diff,      &! diffusivity to mimic convection
+      convect_visc        ! viscosity   to mimic convection
+
+   type (block), intent(in) :: &
+      this_block          ! block information for current block
+
+! fake INOUTS:
+! these are actually inputs but are listed as inouts because they are also
+! written by part of the computation, we are however not interested in their
+! final value after the execution of this subroutine
+
+   real (r8), dimension(nx_block,ny_block,0:km+1), intent(inout) :: &
+      VISC        ! local temp for viscosity
+
+   real (r8), dimension(nx_block,ny_block), intent(inout) :: &
+      STABLE       ! = 1 for stable forcing; = 0 for unstable forcing
+
+! true INOUTS:
+
+   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+      VDC        ! diffusivity for tracer diffusion
+
+! OUTPUTS:
+
+   real (r8), dimension(nx_block,ny_block,km), intent(out) :: &
+      VVC        ! viscosity for momentum diffusion
+
+   real (r8), dimension(nx_block,ny_block,nblocks_clinic), intent(out) :: &
+      HMXL       ! mixed layer depth
+
+   real (r8), dimension(nx_block,ny_block,km,nt,nblocks_clinic), intent(out) :: &
+      KPP_SRC    ! non-local mixing (treated as source term)
+
+! local variables:
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK1,WORK2,&! temporary storage
+      WORK3,WORK4,&! temporary storage
+      FCON         ! convection temporary
+
+   integer (int_kind) :: &
+      k,                 &! vertical level index 
+      i,j,               &! horizontal loop indices
+      n,                 &! tracer index
+      mt2,bid                 ! index for separating temp from other trcrs
+
+
+!-----------------------------------------------------------------------
+!    compute function of Brunt-Vaisala squared for convection.
+!
+!  use either a smooth    
+!
+!    WORK1 = N**2,  FCON is function of N**2
+!    FCON = 0 for N**2 > 0
+!    FCON = [1-(1-WORK1/BVSQcon)**2]**3 for BVSQcon < N**2 < 0
+!    FCON = 1 for N**2 < BVSQcon
+!
+!  or a step function. The smooth function has been used with
+!  BVSQcon = -0.2e-4_dbl_kind.
+!
+!  after convection, average viscous coeffs to U-grid and reset sea 
+!  floor values
+!
+!-----------------------------------------------------------------------
+
+   do k=1,km-1           
+
+      if (partial_bottom_cells) then
+         WORK1 = DBLOC(:,:,k)/(p5*(DZT(:,:,k  ,bid) + &
+                                   DZT(:,:,k+1,bid)))
+      else
+         WORK1 = DBLOC(:,:,k)/(zgrid(k) - zgrid(k+1))
+      end if
+
+      where (WORK1 > c0)
+         FCON = c0
+      elsewhere
+         FCON = c1
+      end where
+
+      !*** add convection and reset sea floor values to zero
+      
+      do j=1,ny_block
+      do i=1,nx_block
+         if ( k >= KBL(i,j) ) then
+            VISC(i,j,k)  = VISC(i,j,k)  + convect_visc * FCON(i,j)
+            VDC(i,j,k,1) = VDC(i,j,k,1) + convect_diff * FCON(i,j)
+            VDC(i,j,k,2) = VDC(i,j,k,2) + convect_diff * FCON(i,j)
+         endif
+         if (k >= KMT(i,j,bid)) then
+         	  VISC(i,j,k  ) = c0
+            VDC (i,j,k,1) = c0
+            VDC (i,j,k,2) = c0
+         endif
+      end do
+      end do
+
+      !*** now average visc to U grid 
+      
+      call tgrid_to_ugrid(WORK2,VISC(:,:,k),bid)
+
+      VVC(:,:,k) = merge(WORK2, c0, (k < KMU(:,:,bid)))
+
+
+   enddo
+
+   VDC(:,:,km,:) = c0
+   VVC(:,:,km)   = c0
+
+!-----------------------------------------------------------------------
+!
+!  add ghatp term from previous computation to right-hand-side 
+!  source term on current row
+!
+!-----------------------------------------------------------------------
+
+   do n=1,nt
+      mt2=min(n,2)
+      KPP_SRC(:,:,1,n,bid) = STF(:,:,n)/dz(1)           &
+                             *(-VDC(:,:,1,mt2)*GHAT(:,:,1))
+      if (partial_bottom_cells) then
+         do k=2,km
+            KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/DZT(:,:,k,bid)         &
+                                 *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
+                                   -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
+         enddo
+      else
+         do k=2,km
+            KPP_SRC(:,:,k,n,bid) = STF(:,:,n)/dz(k)                  &
+                                 *( VDC(:,:,k-1,mt2)*GHAT(:,:,k-1)   &
+                                   -VDC(:,:,k  ,mt2)*GHAT(:,:,k  ))
+         enddo
+      endif
+   enddo
+
+!-----------------------------------------------------------------------
+!
+!  compute diagnostic mixed layer depth (cm) using a max buoyancy 
+!  gradient criterion. This part previously used USTAR and BFSFC as temps.
+!  These have been renamed to WORK3 and WORK4
+!
+!-----------------------------------------------------------------------
+
+   WORK3 = c0
+   where (KMT(:,:,bid) == 1)
+      HMXL(:,:,bid) = zt(1)
+   elsewhere
+      HMXL(:,:,bid) = c0
+   endwhere
+
+      do k=2,km
+         where (k <= KMT(:,:,bid))
+            STABLE = zt(k-1) + p5*(DZT(:,:,k-1,bid) + DZT(:,:,k,bid))
+            WORK3 = max(DBSFC(:,:,k)/STABLE,WORK3)
+            HMXL(:,:,bid) = STABLE
+         endwhere
+      enddo
+
+      VISC(:,:,1) = c0
+      do k=2,km
+         where (WORK3 > c0 )
+            VISC(:,:,k) = (DBSFC(:,:,k)-DBSFC(:,:,k-1))/ &
+                          (p5*(DZT(:,:,k,bid) + DZT(:,:,k-1,bid)))
+         end where
+         where ( VISC(:,:,k) >= WORK3 .and.              &
+                (VISC(:,:,k)-VISC(:,:,k-1)) /= c0 .and.  &
+                 WORK3 > c0 )   ! avoid divide by zero
+            WORK4 = (VISC(:,:,k) - WORK3)/ &
+                    (VISC(:,:,k)-VISC(:,:,k-1))
+
+            HMXL(:,:,bid) =   (zt(k-1) + p25*(DZT(:,:,k-1,bid)+DZT(:,:,k,bid)))*(c1-WORK4) &
+                             + (zt(k-1) - p25*(DZT(:,:,k-2,bid)+DZT(:,:,k-1,bid)))*WORK4
+
+            WORK3(:,:) = c0
+         endwhere
+      enddo
+
+end subroutine interior_convection
+
+
+
+
+
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: ri_iwmix
 ! !INTERFACE:
 
- subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
-                     convect_diff, convect_visc, this_block)
+ subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, this_block)
 
 ! !DESCRIPTION:
 !  Computes viscosity and diffusivity coefficients for the interior
@@ -951,7 +1418,8 @@
 !  internal wave activity, and to static instability (Ri < 0).
 !
 ! !REVISION HISTORY:
-!  same as module
+!  Ben changed VDC from inout to output, because it was not read
+!  but only written
 
 ! !INPUT PARAMETERS:
 
@@ -962,22 +1430,13 @@
       VVV,             &! V velocities at current time
       DBLOC             ! buoyancy difference between adjacent levels
 
-   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
-      RHOMIX            ! density at mix time
-
-   real (r8), intent(in) :: &
-      convect_diff,         &! diffusivity to mimic convection
-      convect_visc           ! viscosity   to mimic convection
-
    type (block), intent(in) :: &
       this_block          ! block information for current block
 
-! !INPUT/OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block,0:km+1,2), intent(inout) :: & 
-      VDC        ! diffusivity for tracer diffusion
-
 ! !OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,0:km+1,2), intent(out) :: & 
+      VDC        ! diffusivity for tracer diffusion
 
    real (r8), dimension(nx_block,ny_block,0:km+1), intent(out) :: & 
       VISC              ! viscosity
@@ -1213,15 +1672,15 @@
       end do
       end do
 
-      if (tavg_requested(tavg_KVMIX)) then
-         call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k)
-      endif
+!      if (tavg_requested(tavg_KVMIX)) then
+!         call accumulate_tavg_field(KVMIX,tavg_KVMIX,bid,k)
+!      endif
  
-      if (tavg_requested(tavg_TPOWER)) then
-         WORK1(:,:) = KVMIX(:,:)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &
-            (zgrid(k) - zgrid(k+1))
-         call accumulate_tavg_field(WORK1,tavg_TPOWER,bid,k)
-      endif
+!      if (tavg_requested(tavg_TPOWER)) then
+!         WORK1(:,:) = KVMIX(:,:)*RHOMIX(:,:,k)*DBLOC(:,:,k)/ &
+!            (zgrid(k) - zgrid(k+1))
+!         call accumulate_tavg_field(WORK1,tavg_TPOWER,bid,k)
+!      endif
 
 !-----------------------------------------------------------------------
 !
@@ -1240,6 +1699,7 @@
    VISC(:,:,0  ) = c0
    VDC (:,:,0,:) = c0
    VISC(:,:,km+1  ) = c0 
+   VDC (:,:,km,:) = c0  !added by Ben
    VDC (:,:,km+1,:) = c0 
 
 !-----------------------------------------------------------------------
@@ -1813,11 +2273,10 @@
          enddo
          enddo
 
-         if (tavg_requested(tavg_QSW_HBL)) then
-           !QSW_HBL(i,j) = SHF_QSW(i,j)*(c1-absorb_frac)  ! boundary layer sw
-            WORK = SHF_QSW*(c1-absorb_frac)/hflux_factor
-            call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
-         endif
+!         if (tavg_requested(tavg_QSW_HBL)) then
+!            WORK = SHF_QSW*(c1-absorb_frac)/hflux_factor
+!            call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
+!         endif
 
       case ('chlorophyll')
 
@@ -2761,22 +3220,22 @@
 
    if ( overwrite_hblt  .and.  ( .not.present(KBL)  .or.        &
                                  .not.present(HBLT) ) ) then      
-     message = 'incorrect subroutine arguments for smooth_hblt, error # 1'
+     message = 'incorrect sub-routine arguments for smooth_hblt, error # 1'
      call exit_POP (sigAbort, trim(message))
    endif
 
    if ( .not.overwrite_hblt  .and.  .not.present(SMOOTH_OUT) ) then 
-     message = 'incorrect subroutine arguments for smooth_hblt, error # 2'
+     message = 'incorrect sub-routine arguments for smooth_hblt, error # 2'
      call exit_POP (sigAbort, trim(message))
    endif
 
    if ( use_hmxl .and. .not.present(SMOOTH_OUT) ) then          
-     message = 'incorrect subroutine arguments for smooth_hblt, error # 3'
+     message = 'incorrect sub-routine arguments for smooth_hblt, error # 3'
      call exit_POP (sigAbort, trim(message))
    endif
 
    if ( overwrite_hblt  .and.  use_hmxl ) then                  
-     message = 'incorrect subroutine arguments for smooth_hblt, error # 4'
+     message = 'incorrect sub-routine arguments for smooth_hblt, error # 4'
      call exit_POP (sigAbort, trim(message))
    endif
 
