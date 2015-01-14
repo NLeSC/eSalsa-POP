@@ -9,19 +9,22 @@
 #-----------------------------------------------------------------------
 
 #CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
+
 CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
 
-F77 = mpif90 -O0 -g
-F90 = mpif90 -O0 -g
-LD = mpif90 -O0 -g  -lcurl $(CUDALIB) -lcudart -lstdc++
-CC = gcc -O0 -g
+#FFLAGS = -O3 -pg -fno-inline -fdefault-double-8 -fdefault-real-8 -mcmodel=medium -fimplicit-none -ffree-line-length-none
+
+F77 = mpif90 -O3 -pg
+F90 = mpif90 -O3 -pg
+LD = mpif90 -O3 -pg -lcurl $(CUDALIB) -lcudart -lstdc++
+CC = gcc -O3 -pg
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
 
-NVCC = nvcc -O0 -g
+NVCC = nvcc -O3 -pg
  
 #  Enable MPI library for parallel code, yes/no.
 
@@ -36,14 +39,12 @@ MPI = yes
 #NETCDFLIB = -L/usr/projects/climate/maltrud/local/lib_coyote
 
 #default DAS4
-#NETCDFINC = -I/cm/shared/apps/netcdf/gcc/64/4.1.1/include
-#NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
+NETCDFINC = -I/cm/shared/apps/netcdf/gcc/64/4.1.1/include
+NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
 
 #with -mcmodel=medium
-NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
-NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
-
-
+#NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
+#NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
 
 
 
@@ -101,10 +102,15 @@ else
   FFLAGS = $(FBASE) -check bounds
 endif
 
+#FFLAGS = $(FBASE) -O3 -pg -fno-inline -fdefault-double-8 -fdefault-real-8 -fconvert=swap -mcmodel=medium -fimplicit-none -ffree-line-length-none
+
+FFLAGS = $(FBASE) -O3 -pg -fno-inline -fconvert=swap
+
+
 #DAS4 specific
-FFLAGS := $(FFLAGS) -fconvert=swap
-FFLAGS := $(FFLAGS) -mcmodel=medium
-FFLAGS := $(FFLAGS) 
+#FFLAGS := $(FFLAGS) -fconvert=swap
+#FFLAGS := $(FFLAGS) -mcmodel=medium
+#FFLAGS := $(FFLAGS) 
  
  
 #----------------------------------------------------------------------------
@@ -115,9 +121,9 @@ FFLAGS := $(FFLAGS)
 
 #CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
 
-#CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
 
-CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
+#CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
 #-prec-sqrt=true -fmad=false
 

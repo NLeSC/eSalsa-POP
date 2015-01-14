@@ -9,19 +9,19 @@
 #-----------------------------------------------------------------------
 MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
 #CUDALIB = -L/cm/shared/apps/cuda40/toolkit/4.0.17/lib64/
-CUDALIB = -L/cm/shared/apps/cuda50/toolkit/current/lib64/
+CUDALIB = -L/cm/shared/apps/cuda55/toolkit/current/lib64/
 
-F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 
-F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 
-LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3  -lcurl $(CUDALIB) -lcudart -lstdc++   -shared-intel -i-dynamic
-CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc -O3 
+F77 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 -g
+F90 = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 -g
+LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -r8 -O3 -g -lcurl $(CUDALIB) -lcudart -lstdc++   -shared-intel -i-dynamic
+CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc -O3 -g
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
 
-NVCC = nvcc -O3 
+NVCC = nvcc -O3 -g
 
 
 
