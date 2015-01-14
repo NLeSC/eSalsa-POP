@@ -732,7 +732,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX,&
+   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
                  convect_diff, convect_visc, this_block)
 
 !-----------------------------------------------------------------------
@@ -1088,7 +1088,7 @@
    real (r8), dimension(nx_block,ny_block,km), intent(out) ::      &
       VVC        ! viscosity for momentum diffusion
 
-  real (r8), dimension(nx_block,ny_block), intent(out) :: &
+  real (r8), dimension(nx_block,ny_block,nblocks_clinic), intent(out) :: &
       HMXL,               &! mixed layer depth
       KPP_HBLT             ! boundary layer depth
 
@@ -1107,7 +1107,7 @@
       k,                 &! vertical level index 
       i,j,               &! horizontal loop indices
       n,                 &! tracer index
-      mt2                 ! index for separating temp from other trcrs
+      mt2,bid                 ! index for separating temp from other trcrs
 
    integer (int_kind), dimension(nx_block,ny_block) :: &
       KBL                   ! index of first lvl below hbl
@@ -1124,6 +1124,11 @@
 
    real (r8), dimension(nx_block,ny_block,0:km+1) :: &
       VISC        ! local temp for viscosity
+
+!dummy variable that is not used by ri_iwmix but added here to have the
+!same interface during testing
+   real (r8), dimension(nx_block,ny_block,km) :: &
+      RHOMIX              ! density at mix time
 
 
   bid = this_block%local_id
@@ -1145,7 +1150,8 @@
 !
 !-----------------------------------------------------------------------
 
-   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, this_block)
+   call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
+                    convect_diff, convect_visc, this_block)
 
 !-----------------------------------------------------------------------
 !
@@ -1163,7 +1169,7 @@
 
    call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
                     KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
-                    this_block, SMF)
+                    this_block, SMF=SMF)
 
 !-----------------------------------------------------------------------
 !
@@ -1410,7 +1416,8 @@ end subroutine interior_convection
 ! !IROUTINE: ri_iwmix
 ! !INTERFACE:
 
- subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, this_block)
+ subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
+                          convect_diff, convect_visc, this_block)
 
 ! !DESCRIPTION:
 !  Computes viscosity and diffusivity coefficients for the interior
@@ -1429,6 +1436,13 @@ end subroutine interior_convection
    real (r8), dimension(nx_block,ny_block,km), intent(in) :: & 
       VVV,             &! V velocities at current time
       DBLOC             ! buoyancy difference between adjacent levels
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      RHOMIX ! density at mix time
+
+   real (r8), intent(in) :: &
+      convect_diff, &! diffusivity to mimic convection
+      convect_visc ! viscosity to mimic convection
 
    type (block), intent(in) :: &
       this_block          ! block information for current block
