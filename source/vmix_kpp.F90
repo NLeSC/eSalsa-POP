@@ -43,6 +43,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
    public :: init_vmix_kpp,   &
              vmix_coeffs_kpp, &
+             vmix_coeffs_kpp_gpu, &
              add_kpp_sources, &
              smooth_hblt,     &
              linertial
@@ -1186,7 +1187,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, & 
+   call interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, & 
                     VISC, convect_diff, convect_visc, this_block, VDC, VVC, KPP_SRC, HMXL)
 
 
@@ -1199,7 +1200,7 @@
 
 
 
-subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, VISC, convect_diff, &
+subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff, &
                                       convect_visc, this_block, VDC, VVC, KPP_SRC, HMXL)
 
 ! DESCRIPTION:
@@ -1241,9 +1242,6 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, VISC, conve
    real (r8), dimension(nx_block,ny_block,0:km+1), intent(inout) :: &
       VISC        ! local temp for viscosity
 
-   real (r8), dimension(nx_block,ny_block), intent(inout) :: &
-      STABLE       ! = 1 for stable forcing; = 0 for unstable forcing
-
 ! true INOUTS:
 
    real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
@@ -1265,7 +1263,7 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, VISC, conve
    real (r8), dimension(nx_block,ny_block) :: &
       WORK1,WORK2,&! temporary storage
       WORK3,WORK4,&! temporary storage
-      FCON         ! convection temporary
+      WORK5,FCON         ! convection temporary
 
    integer (int_kind) :: &
       k,                 &! vertical level index 
@@ -1273,6 +1271,8 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, VISC, conve
       n,                 &! tracer index
       mt2,bid                 ! index for separating temp from other trcrs
 
+
+   bid = this_block%local_id
 
 !-----------------------------------------------------------------------
 !    compute function of Brunt-Vaisala squared for convection.
@@ -1377,11 +1377,12 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, VISC, conve
       HMXL(:,:,bid) = c0
    endwhere
 
+   if (partial_bottom_cells) then
       do k=2,km
          where (k <= KMT(:,:,bid))
-            STABLE = zt(k-1) + p5*(DZT(:,:,k-1,bid) + DZT(:,:,k,bid))
-            WORK3 = max(DBSFC(:,:,k)/STABLE,WORK3)
-            HMXL(:,:,bid) = STABLE
+            WORK5 = zt(k-1) + p5*(DZT(:,:,k-1,bid) + DZT(:,:,k,bid))
+            WORK3 = max(DBSFC(:,:,k)/WORK5,WORK3)
+            HMXL(:,:,bid) = WORK5
          endwhere
       enddo
 
@@ -1396,13 +1397,40 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, STABLE, VISC, conve
                  WORK3 > c0 )   ! avoid divide by zero
             WORK4 = (VISC(:,:,k) - WORK3)/ &
                     (VISC(:,:,k)-VISC(:,:,k-1))
-
-            HMXL(:,:,bid) =   (zt(k-1) + p25*(DZT(:,:,k-1,bid)+DZT(:,:,k,bid)))*(c1-WORK4) &
+! tqian
+!            HMXL(:,:,bid) =   (zt(k-1) + p5*DZT(:,:,k-1,bid))*(c1-WORK4) &
+!                            + (zt(k-1) - p5*DZT(:,:,k-1,bid))*WORK4
+             HMXL(:,:,bid) =   (zt(k-1) + p25*(DZT(:,:,k-1,bid)+DZT(:,:,k,bid)))*(c1-WORK4) &
                              + (zt(k-1) - p25*(DZT(:,:,k-2,bid)+DZT(:,:,k-1,bid)))*WORK4
 
             WORK3(:,:) = c0
          endwhere
       enddo
+   else
+      do k=2,km
+         where (k <= KMT(:,:,bid))
+            WORK3 = max(DBSFC(:,:,k)/zt(k),WORK3)
+            HMXL(:,:,bid) = zt(k)
+         endwhere
+      enddo
+
+      VISC(:,:,1) = c0
+      do k=2,km
+         where (WORK3 > c0 )
+            VISC(:,:,k) = (DBSFC(:,:,k)-DBSFC(:,:,k-1))/ &
+                          (zt(k) - zt(k-1))
+         end where
+         where ( VISC(:,:,k) >= WORK3 .and.              &
+                (VISC(:,:,k)-VISC(:,:,k-1)) /= c0 .and.  &
+                 WORK3 > c0 )   ! avoid divide by zero
+            WORK4 = (VISC(:,:,k) - WORK3)/ &
+                    (VISC(:,:,k)-VISC(:,:,k-1))
+            HMXL(:,:,bid) = -p5*(zgrid(k  ) + zgrid(k-1))*(c1-WORK4) &
+                            -p5*(zgrid(k-1) + zgrid(k-2))*WORK4
+            WORK3(:,:) = c0
+         endwhere
+      enddo
+   endif
 
 end subroutine interior_convection
 

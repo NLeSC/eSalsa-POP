@@ -47,13 +47,17 @@ module forcing_fields
 
    real (r8), dimension(nx_block,ny_block,2,max_blocks_clinic), &
       public, target :: &
-      SMF,  &!  surface momentum fluxes (wind stress)
       SMFT   !  surface momentum fluxes on T points if avail
 
    real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
       public, target :: &
-      STF,  &!  surface tracer fluxes
       TFW    ! tracer content in freshwater flux
+
+
+   real (r8), dimension(:,:,:,:), &
+      public, pointer :: &
+      SMF,  &!  surface momentum fluxes (wind stress)
+      STF    ! surface tracer fluxes
 
 
    logical (log_kind), public :: &

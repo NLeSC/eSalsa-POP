@@ -38,9 +38,12 @@
 
 ! !PUBLIC DATA MEMBERS:
 
+   real (r8), dimension(:,:,:), &
+      public, pointer :: &
+      SHF_QSW             ! incoming short wave
+
    real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
       public, target :: &
-      SHF_QSW,          & ! incoming short wave
       SHF_QSW_RAW         ! no masking, no diurnal cycle
 
    logical (log_kind), public :: &
@@ -569,6 +572,8 @@
 !
 !-----------------------------------------------------------------------
 
+   !allocate in pinned memory if using GPU
+   allocate( SHF_QSW(nx_block,ny_block,max_blocks_clinic) )
 
    SHF_QSW = c0
    SHF_QSW_RAW = c0

@@ -35,14 +35,13 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-#ifdef JASON_FIX_DATA
-   real (r8), dimension(:,:,:,:,:,:), allocatable, target :: &
+   real (r8), dimension(:,:,:,:,:,:), pointer :: &
       TRACER     ! 3d tracer fields for all blocks at 3 time levels
 
    type (tracer_field), dimension(nt) :: &
       tracer_d   ! descriptors for each tracer
 
-   real (r8), dimension(:,:,:,:,:), allocatable, target :: &
+   real (r8), dimension(:,:,:,:,:), pointer :: &
       UVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls
       VVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls
       RHO        ! 3d density fields,     for all blocks at 3 time lvls
@@ -57,41 +56,12 @@
    real (r8), dimension(:,:,:), allocatable, target :: &
       PGUESS     ! next guess for surface pressure
 
-#else
-
-   real (r8), dimension(nx_block,ny_block,km,nt,3,max_blocks_clinic), &
-      target :: &
-      TRACER     ! 3d tracer fields for all blocks at 3 time levels
-
-   type (tracer_field), dimension(nt) :: &
-      tracer_d   ! descriptors for each tracer
-
-   real (r8), dimension(nx_block,ny_block,km,3,max_blocks_clinic), &
-      target :: &
-      UVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls
-      VVEL,     &! 3d horizontal velocity for all blocks at 3 time lvls
-      RHO        ! 3d density fields,     for all blocks at 3 time lvls
-
-   real (r8), dimension(nx_block,ny_block,3,max_blocks_clinic), &
-      target :: &
-      PSURF,    &! surface pressure for all blocks at 3 time levels
-      GRADPX,   &! surface-pressure gradient for all blocks at
-      GRADPY,   &!   3 time levels
-      UBTROP,   &! barotropic velocities for all blocks at
-      VBTROP     !   3 time levels 
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
-      target :: &
-      PGUESS     ! next guess for surface pressure
-#endif
-
    integer (int_kind) :: &! time indices for prognostic arrays
       curtime,           &! current time level  (n) 
       newtime,           &! next time level     (n+1)
       oldtime,           &! previous time level (n-1)
       mixtime             ! set to oldtime on leafrog steps
                           ! and to curtime on matsuno steps
-
 !EOP
 !BOC
 !EOC
@@ -123,18 +93,19 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef JASON_FIX_DATA
+      !these will be allocated in pinned memory when GPU is used
       allocate (TRACER (nx_block,ny_block,km,nt,3,max_blocks_clinic), &
                  UVEL   (nx_block,ny_block,km,3,max_blocks_clinic), &
                  VVEL   (nx_block,ny_block,km,3,max_blocks_clinic), &
-                 RHO    (nx_block,ny_block,km,3,max_blocks_clinic), &
-                 PSURF  (nx_block,ny_block,3,max_blocks_clinic), &
+                 RHO    (nx_block,ny_block,km,3,max_blocks_clinic))
+
+
+      allocate(  PSURF  (nx_block,ny_block,3,max_blocks_clinic), &
                  GRADPX (nx_block,ny_block,3,max_blocks_clinic), &
                  GRADPY (nx_block,ny_block,3,max_blocks_clinic), &
                  UBTROP (nx_block,ny_block,3,max_blocks_clinic), &
                  VBTROP (nx_block,ny_block,3,max_blocks_clinic), &
                  PGUESS (nx_block,ny_block,max_blocks_clinic))
-#endif
 
       oldtime = 1
       curtime = 2

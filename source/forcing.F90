@@ -126,10 +126,16 @@
    ATM_PRESS = c0
    FW        = c0
    FW_OLD    = c0
-   SMF       = c0
    SMFT      = c0
-   STF       = c0
    TFW       = c0
+
+   !allocate these in pinned memory if using GPU
+   allocate( STF(nx_block,ny_block,nt,max_blocks_clinic) ,&
+             SMF(nx_block,ny_block,2,max_blocks_clinic) )
+
+   SMF       = c0
+   STF       = c0
+
 
 !-----------------------------------------------------------------------
 !

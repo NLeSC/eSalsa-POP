@@ -54,7 +54,7 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), dimension(:,:,:,:,:), allocatable, public, target :: &
+   real (r8), dimension(:,:,:,:,:), public, pointer  :: &
       VDC                 ! tracer diffusivity - public to allow
                           ! possible modification by Gent-McWilliams
                           ! horizontal mixing parameterization
@@ -79,7 +79,7 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:,:,:), allocatable, target :: &
+   real (r8), dimension(:,:,:,:), pointer :: &
       VVC                 ! momentum viscosity
 
 !-----------------------------------------------------------------------
@@ -383,8 +383,11 @@
                                   nblocks_clinic, distrb_clinic%nprocs)
 
    case(vmix_type_kpp)
+   
+     !allocate VDC and VVC in pinned memory if GPU is used
       allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
                 VVC(nx_block,ny_block,km,      nblocks_clinic))
+
       call init_vmix_kpp(VDC,VVC)
       call get_timer(timer_vmix_coeffs,'VMIX_COEFFICIENTS_KPP', &
                                   nblocks_clinic, distrb_clinic%nprocs)
@@ -551,7 +554,7 @@
                     'vmix_coeffs: must supply either SMF,SMFT')
 
          if (present(SMFT)) then
-            call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
+            call vmix_coeffs_kpp_gpu(VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,RHOMIX,      &
                                  STF,SHF_QSW,                &
@@ -559,7 +562,7 @@
                                  convect_diff, convect_visc, &
                                  SMFT=SMFT)
          else
-            call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
+            call vmix_coeffs_kpp_gpu(VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,RHOMIX,      &
                                  STF,SHF_QSW,                &
