@@ -1089,7 +1089,7 @@
    real (r8), dimension(nx_block,ny_block,km), intent(out) ::      &
       VVC        ! viscosity for momentum diffusion
 
-  real (r8), dimension(nx_block,ny_block,nblocks_clinic), intent(out) :: &
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
       HMXL,               &! mixed layer depth
       KPP_HBLT             ! boundary layer depth
 
@@ -1169,7 +1169,7 @@
 !-----------------------------------------------------------------------
 
    call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
-                    KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
+                    KPP_HBLT, USTAR, BFSFC, STABLE, KBL, & 
                     this_block, SMF=SMF)
 
 !-----------------------------------------------------------------------
@@ -1178,7 +1178,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
+   call blmix(VISC, VDC, KPP_HBLT, USTAR, BFSFC, STABLE, &
               KBL, GHAT, this_block) 
 
 !-----------------------------------------------------------------------
