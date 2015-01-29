@@ -46,6 +46,9 @@
    use registry
    use forcing_fields
 
+   use gpu_mod
+   use iso_c_binding
+
    implicit none
    private
    save
@@ -130,8 +133,17 @@
    TFW       = c0
 
    !allocate these in pinned memory if using GPU
-   allocate( STF(nx_block,ny_block,nt,max_blocks_clinic) ,&
-             SMF(nx_block,ny_block,2,max_blocks_clinic) )
+   if (use_gpu) then
+       call cudaMallocHost(cptr, (nx_block*ny_block*nt*max_blocks_clinic))
+       call c_f_pointer(cptr, STF, (/ nx_block,ny_block,nt,max_blocks_clinic /))
+
+       call cudaMallocHost(cptr, (nx_block*ny_block*2*max_blocks_clinic))
+       call c_f_pointer(cptr, SMF, (/ nx_block,ny_block,2,max_blocks_clinic /))
+   else
+       allocate( STF(nx_block,ny_block,nt,max_blocks_clinic) ,&
+                 SMF(nx_block,ny_block,2,max_blocks_clinic) )
+   endif
+
 
    SMF       = c0
    STF       = c0

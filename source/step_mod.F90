@@ -722,11 +722,11 @@
          do k = 1,POP_km  ! recalculate densities from averaged tracers
             call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
                            TRACER(:,:,k,2,oldtime,iblock), &
-                           this_block,                     &
+                           iblock,                     &
                          RHOOUT=RHO(:,:,k,oldtime,iblock))
             call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
                            TRACER(:,:,k,2,curtime,iblock), &
-                           this_block,                     &
+                           iblock,                     &
                          RHOOUT=RHO(:,:,k,curtime,iblock))
          enddo 
 
@@ -829,7 +829,7 @@
          do k = 1,POP_km  ! recalculate densities from averaged tracers
             call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
                            TRACER(:,:,k,2,curtime,iblock), &
-                           this_block,                     &
+                           iblock,                     &
                            RHOOUT=RHO(:,:,k,curtime,iblock))
          enddo 
 
@@ -997,11 +997,11 @@
          do k = 1,POP_km  ! recalculate densities from averaged tracers
             call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
                            TRACER(:,:,k,2,curtime,iblock), &
-                           this_block,                     &
+                           iblock,                     &
                            RHOOUT=RHO(:,:,k,curtime,iblock))
             call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
                            TRACER(:,:,k,2,newtime,iblock), &
-                           this_block,                     &
+                           iblock,                     &
                            RHOOUT=RHO(:,:,k,newtime,iblock))
          enddo 
 

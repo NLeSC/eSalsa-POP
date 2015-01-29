@@ -831,7 +831,7 @@
          this_block = get_block(blocks_clinic(iblock),iblock)
          do k = 1, POP_km
             call state(k,1,TRACER(:,:,k,1,curtime,iblock),                         &
-                        TRACER(:,:,k,2,curtime,iblock), this_block, &
+                        TRACER(:,:,k,2,curtime,iblock), iblock, &
                         RHOFULL=WORK1)
             WORK3D1(:,:,k) = salt_to_ppt*(WORK1 - c1)
          enddo
@@ -854,7 +854,7 @@
                FX = RHO(:,:,k,curtime,iblock)
             else
                call state(k-1,k,TRACER(:,:,k-1,1,curtime,iblock)  &
-                               ,TRACER(:,:,k-1,2,curtime,iblock), this_block, &
+                               ,TRACER(:,:,k-1,2,curtime,iblock), iblock, &
                                 RHOOUT=FY)
                FX = p5*(FY + RHO(:,:,k,curtime,iblock))
             endif
@@ -863,7 +863,7 @@
                FY = RHO(:,:,k,curtime,iblock)
             else
                call state(k+1,k,TRACER(:,:,k+1,1,curtime,iblock)  &
-                               ,TRACER(:,:,k+1,2,curtime,iblock), this_block, &
+                               ,TRACER(:,:,k+1,2,curtime,iblock), iblock, &
                                 RHOOUT=WORK2) 
 
                do j=1, ny_block
@@ -974,7 +974,7 @@
          if (lpressure_avg .and. leapfrogts) then
             call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
                            TRACER(:,:,k,2,newtime,iblock), &
-                           this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+                           iblock, RHOOUT=RHO(:,:,k,newtime,iblock))
          endif
 
 !-----------------------------------------------------------------------
@@ -1408,7 +1408,7 @@
 
          call state(k,k,TRACER(:,:,k,1,newtime,iblock), &
                         TRACER(:,:,k,2,newtime,iblock), & 
-                        this_block, RHOOUT=RHO(:,:,k,newtime,iblock))
+                        iblock, RHOOUT=RHO(:,:,k,newtime,iblock))
 
       enddo
 

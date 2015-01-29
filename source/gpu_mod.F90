@@ -14,19 +14,10 @@ module gpu_mod
  use iso_c_binding
 
  implicit none
- private
- save
 
- interface
-   subroutine cudaMallocHost(hostptr, size) bind (c)
-     use iso_c_binding
-     type (C_PTR), intent(out) :: hostptr
-     integer (c_int), intent(in) :: size
-   end subroutine my_cudaMallocHost
- end interface
 
  !PUBLIC MEMBER FUNCTIONS:
- public :: init_gpu_mod, cudaMallocHost
+ public :: init_gpu_mod
 
  !PUBLIC DATA MEMBERS:
  logical (log_kind), public :: &
@@ -42,9 +33,13 @@ module gpu_mod
 
  subroutine init_gpu_mod 
 
-   use_gpu = .true.  ! default
+   integer (int_kind) :: &
+      nu, &! i/o unit
+      nml_error ! namelist i/o error flag
 
    namelist /gpu_mod_nml/ use_gpu
+
+   use_gpu = .true.  ! default setting
 
    if (my_task == master_task) then
      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
@@ -64,7 +59,7 @@ module gpu_mod
    call broadcast_scalar(nml_error, master_task)
 
    if (nml_error /= 0) then
-     call exit_POP(sigAbort, & 'ERROR reading gpu_mod_nml')
+     call exit_POP(sigAbort, 'ERROR reading gpu_mod_nml')
    endif
 
   if (my_task == master_task) then
@@ -89,4 +84,21 @@ module gpu_mod
 
 
 
-end subroutine gpu_mod_init
+end subroutine init_gpu_mod
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end module gpu_mod

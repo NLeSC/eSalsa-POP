@@ -212,9 +212,9 @@
       kp1 = min(k+1,km)
 
       call state(k  ,kp1,TMIX(:,:,k  ,1), TMIX(:,:,k  ,2), &
-                         this_block, RHOOUT=RHOK )
+                         bid, RHOOUT=RHOK )
       call state(kp1,kp1,TMIX(:,:,kp1,1), TMIX(:,:,kp1,2), &
-                         this_block, RHOOUT=RHOKP)
+                         bid, RHOOUT=RHOKP)
 
       if (convect_visc /= c0) then
          vvconv = convect_visc

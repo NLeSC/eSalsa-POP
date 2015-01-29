@@ -40,9 +40,14 @@
    use vmix_kpp
    use exit_mod
 
+   use gpu_mod
+   use iso_c_binding
+
    implicit none
    private
    save
+
+#include "cuda.h"
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -384,9 +389,17 @@
 
    case(vmix_type_kpp)
    
-     !allocate VDC and VVC in pinned memory if GPU is used
-      allocate (VDC(nx_block,ny_block,0:km+1,2,nblocks_clinic), &
-                VVC(nx_block,ny_block,km,      nblocks_clinic))
+      !allocate VDC and VVC in pinned memory if GPU is used
+      if (use_gpu) then
+        call cudaMallocHost( cptr, (nx_block*ny_block*(km+1)*2*nblocks_clinic) )
+        call c_f_pointer(cptr, VDC, (/ nx_block,ny_block,km+1,2,nblocks_clinic /))
+
+       	call cudaMallocHost(cptr, (nx_block*ny_block*km*nblocks_clinic))
+       	call c_f_pointer(cptr, VVC, (/ nx_block,ny_block,km,nblocks_clinic /))
+      else
+        allocate (VDC(nx_block,ny_block,km+1,2,nblocks_clinic), &
+                  VVC(nx_block,ny_block,km,      nblocks_clinic))
+      endif
 
       call init_vmix_kpp(VDC,VVC)
       call get_timer(timer_vmix_coeffs,'VMIX_COEFFICIENTS_KPP', &
@@ -558,7 +571,7 @@
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,RHOMIX,      &
                                  STF,SHF_QSW,                &
-                                 this_block,                 &
+                                 bid,                 &
                                  convect_diff, convect_visc, &
                                  SMFT=SMFT)
          else
@@ -566,7 +579,7 @@
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,RHOMIX,      &
                                  STF,SHF_QSW,                &
-                                 this_block,                 &
+                                 bid,                 &
                                  convect_diff, convect_visc, &
                                  SMF=SMF)
          endif
@@ -1613,9 +1626,9 @@
          do k = ks,km-1,2
 
             call state(k  ,k+1,TNEW(:,:,k  ,1), TNEW(:,:,k  ,2), &
-                               this_block, RHOOUT=RHOK )
+                               bid, RHOOUT=RHOK )
             call state(k+1,k+1,TNEW(:,:,k+1,1), TNEW(:,:,k+1,2), &
-                               this_block, RHOOUT=RHOKP)
+                               bid, RHOOUT=RHOKP)
               
             if (partial_bottom_cells) then
                do n = 1,nt
@@ -1660,7 +1673,7 @@
       endif
 
       call state(k,k,TNEW(:,:,k,1), TNEW(:,:,k,2),  &
-                     this_block, RHOOUT=RHONEW(:,:,k))
+                     bid, RHOOUT=RHONEW(:,:,k))
 
       if (lpec .and. mix_pass /= 1) then
          WORK2 = RHONEW(:,:,k) - WORK1

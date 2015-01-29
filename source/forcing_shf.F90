@@ -26,6 +26,9 @@
    use tavg
    use exit_mod
 
+   use gpu_mod
+   use iso_c_binding
+
    implicit none
    private
    save
@@ -573,7 +576,12 @@
 !-----------------------------------------------------------------------
 
    !allocate in pinned memory if using GPU
-   allocate( SHF_QSW(nx_block,ny_block,max_blocks_clinic) )
+   if (use_gpu) then
+        call cudaMallocHost(cptr, (nx_block*ny_block*max_blocks_clinic))
+       	call c_f_pointer(cptr, SHF_QSW, (/ nx_block,ny_block,max_blocks_clinic /))
+   else
+        allocate( SHF_QSW(nx_block,ny_block,max_blocks_clinic) )
+   endif
 
    SHF_QSW = c0
    SHF_QSW_RAW = c0

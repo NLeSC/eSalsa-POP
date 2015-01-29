@@ -19,9 +19,14 @@
    use domain
    use constants
 
+   use gpu_mod
+   use iso_c_binding
+
    implicit none
    public
    save
+
+#include "cuda.h"
 
 ! !PUBLIC DATA TYPES:
 
@@ -94,11 +99,25 @@
 !-----------------------------------------------------------------------
 
       !these will be allocated in pinned memory when GPU is used
-      allocate (TRACER (nx_block,ny_block,km,nt,3,max_blocks_clinic), &
+      if (use_gpu) then
+        call cudaMallocHost( cptr, nx_block*ny_block*km*nt*3*max_blocks_clinic )
+        call c_f_pointer(cptr, TRACER, (/ nx_block,ny_block,km,nt,3,nblocks_clinic /))
+
+        call cudaMallocHost(cptr, (nx_block*ny_block*km*3*nblocks_clinic))
+        call c_f_pointer(cptr, RHO, (/ nx_block,ny_block,km,3,nblocks_clinic /))
+
+        call cudaMallocHost(cptr, (nx_block*ny_block*km*3*nblocks_clinic))
+        call c_f_pointer(cptr, UVEL, (/ nx_block,ny_block,km,3,nblocks_clinic /))
+
+        call cudaMallocHost(cptr, (nx_block*ny_block*km*3*nblocks_clinic))
+        call c_f_pointer(cptr, VVEL, (/ nx_block,ny_block,km,3,nblocks_clinic /))
+
+      else 
+        allocate (TRACER (nx_block,ny_block,km,nt,3,max_blocks_clinic), &
                  UVEL   (nx_block,ny_block,km,3,max_blocks_clinic), &
                  VVEL   (nx_block,ny_block,km,3,max_blocks_clinic), &
                  RHO    (nx_block,ny_block,km,3,max_blocks_clinic))
-
+      endif
 
       allocate(  PSURF  (nx_block,ny_block,3,max_blocks_clinic), &
                  GRADPX (nx_block,ny_block,3,max_blocks_clinic), &

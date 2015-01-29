@@ -11,15 +11,20 @@
 # MPILIB = -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/
 # MPIINC = -I/cm/shared/apps/openmpi/intel/64/1.4.4/include/
 
+CUDALIB = -L/cm/shared/apps/cuda55/toolkit/current/lib64/
+
+
 F77 = mpif77
 F90 = mpif90
-LD = mpif90 -lcurl 
+LD = mpif90 -lcurl $(CUDALIB) -lcudart -lstdc++
 CC = cc
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
 ABI = 
 COMMDIR = mpi
+
+NVCC = nvcc
  
 #  Enable MPI library for parallel code, yes/no.
 
@@ -91,6 +96,25 @@ endif
 #DAS4 specific
 FFLAGS := $(FFLAGS) -Wall -fdefault-double-8 -fdefault-real-8 -fconvert=swap -fimplicit-none -fbounds-check
  
+
+#----------------------------------------------------------------------------
+#
+# CUDA Flags
+#
+#----------------------------------------------------------------------------
+
+#CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
+#CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
+
+CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
+
+ifeq ($(OPTIMIZE),yes)
+  CUFLAGS := -O3 $(CUFLAGS)
+endif
+
+
+
+
 #----------------------------------------------------------------------------
 #
 #                           Loader Flags and Libraries

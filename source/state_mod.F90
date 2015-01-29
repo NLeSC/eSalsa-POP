@@ -244,7 +244,7 @@
 ! !IROUTINE: state
 ! !INTERFACE:
 
- subroutine state(k, kk, TEMPK, SALTK, this_block, &
+ subroutine state(k, kk, TEMPK, SALTK, bid, &
                          RHOOUT, RHOFULL, DRHODT, DRHODS)
 
 ! !DESCRIPTION:
@@ -278,8 +278,8 @@
       TEMPK,             &! temperature at level k
       SALTK               ! salinity    at level k
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !OUTPUT PARAMETERS:
 
@@ -299,7 +299,6 @@
 
    integer (int_kind) :: &
       ib,ie,jb,je,       &! extent of physical domain
-      bid,               &! local block index
       out_of_range        ! counter for out-of-range T,S values
 
    real (r8), dimension(nx_block,ny_block) :: &
@@ -321,7 +320,6 @@
 !
 !-----------------------------------------------------------------------
 
-   bid = this_block%local_id
 
    select case (state_range_iopt)
    case (state_range_ignore)
@@ -335,6 +333,7 @@
 
    case (state_range_check)
 
+#ifdef unsupported
       call exit_POP(sigAbort,  &
           '(state) ERROR unsupported option -- must define time flag and use check_time_flag')
 !***  if (time_to_do(freq_opt_nstep, state_range_freq)) then
@@ -364,6 +363,7 @@
 
       TQ = TEMPK
       SQ = SALTK
+#endif
 
    case (state_range_enforce)
 

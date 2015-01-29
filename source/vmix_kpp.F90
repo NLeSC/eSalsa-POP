@@ -35,6 +35,8 @@
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
 
+   use iso_c_binding
+
    implicit none
    private
    save
@@ -223,7 +225,7 @@
    real (r8), dimension(:,:,:,:), intent(inout) :: &
       VVC        ! viscosity for momentum diffusion
 
-   real (r8), dimension(:,:,0:,:,:),intent(inout) :: &
+   real (r8), dimension(:,:,:,:,:),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
 !EOP
@@ -621,7 +623,7 @@
 
 
  subroutine vmix_coeffs_kpp(VDC, VVC, TRCR, UUU, VVV, RHOMIX, STF, SHF_QSW, &
-                            this_block, convect_diff, convect_visc, &
+                            bid, convect_diff, convect_visc, &
                             SMF, SMFT)
 
 ! !DESCRIPTION:
@@ -661,15 +663,15 @@
       convect_diff,      &! diffusivity to mimic convection
       convect_visc        ! viscosity   to mimic convection
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+	bid		! local block address for this block
 
 ! !INPUT/OUTPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,km), intent(inout) ::      &
       VVC        ! viscosity for momentum diffusion
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km+1,2),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
 !EOP
@@ -684,8 +686,7 @@
       k,                 &! vertical level index 
       i,j,               &! horizontal loop indices
       n,                 &! tracer index
-      mt2,               &! index for separating temp from other trcrs
-      bid                 ! local block address for this block
+      mt2                 ! index for separating temp from other trcrs
 
    integer (int_kind), dimension(nx_block,ny_block) :: &
       KBL                   ! index of first lvl below hbl
@@ -702,7 +703,7 @@
       DBSFC,      &! buoyancy difference between level and surface
       GHAT         ! non-local mixing coefficient
 
-   real (r8), dimension(nx_block,ny_block,0:km+1) :: &
+   real (r8), dimension(nx_block,ny_block,km+1) :: &
       VISC        ! local temp for viscosity
 
 !-----------------------------------------------------------------------
@@ -710,8 +711,6 @@
 !  initialize
 !
 !-----------------------------------------------------------------------
-
-   bid = this_block%local_id
 
    if (.not. present(SMF) .and. .not. present(SMFT)) &
       call exit_POP(sigAbort, &
@@ -723,7 +722,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call buoydiff(DBLOC, DBSFC, TRCR, this_block)
+   call buoydiff(DBLOC, DBSFC, TRCR, bid)
 
 
 !-----------------------------------------------------------------------
@@ -734,7 +733,7 @@
 !-----------------------------------------------------------------------
 
    call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
-                 convect_diff, convect_visc, this_block)
+                 convect_diff, convect_visc, bid)
 
 !-----------------------------------------------------------------------
 !
@@ -742,7 +741,7 @@
 !
 !-----------------------------------------------------------------------
 
-   if (ldbl_diff) call ddmix(VDC, TRCR, this_block)
+   if (ldbl_diff) call ddmix(VDC, TRCR, bid)
 
 !-----------------------------------------------------------------------
 !
@@ -753,11 +752,11 @@
    if (present(SMFT)) then
       call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
                     KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
-                    this_block, SMFT=SMFT)
+                    bid, SMFT=SMFT)
    else
       call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
                     KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, KBL, & 
-                    this_block, SMF=SMF)
+                    bid, SMF=SMF)
    endif
 
 !-----------------------------------------------------------------------
@@ -767,7 +766,7 @@
 !-----------------------------------------------------------------------
 
    call blmix(VISC, VDC, KPP_HBLT(:,:,bid), USTAR, BFSFC, STABLE, &
-              KBL, GHAT, this_block) 
+              KBL, GHAT, bid) 
 
 !-----------------------------------------------------------------------
 !
@@ -948,7 +947,7 @@
 ! !INTERFACE:
 
  subroutine vmix_coeffs_kpp_gpu(VDC, VVC, TRCR, UUU, VVV, RHOMIX, STF, SHF_QSW, &
-                            this_block, convect_diff, convect_visc, &
+                            bid, convect_diff, convect_visc, &
                             SMF, SMFT)
 
 ! !DESCRIPTION:
@@ -986,21 +985,19 @@
       convect_diff,      &! diffusivity to mimic convection
       convect_visc        ! viscosity   to mimic convection
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !INPUT/OUTPUT PARAMETERS:
 
    real (r8), dimension(nx_block,ny_block,km), intent(inout) ::      &
       VVC        ! viscosity for momentum diffusion
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km+1,2),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
 !EOP
-
-   integer (int_kind) :: &
-      bid                 ! local block address for this block
 
 !-----------------------------------------------------------------------
 !
@@ -1013,10 +1010,9 @@
                     'ERROR KPP GPU: must supply SMF and not SMFT')
    end if
 
-   bid = this_block%local_id
 
    call vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
-                            this_block, convect_diff, convect_visc, &
+                            bid, convect_diff, convect_visc, &
                             SMF, HMXL(:,:,bid), KPP_HBLT(:,:,bid), KPP_SRC(:,:,:,:,bid))
 
 
@@ -1041,7 +1037,7 @@
 ! !INTERFACE:
 
  subroutine vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
-                            this_block, convect_diff, convect_visc, &
+                            bid, convect_diff, convect_visc, &
                             SMF, HMXL, KPP_HBLT, KPP_SRC)
 
 ! !DESCRIPTION:
@@ -1076,12 +1072,12 @@
       convect_diff,      &! diffusivity to mimic convection
       convect_visc        ! viscosity   to mimic convection
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km+1,2),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
 ! !OUTPUT PARAMETERS:
@@ -1108,7 +1104,7 @@
       k,                 &! vertical level index 
       i,j,               &! horizontal loop indices
       n,                 &! tracer index
-      mt2,bid                 ! index for separating temp from other trcrs
+      mt2                 ! index for separating temp from other trcrs
 
    integer (int_kind), dimension(nx_block,ny_block) :: &
       KBL                   ! index of first lvl below hbl
@@ -1123,7 +1119,7 @@
       DBSFC,      &! buoyancy difference between level and surface
       GHAT         ! non-local mixing coefficient
 
-   real (r8), dimension(nx_block,ny_block,0:km+1) :: &
+   real (r8), dimension(nx_block,ny_block,km+1) :: &
       VISC        ! local temp for viscosity
 
 !dummy variable that is not used by ri_iwmix but added here to have the
@@ -1132,8 +1128,6 @@
       RHOMIX              ! density at mix time
 
 
-  bid = this_block%local_id
-
 
 !-----------------------------------------------------------------------
 !
@@ -1141,7 +1135,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call buoydiff(DBLOC, DBSFC, TRCR, this_block)
+   call buoydiff(DBLOC, DBSFC, TRCR, bid)
 
 
 !-----------------------------------------------------------------------
@@ -1152,7 +1146,7 @@
 !-----------------------------------------------------------------------
 
    call ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
-                    convect_diff, convect_visc, this_block)
+                    convect_diff, convect_visc, bid)
 
 !-----------------------------------------------------------------------
 !
@@ -1160,7 +1154,7 @@
 !
 !-----------------------------------------------------------------------
 
-   call ddmix(VDC, TRCR, this_block)
+   call ddmix(VDC, TRCR, bid)
 
 !-----------------------------------------------------------------------
 !
@@ -1170,7 +1164,7 @@
 
    call bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,   &
                     KPP_HBLT, USTAR, BFSFC, STABLE, KBL, & 
-                    this_block, SMF=SMF)
+                    bid, SMF=SMF)
 
 !-----------------------------------------------------------------------
 !
@@ -1179,7 +1173,7 @@
 !-----------------------------------------------------------------------
 
    call blmix(VISC, VDC, KPP_HBLT, USTAR, BFSFC, STABLE, &
-              KBL, GHAT, this_block) 
+              KBL, GHAT, bid) 
 
 !-----------------------------------------------------------------------
 !
@@ -1188,7 +1182,7 @@
 !-----------------------------------------------------------------------
 
    call interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, & 
-                    VISC, convect_diff, convect_visc, this_block, VDC, VVC, KPP_SRC, HMXL)
+                    VISC, convect_diff, convect_visc, bid, VDC, VVC, KPP_SRC, HMXL)
 
 
 !-----------------------------------------------------------------------
@@ -1201,7 +1195,7 @@
 
 
 subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff, &
-                                      convect_visc, this_block, VDC, VVC, KPP_SRC, HMXL)
+                                      convect_visc, bid, VDC, VVC, KPP_SRC, HMXL)
 
 ! DESCRIPTION:
 !
@@ -1231,20 +1225,20 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
       convect_diff,      &! diffusivity to mimic convection
       convect_visc        ! viscosity   to mimic convection
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! fake INOUTS:
 ! these are actually inputs but are listed as inouts because they are also
 ! written by part of the computation, we are however not interested in their
 ! final value after the execution of this subroutine
 
-   real (r8), dimension(nx_block,ny_block,0:km+1), intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km+1), intent(inout) :: &
       VISC        ! local temp for viscosity
 
 ! true INOUTS:
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km+1,2),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
 ! OUTPUTS:
@@ -1269,10 +1263,9 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
       k,                 &! vertical level index 
       i,j,               &! horizontal loop indices
       n,                 &! tracer index
-      mt2,bid                 ! index for separating temp from other trcrs
+      mt2                 ! index for separating temp from other trcrs
 
 
-   bid = this_block%local_id
 
 !-----------------------------------------------------------------------
 !    compute function of Brunt-Vaisala squared for convection.
@@ -1445,7 +1438,7 @@ end subroutine interior_convection
 ! !INTERFACE:
 
  subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
-                          convect_diff, convect_visc, this_block)
+                          convect_diff, convect_visc, bid)
 
 ! !DESCRIPTION:
 !  Computes viscosity and diffusivity coefficients for the interior
@@ -1472,15 +1465,15 @@ end subroutine interior_convection
       convect_diff, &! diffusivity to mimic convection
       convect_visc ! viscosity to mimic convection
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2), intent(out) :: & 
+   real (r8), dimension(nx_block,ny_block,km+1,2), intent(out) :: & 
       VDC        ! diffusivity for tracer diffusion
 
-   real (r8), dimension(nx_block,ny_block,0:km+1), intent(out) :: & 
+   real (r8), dimension(nx_block,ny_block,km+1), intent(out) :: & 
       VISC              ! viscosity
 
 !EOP
@@ -1494,7 +1487,6 @@ end subroutine interior_convection
    integer (int_kind) :: &
       k,                 &! index for vertical levels
       i,j,               &! horizontal loop indices
-      bid,               &! local block index
       n                   ! vertical smoothing index
 
    real (r8), dimension(nx_block,ny_block) :: &
@@ -1513,10 +1505,8 @@ end subroutine interior_convection
 !
 !-----------------------------------------------------------------------
 
-   bid = this_block%local_id
-
    KVMIX       = c0
-   VISC(:,:,0) = c0
+!   VISC(:,:,0) = c0
 
    do k = 1,km
 
@@ -1566,7 +1556,11 @@ end subroutine interior_convection
          RI_LOC = DBLOC(:,:,k)*(zgrid(k)-zgrid(k+1))/(VSHEAR + eps)
       end if
 
-      VISC(:,:,k)   = merge(RI_LOC, VISC(:,:,k-1), k <= KMT(:,:,bid))
+      if (k == 1) then
+	VISC(:,:,k)   = merge(RI_LOC, c0, k <= KMT(:,:,bid))
+      else
+	VISC(:,:,k)   = merge(RI_LOC, VISC(:,:,k-1), k <= KMT(:,:,bid))
+      endif
  
    enddo
 
@@ -1738,8 +1732,9 @@ end subroutine interior_convection
 !
 !-----------------------------------------------------------------------
 
-   VISC(:,:,0  ) = c0
-   VDC (:,:,0,:) = c0
+!   VISC(:,:,0  ) = c0    ! no longer necessary Ben
+!   VDC (:,:,0,:) = c0    ! no longer necessary Ben
+
    VISC(:,:,km+1  ) = c0 
    VDC (:,:,km,:) = c0  !added by Ben
    VDC (:,:,km+1,:) = c0 
@@ -1756,7 +1751,7 @@ end subroutine interior_convection
 
  subroutine bldepth (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,  &
                      HBLT, USTAR, BFSFC, STABLE, KBL,             &
-                     this_block, SMF, SMFT)
+                     bid, SMF, SMFT)
 
 ! !DESCRIPTION:
 !  This routine computes the ocean boundary layer depth defined as
@@ -1800,8 +1795,8 @@ end subroutine interior_convection
                          ! *** either one or the other (not
                          ! *** both) should be passed
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !OUTPUT PARAMETERS:
 
@@ -1824,7 +1819,6 @@ end subroutine interior_convection
 
    integer (int_kind) :: &
       i,j,               &! loop indices
-      bid,               &! local block index
       kupper, kup, kdn, ktmp, kl  ! vertical level indices
 
    real (r8), dimension(nx_block,ny_block) :: &
@@ -1872,8 +1866,6 @@ end subroutine interior_convection
 !
 !-----------------------------------------------------------------------
 
-   bid = this_block%local_id
-
    if (present(SMFT)) then
       USTAR = sqrt(sqrt(SMFT(:,:,1)**2 + SMFT(:,:,2)**2))
    else
@@ -1889,7 +1881,7 @@ end subroutine interior_convection
 
    WORK = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
 
-   call state(1,1,WORK,TRCR(:,:,1,2),this_block, &
+   call state(1,1,WORK,TRCR(:,:,1,2),bid, &
                   RHOFULL=RHO1, DRHODT=TALPHA, DRHODS=SBETA)
 
 !-----------------------------------------------------------------------
@@ -1983,8 +1975,10 @@ end subroutine interior_convection
 
          case ('chlorophyll')
 
+#ifdef unsupported
             call sw_trans_chl(1,this_block)
             BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
+#endif
 
          end select
 
@@ -2061,9 +2055,10 @@ end subroutine interior_convection
            enddo
 
          case ('chlorophyll')
-
+#ifdef unsupported
            call sw_trans_chl(2*kl-1,this_block)
            BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
+#endif
 
          end select
 
@@ -2322,6 +2317,7 @@ end subroutine interior_convection
 
       case ('chlorophyll')
 
+#ifdef unsupported
          ZTRANS(:,:,bid) = HBLT(:,:)
          call sw_trans_chl(0,this_block)
          BFSFC   = BO + BOSOL*(c1-TRANS(:,:,bid))
@@ -2331,6 +2327,7 @@ end subroutine interior_convection
             WORK = SHF_QSW*(c1-TRANS(:,:,bid))/hflux_factor
             call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
          endif
+#endif
 
       end select
 
@@ -2353,7 +2350,7 @@ end subroutine interior_convection
 ! !INTERFACE:
 
  subroutine blmix(VISC, VDC, HBLT, USTAR, BFSFC, STABLE, &
-                  KBL, GHAT, this_block) 
+                  KBL, GHAT, bid) 
 
 ! !DESCRIPTION:
 !  This routine computes mixing coefficients within boundary layer 
@@ -2370,11 +2367,11 @@ end subroutine interior_convection
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,0:km+1), intent(inout) :: & 
+   real (r8), dimension(nx_block,ny_block,km+1), intent(inout) :: & 
       VISC               ! interior mixing coeff on input
                          ! combined interior/bndy layer coeff output
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km+1,2),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
 ! !INPUT PARAMETERS:
@@ -2388,8 +2385,8 @@ end subroutine interior_convection
       STABLE,               & ! =1 stable forcing; =0 unstab
       USTAR                   ! surface friction velocity
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !OUTPUT PARAMETERS:
 
@@ -2406,8 +2403,7 @@ end subroutine interior_convection
 
    integer (int_kind) :: &
       k,kp1,             &! dummy k level index
-      i,j,               &! horizontal indices
-      bid                 ! local block index
+      i,j                 ! horizontal indices
 
    integer (int_kind), dimension(nx_block,ny_block) :: &
       KN                  ! klvl closest to HBLT
@@ -2436,8 +2432,6 @@ end subroutine interior_convection
 !  compute velocity scales at hbl
 !
 !-----------------------------------------------------------------------
-
-   bid = this_block%local_id
 
    SIGMA = epssfc
 
@@ -2509,21 +2503,33 @@ end subroutine interior_convection
                             p5*WORK1(i,j) - HBLT(i,j)  
             R     (i,j) = c1 - DELHAT(i,j) /DZT(i,j,k,bid)
 
-            DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/DZT(i,j,k,bid)
+	    if (k == 1) then
+		DVDZUP(i,j) = (0 - VISC(i,j,k  ))/DZT(i,j,k,bid)
+	    else
+		DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/DZT(i,j,k,bid)
+	    endif
             DVDZDN(i,j) = (VISC(i,j,k  ) - VISC(i,j,k+1))/WORK2(i,j)
             VISCP (i,j) = p5*( (c1-R(i,j))* &
                                (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
                                    R(i,j) * &
                                (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
+	    if (k == 1) then
+		DVDZUP(i,j) = (0 - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
+	    else
+		DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
+	    endif
             DVDZDN(i,j) = (VDC(i,j,k  ,2) - VDC(i,j,k+1,2))/WORK2(i,j)
             DIFSP (i,j) = p5*( (c1-R(i,j))* &
                                (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
                                    R(i,j) * &
                                (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
+	    if (k == 1) then
+		DVDZUP(i,j) = (0 - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
+	    else
+		DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
+	    endif
             DVDZDN(i,j) = (VDC(i,j,k  ,1) - VDC(i,j,k+1,1))/WORK2(i,j)
             DIFTP (i,j) = p5*( (c1-R(i,j))* &
                                (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
@@ -2557,21 +2563,33 @@ end subroutine interior_convection
             DELHAT(i,j) = p5*hwide(k) - zgrid(k) - HBLT(i,j)        
             R     (i,j) = c1 - DELHAT(i,j) / hwide(k)
 
-            DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/hwide(k)
+	    if (k == 1) then
+		DVDZUP(i,j) = (0 - VISC(i,j,k  ))/hwide(k)
+	    else
+		DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/hwide(k)
+	    endif
             DVDZDN(i,j) = (VISC(i,j,k  ) - VISC(i,j,k+1))/hwide(k+1)
             VISCP (i,j) = p5*( (c1-R(i,j))* &
                                (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
                                    R(i,j) * &
                                (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/hwide(k)
+	    if (k == 1) then
+		DVDZUP(i,j) = (0 - VDC(i,j,k  ,2))/hwide(k)
+	    else
+		DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/hwide(k)
+	    endif
             DVDZDN(i,j) = (VDC(i,j,k  ,2) - VDC(i,j,k+1,2))/hwide(k+1)
             DIFSP (i,j) = p5*( (c1-R(i,j))* &
                                (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
                                    R(i,j) * &
                                (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
-            DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/hwide(k)
+	    if (k == 1) then
+		DVDZUP(i,j) = (0 - VDC(i,j,k  ,1))/hwide(k)
+	    else
+		DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/hwide(k)
+	    endif
             DVDZDN(i,j) = (VDC(i,j,k  ,1) - VDC(i,j,k+1,1))/hwide(k+1)
             DIFTP (i,j) = p5*( (c1-R(i,j))* &
                                (DVDZUP(i,j) + abs(DVDZUP(i,j))) + &
@@ -2887,7 +2905,7 @@ end subroutine interior_convection
 ! !IROUTINE: ddmix
 ! !INTERFACE:
 
- subroutine ddmix(VDC, TRCR, this_block)
+ subroutine ddmix(VDC, TRCR, bid)
 
 ! !DESCRIPTION:
 !  $R_\rho$ dependent interior flux parameterization.
@@ -2902,12 +2920,12 @@ end subroutine interior_convection
    real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
       TRCR                ! tracers at current time
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !INPUT/OUTPUT PARAMETERS:
 
-   real (r8), dimension(nx_block,ny_block,0:km+1,2),intent(inout) :: &
+   real (r8), dimension(nx_block,ny_block,km+1,2),intent(inout) :: &
       VDC        ! diffusivity for tracer diffusion
 
 !EOP
@@ -2943,7 +2961,7 @@ end subroutine interior_convection
 
    PRANDTL = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
 
-   call state(1, 1, PRANDTL, TRCR(:,:,1,2), this_block, &
+   call state(1, 1, PRANDTL, TRCR(:,:,1,2), bid, &
                     RHOFULL=RRHO, &
                     DRHODT=TALPHA(:,:,kup), DRHODS=SBETA(:,:,kup))
 
@@ -2954,7 +2972,7 @@ end subroutine interior_convection
          PRANDTL = merge(-c2,TRCR(:,:,k+1,1),TRCR(:,:,k+1,1) < -c2)
 
          call state(k+1, k+1, PRANDTL, TRCR(:,:,k+1,2),              &
-                              this_block,                            &
+                              bid,                            &
                               RHOFULL=RRHO, DRHODT=TALPHA(:,:,knxt), &
                                             DRHODS= SBETA(:,:,knxt))
 
@@ -3023,7 +3041,7 @@ end subroutine interior_convection
 ! !IROUTINE: buoydiff
 ! !INTERFACE:
 
- subroutine buoydiff(DBLOC, DBSFC, TRCR, this_block)
+ subroutine buoydiff(DBLOC, DBSFC, TRCR, bid)
 
 ! !DESCRIPTION:
 !  This routine calculates the buoyancy differences at model levels.
@@ -3036,8 +3054,8 @@ end subroutine interior_convection
    real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
       TRCR                ! tracers at current time
 
-   type (block), intent(in) :: &
-      this_block          ! block information for current block
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
 
 ! !OUTPUT PARAMETERS:
 
@@ -3056,8 +3074,7 @@ end subroutine interior_convection
    integer (int_kind) :: &
       k,                 &! vertical level index
       i,j,               &! horizontal indices
-      kprev, klvl, ktmp, &! indices for 2-level TEMPK array
-      bid                 ! local block index
+      kprev, klvl, ktmp   ! indices for 2-level TEMPK array
 
    real (r8), dimension(nx_block,ny_block) :: &
       RHO1,              &! density of sfc t,s displaced to k
@@ -3078,8 +3095,6 @@ end subroutine interior_convection
 
    TEMPSFC = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
 
-   bid = this_block%local_id
-
    klvl  = 2
    kprev = 1
 
@@ -3097,11 +3112,11 @@ end subroutine interior_convection
       TEMPK(:,:,klvl) = merge(-c2,TRCR(:,:,k,1),TRCR(:,:,k,1) < -c2)
 
       call state(k, k, TEMPSFC,          TRCR(:,:,1  ,2), &
-                       this_block, RHOFULL=RHO1)
+                       bid, RHOFULL=RHO1)
       call state(k, k, TEMPK(:,:,kprev), TRCR(:,:,k-1,2), &
-                       this_block, RHOFULL=RHOKM)
+                       bid, RHOFULL=RHOKM)
       call state(k, k, TEMPK(:,:,klvl),  TRCR(:,:,k  ,2), &
-                       this_block, RHOFULL=RHOK)
+                       bid, RHOFULL=RHOK)
 
       do j=1,ny_block
       do i=1,nx_block

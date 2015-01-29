@@ -78,6 +78,8 @@
    use shr_map_mod
 #endif
 
+   use gpu_mod
+
    implicit none
    private
    save
@@ -193,6 +195,14 @@
    endif
 
    call init_constants
+
+!-----------------------------------------------------------------------
+!
+!  initialize GPU module
+!
+!-----------------------------------------------------------------------
+
+   call init_gpu_mod
 
 !-----------------------------------------------------------------------
 !
@@ -1214,11 +1224,11 @@
       do k=1,km
          call state(k,k,TRACER(:,:,k,1,curtime,iblock), &
                         TRACER(:,:,k,2,curtime,iblock), &
-                        this_block,                     &
+                        iblock,                     &
                         RHOOUT=RHO(:,:,k,curtime,iblock))
          call state(k,k,TRACER(:,:,k,1,oldtime,iblock), &
                         TRACER(:,:,k,2,oldtime,iblock), &
-                        this_block,                     &
+                        iblock,                     &
                         RHOOUT=RHO(:,:,k,oldtime,iblock))
       enddo
 

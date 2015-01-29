@@ -2181,7 +2181,7 @@
       bid = this_block%local_id
       kmax = size(VDC, DIM=3)
 
-      if (kmax > km) then  ! KPP uses VDC(0:km+1)
+      if (kmax > km) then  ! KPP uses VDC(0:km+1)  ! not anymore Ben
          klvl = k+1
          km1  = k
       else

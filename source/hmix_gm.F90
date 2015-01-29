@@ -1377,7 +1377,7 @@
 !     D_T(rho) & D_S(rho) at level 1
 
             call state (kk, kk, TMIX(:,:,kk,1), TMIX(:,:,kk,2),  &
-                        this_block, DRHODT=DRDT, DRHODS=DRDS) 
+                        bid, DRHODT=DRDT, DRHODS=DRDS) 
 
 !     RX = Dx(rho) = DRDT*Dx(T) + DRDS*Dx(S)
 !     RY = Dy(rho) = DRDT*Dy(T) + DRDS*Dy(S)
@@ -1473,7 +1473,7 @@
 !     D_T(rho) & D_S(rho) at level kk+1
 
             call state (kk+1, kk+1, TMIX(:,:,kk+1,1),  &
-                        TMIX(:,:,kk+1,2), this_block,  &
+                        TMIX(:,:,kk+1,2), bid,  &
                         DRHODT=DRDT, DRHODS=DRDS)
 
             RX(:,:,ieast ,kk+1,bid) = DRDT * TXP(:,:,ks)  &
@@ -2690,7 +2690,7 @@
           endif
 
           call state (k,kp1,TMIX(:,:,k,1),TMIX(:,:,k,2), &
-                      this_block, DRHODT=RHOT, DRHODS=RHOS)
+                      bid, DRHODT=RHOT, DRHODS=RHOS)
 
           TKP = max(-c2, TMIX(:,:,kp1,1))
 
@@ -2915,7 +2915,7 @@
         kp1 = k+1
 
         call state (k, kp1, TMIX(:,:,k,1), TMIX(:,:,k,2), &
-                    this_block, DRHODT=RHOT, DRHODS=RHOS)
+                    bid, DRHODT=RHOT, DRHODS=RHOS)
 
         TKP = max(-c2, TMIX(:,:,kp1,1))
 
@@ -3174,7 +3174,7 @@
 !-----------------------------------------------------------------------
 
           call state( k, k, TMIX(:,:,k,1), TMIX(:,:,k,2), &
-                      this_block, DRHODT=RHOT, DRHODS=RHOS )
+                      bid, DRHODT=RHOT, DRHODS=RHOS )
 
           RHO_X = RHOT * TRACER_X(:,:,1) + RHOS * TRACER_X(:,:,2)
           RHO_Y = RHOT * TRACER_Y(:,:,1) + RHOS * TRACER_Y(:,:,2)
@@ -3470,7 +3470,7 @@
           TEMP_KP1 = max( -c2, TMIX(:,:,k+1,1) )
 
           call state( k, k+1, TMIX(:,:,k,1), TMIX(:,:,k,2), &
-                      this_block, DRHODT=RHOT, DRHODS=RHOS )
+                      bid, DRHODT=RHOT, DRHODS=RHOS )
 
           where ( k < KMT(:,:,bid) ) 
             BUOY_FREQ_SQ(:,:,k,bid) = max( c0, - grav * dzwr(k) &

@@ -1719,14 +1719,14 @@
           tavg_requested(tavg_WRHO)) then
 
          call state(k,1,TRCR(:,:,k,1),                         &
-                        TRCR(:,:,k,2), this_block, &
+                        TRCR(:,:,k,2), bid, &
                         RHOFULL=RHOK1)
 
          if (k == 1) then
             RHOK1M = RHOK1
          else
             call state(k-1,1,TRCR(:,:,k,1),                         &
-                             TRCR(:,:,k,2), this_block, &
+                             TRCR(:,:,k,2), bid, &
                              RHOFULL=RHOK1M)
          endif
       endif
@@ -1776,14 +1776,14 @@
           tavg_requested(tavg_VQ) ) then
 
          call state(k,k,TRCR(:,:,k,1)  &
-                       ,TRCR(:,:,k,2), this_block, &
+                       ,TRCR(:,:,k,2), bid, &
                         RHOOUT=WORK)
 
          if (k == 1 ) then
             WORK3 = WORK
          else
             call state(k-1,k,TRCR(:,:,k-1,1)  &
-                            ,TRCR(:,:,k-1,2), this_block, &
+                            ,TRCR(:,:,k-1,2), bid, &
                              RHOOUT=WORK3)
             WORK3 = p5*(WORK3 + WORK)
          endif
@@ -1792,7 +1792,7 @@
             WORK4 = WORK
          else
             call state(k+1,k,TRCR(:,:,k+1,1)  &
-                            ,TRCR(:,:,k+1,2), this_block, &
+                            ,TRCR(:,:,k+1,2), bid, &
                              RHOOUT=WORK4)
 
             do j=jb,je
