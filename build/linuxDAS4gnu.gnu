@@ -34,6 +34,12 @@ MPI = yes
 NETCDFINC = -I/cm/shared/apps/netcdf/gcc/64/4.1.1/include
 NETCDFLIB = -L/cm/shared/apps/netcdf/gcc/64/4.1.1/lib
 
+
+#with -mcmodel=medium
+#NETCDFINC = -I/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/include
+#NETCDFLIB = -L/var/scratch/jason/netcdf/netcdf-4.1.1-bin-medium/lib
+
+
 #  Enable trapping and traceback of floating point exceptions, yes/no.
 #  Note - Requires 'setenv TRAP_FPE "ALL=ABORT,TRACE"' for traceback.
 
@@ -71,7 +77,7 @@ else
   CFLAGS := $(CFLAGS) -g -check all -ftrapuv
 endif
 
-CFLAGS := $(CFLAGS)
+#CFLAGS := $(CFLAGS) -mcmodel=medium
 CFLAGS := $(CFLAGS) 
  
 #----------------------------------------------------------------------------
@@ -95,7 +101,7 @@ endif
 
 #DAS4 specific
 FFLAGS := $(FFLAGS) -Wall -fdefault-double-8 -fdefault-real-8 -fconvert=swap -fimplicit-none -fbounds-check
- 
+#FFLAGS := $(FFLAGS) -mcmodel=medium
 
 #----------------------------------------------------------------------------
 #
@@ -104,15 +110,17 @@ FFLAGS := $(FFLAGS) -Wall -fdefault-double-8 -fdefault-real-8 -fconvert=swap -fi
 #----------------------------------------------------------------------------
 
 #CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
-#CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
 
-CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v 
+
+#CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
 ifeq ($(OPTIMIZE),yes)
-  CUFLAGS := -O3 $(CUFLAGS)
+  CUFLAGS := -O3 $(CUFLAGS) 
 endif
 
 
+#  CUFLAGS := $(CUFLAGS) -Xcompiler=-mcmodel=medium
 
 
 #----------------------------------------------------------------------------

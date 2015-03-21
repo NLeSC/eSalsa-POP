@@ -34,12 +34,43 @@
    use io_types, only: stdout
    use communicate, only: my_task, master_task
    use tidal_mixing, only: TIDAL_COEF, tidal_mix_max, ltidal_mixing
+   use gpu_mod
 
    use iso_c_binding
 
    implicit none
    private
    save
+
+#include "cuda.h"
+
+
+!generated interface block for GPU entry point
+interface
+
+
+subroutine vmix_coeffs_kpp_gpu_entry (VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, bid, convect_diff, convect_visc, SMF, HMXL, & 
+                                               KPP_HBLT, KPP_SRC) bind (c)
+  use iso_c_binding
+  real (c_double), dimension (*) :: &
+      VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, SMF, HMXL, KPP_HBLT, KPP_SRC
+  integer (c_int) :: &
+      bid
+  real (c_double) :: &
+      convect_diff, convect_visc
+end subroutine vmix_coeffs_kpp_gpu_entry
+
+subroutine init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, &
+                                             pressz, AU) bind (c)
+  use iso_c_binding
+  real (c_double), dimension (*) :: &
+     DZT, dz, zt, DZU, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU
+  integer (c_int), dimension (*) :: &
+     KMU, KMT
+end subroutine init_global_variables
+
+end interface
+
 
 
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -52,7 +83,7 @@
 
 ! !PUBLIC DATA MEMBERS:
 
-   real (r8), dimension(:,:,:), allocatable, public :: & 
+   real (r8), dimension(:,:,:), pointer, public :: & 
       HMXL,               &! mixed layer depth
       KPP_HBLT,           &! boundary layer depth
       BOLUS_SP             ! scaled eddy-induced (bolus) speed used in inertial
@@ -103,7 +134,7 @@
 !
 !-----------------------------------------------------------------------
 
-   real (r8), dimension(:,:,:,:,:), allocatable :: & 
+   real (r8), dimension(:,:,:,:,:), pointer :: & 
       KPP_SRC              ! non-local mixing (treated as source term)
 
 !-----------------------------------------------------------------------
@@ -541,9 +572,20 @@
 !
 !-----------------------------------------------------------------------
 
+  if (use_gpu) then
+        call cudaMallocHost( cptr, nx_block*ny_block*nblocks_clinic )
+        call c_f_pointer(cptr, HMXL, (/ nx_block,ny_block,nblocks_clinic /))
+
+        call cudaMallocHost( cptr, nx_block*ny_block*nblocks_clinic )
+        call c_f_pointer(cptr, KPP_HBLT, (/ nx_block,ny_block,nblocks_clinic /))
+
+        call cudaMallocHost( cptr, nx_block*ny_block*km*nt*nblocks_clinic )
+        call c_f_pointer(cptr, KPP_SRC, (/ nx_block,ny_block,km,nt,nblocks_clinic /))
+  else
    allocate (HMXL     (nx_block,ny_block,nblocks_clinic), &
              KPP_HBLT (nx_block,ny_block,nblocks_clinic), &
              KPP_SRC  (nx_block,ny_block,km,nt,nblocks_clinic))
+  endif
 
    HMXL     = c0
    KPP_HBLT = c0
@@ -612,6 +654,18 @@
 !EOC
 
  call POP_IOUnitsFlush(POP_stdout)
+
+
+ !---------------------------------------------------------------------
+ !
+ !
+ ! initialize global variables on the GPU
+ !
+ !---------------------------------------------------------------------
+
+ call init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU)
+
+
 
  end subroutine init_vmix_kpp
 
@@ -1031,12 +1085,17 @@
 
 
 
+
+
+
+
+
 !***********************************************************************
 !BOP
-! !IROUTINE: vmix_coeffs_kpp_gpu_entry
+! !IROUTINE: vmix_coeffs_kpp_gpu_entry (fortran copy for reference)
 ! !INTERFACE:
 
- subroutine vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
+ subroutine vmix_coeffs_kpp_gpu_entry_fortran(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
                             bid, convect_diff, convect_visc, &
                             SMF, HMXL, KPP_HBLT, KPP_SRC)
 
@@ -1188,14 +1247,14 @@
 !-----------------------------------------------------------------------
 !EOC
 
- end subroutine vmix_coeffs_kpp_gpu_entry
+ end subroutine vmix_coeffs_kpp_gpu_entry_fortran
 
 
 
 
 
 subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff, &
-                                      convect_visc, bid, VDC, VVC, KPP_SRC, HMXL)
+                                      convect_visc, bid, VDC, VVC, KPP_SRC, HMXL) bind (c)
 
 ! DESCRIPTION:
 !
@@ -1438,7 +1497,7 @@ end subroutine interior_convection
 ! !INTERFACE:
 
  subroutine ri_iwmix(DBLOC, VISC, VDC, UUU, VVV, RHOMIX, &
-                          convect_diff, convect_visc, bid)
+                          convect_diff, convect_visc, bid) bind (c)
 
 ! !DESCRIPTION:
 !  Computes viscosity and diffusivity coefficients for the interior
@@ -2344,13 +2403,610 @@ end subroutine interior_convection
 
  end subroutine bldepth
 
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: bldepth_test for testing from C
+! !INTERFACE:
+
+ subroutine bldepth_test (DBLOC, DBSFC, TRCR, UUU, VVV, STF, SHF_QSW,  &
+                     HBLT, USTAR, BFSFC, STABLE, KBL,             &
+                     bid, SMF) bind (c)
+
+! !DESCRIPTION:
+!  This routine computes the ocean boundary layer depth defined as
+!  the shallowest depth where the bulk Richardson number is equal to
+!  a critical value, Ricr.
+!
+!  NOTE: bulk richardson numbers are evaluated by computing 
+!        differences between values at zgrid(kl) $< 0$ and surface
+!        reference values. currently, the reference values are equal 
+!        to the values in the surface layer.  when using higher 
+!        vertical grid resolution, these reference values should be 
+!        computed as the vertical averages from the surface down to 
+!        epssfc*zgrid(kl).
+!
+!  This routine also computes where surface forcing is stable 
+!  or unstable (STABLE)
+!
+! !REVISION HISTORY:
+!  same as module
+
+
+! !INPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,km,nt), intent(in) :: &
+      TRCR                ! tracers at current time
+
+   real (r8), dimension(nx_block,ny_block,km), intent(in) :: &
+      UUU,VVV,       &! velocities at current time
+      DBLOC,         &! buoyancy difference between adjacent levels
+      DBSFC           ! buoyancy difference between level and surface
+
+   real (r8), dimension(nx_block,ny_block,nt), intent(in) :: &
+      STF                 ! surface forcing for all tracers
+
+   real (r8), dimension(nx_block,ny_block), intent(in) :: &
+      SHF_QSW             ! short-wave forcing
+
+   real (r8), dimension(nx_block,ny_block,2), intent(in) :: &
+      SMF               ! surface momentum forcing at U points
+
+   integer (int_kind), intent(in) :: &
+      bid                 ! local block address for this block
+
+! !OUTPUT PARAMETERS:
+
+   integer (int_kind), dimension(nx_block,ny_block), intent(out) :: &
+      KBL                    ! index of first lvl below hbl
+
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      HBLT,               &! boundary layer depth
+      BFSFC,              &! Bo+radiation absorbed to d
+      STABLE,             &! =1 stable forcing; =0 unstab
+      USTAR                ! surface friction velocity
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      i,j,               &! loop indices
+      kupper, kup, kdn, ktmp, kl  ! vertical level indices
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      VSHEAR,            &! (velocity shear re sfc)^2
+      SIGMA,             &! d/hbl
+      WM, WS,            &! turb vel scale functions
+      BO,                &! surface buoyancy forcing
+      BOSOL,             &! radiative buoyancy forcing
+      TALPHA,            &! temperature expansion coeff
+      SBETA,             &! salinity    expansion coeff
+      RHO1,              &! density at the surface
+      WORK,              &! temp array
+      ZKL,               &! depth at current z level
+      B_FRQNCY,          &! buoyancy frequency
+      RSH_HBLT,          &! resolved shear contribution to HBLT (fraction)
+      HLANGM,            &! Langmuir depth
+      HEKMAN,            &! Eckman depth limit
+      HLIMIT              ! limit to mixed-layer depth
+                          ! (= min(HEKMAN,HMONOB))
+
+   real (r8), dimension(nx_block,ny_block,3) :: &
+      RI_BULK,           &! Bulk Ri number at 3 lvls
+      HMONOB              ! Monin-Obukhov depth limit
+
+   real (r8) ::          &
+      absorb_frac,       &! shortwave absorption frac
+      sqrt_arg,          &! dummy sqrt argument
+      z_upper, z_up       ! upper depths for RI_BULK interpolation
+
+   real (r8) :: &
+      a_co, b_co, c_co    ! coefficients of the quadratic equation
+                          ! $(a_{co}z^2+b_{co}|z|+c_{co}=Ri_b) used to 
+                          ! find the boundary layer depth. when
+                          ! finding the roots, c_co = c_co - Ricr
+
+   real (r8) :: &
+      slope_up            ! slope of the above quadratic equation
+                          ! at zup. this is used as a boundary
+                          ! condition to determine the coefficients.
+
+!-----------------------------------------------------------------------
+!
+!  compute friction velocity USTAR.  compute on U-grid and average
+!  to T-grid.
+!
+!-----------------------------------------------------------------------
+
+   WORK = sqrt(sqrt(SMF(:,:,1)**2 + SMF(:,:,2)**2))
+   call ugrid_to_tgrid(USTAR,WORK,bid)
+
+!-----------------------------------------------------------------------
+!
+!  compute density and expansion coefficients at surface
+!
+!-----------------------------------------------------------------------
+
+   WORK = merge(-c2,TRCR(:,:,1,1),TRCR(:,:,1,1) < -c2)
+
+   call state(1,1,WORK,TRCR(:,:,1,2),bid, &
+                  RHOFULL=RHO1, DRHODT=TALPHA, DRHODS=SBETA)
+
+!-----------------------------------------------------------------------
+!
+!  compute turbulent and radiative sfc buoyancy forcing
+!
+!-----------------------------------------------------------------------
+
+   do j=1,ny_block
+   do i=1,nx_block
+      if (RHO1(i,j) /= c0) then
+         BO   (i,j) = grav*(-TALPHA(i,j)*STF(i,j,1) - &
+                             SBETA (i,j)*STF(i,j,2))/RHO1(i,j)
+
+         BOSOL(i,j) = -grav*TALPHA(i,j)*SHF_QSW(i,j)/RHO1(i,j)
+      else
+         BO   (i,j) = c0
+         BOSOL(i,j) = c0
+      endif
+   end do
+   end do
+
+!-----------------------------------------------------------------------
+!
+!  Find bulk Richardson number at every grid level until > Ricr
+!  max values when Ricr never satisfied are KBL = KMT and
+!  HBLT = -zgrid(KMT)
+!
+!  NOTE: the reference depth is -epssfc/2.*zgrid(i,k), but the 
+!        reference u,v,t,s values are simply the surface layer 
+!        values and not the averaged values from 0 to 2*ref.depth,
+!        which is necessary for very fine grids(top layer < 2m 
+!        thickness)
+!
+!
+!  Initialize hbl and kbl to bottomed out values
+!  Initialize HEKMAN and HLIMIT (= HMONOB until reset) to model bottom
+!  Initialize Monin Obukhov depth to value at z_up
+!  Set HMONOB=-zgrid(km) if unstable
+!
+!-----------------------------------------------------------------------
+
+   kupper = 1
+   kup = 2
+   kdn = 3
+   z_upper = c0
+   z_up    = zgrid(1)
+
+   RI_BULK(:,:,kupper) = c0
+   RI_BULK(:,:,kup) = c0 
+   KBL = merge(KMT(:,:,bid), 1, (KMT(:,:,bid) > 1))
+
+   HLANGM = c0
+
+   do kl=1,km
+      if (partial_bottom_cells) then
+      	 if (kl > 1) then
+      	 	  ZKL = -zgrid(kl-1) + p5*(DZT(:,:,kl  ,bid) + &
+                                     DZT(:,:,kl-1,bid))
+         else
+            ZKL = -zgrid(1)
+         endif
+      else
+         ZKL = -zgrid(kl)
+      endif
+
+      ! DIR$ COLLAPSE
+      do j=1,ny_block
+      do i=1,nx_block
+         if (kl == KBL(i,j)) HBLT(i,j) = ZKL(i,j)
+      end do
+      end do
+   enddo
+
+   if ( lcheckekmo ) then
+
+      HEKMAN = -zgrid(km) + eps
+      HLIMIT = -zgrid(km) + eps
+
+      if ( lshort_wave ) then
+         select case (sw_absorption_type)
+
+         case ('top-layer')
+
+            BFSFC = BO + BOSOL
+         
+         case ('jerlov')
+
+            call sw_absorb_frac(-z_up,absorb_frac)
+            BFSFC = BO + BOSOL * (c1 - absorb_frac)
+
+         case ('chlorophyll')
+
+#ifdef unsupported
+            call sw_trans_chl(1,this_block)
+            BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
+#endif
+
+         end select
+
+      else
+         BFSFC = BO
+      endif
+
+      STABLE = merge(c1, c0, BFSFC >= c0)
+
+      BFSFC  = BFSFC + STABLE*eps
+
+      WORK =   STABLE * cmonob*USTAR*USTAR*USTAR/vonkar/BFSFC &
+            + (STABLE -c1)*zgrid(km)
+      HMONOB(:,:,kup) = merge( -z_up+eps, WORK, WORK <= -z_up )
+   endif
+
+   RSH_HBLT = c0
+
+!-----------------------------------------------------------------------
+!
+!  compute velocity shear squared on U-grid and use the maximum
+!  of the four surrounding U-grid values for the T-grid.
+!
+!-----------------------------------------------------------------------
+
+   do kl = 2,km
+ 
+      WORK = (UUU(:,:,1)-UUU(:,:,kl))**2 + &
+             (VVV(:,:,1)-VVV(:,:,kl))**2
+
+      if (partial_bottom_cells) then
+         WORK = WORK/(-zgrid(kl-1) + & 
+                      p5*(DZU(:,:,kl  ,bid) + &
+                          DZU(:,:,kl-1,bid) - &
+                          DZU(:,:,1   ,bid)))**2
+
+      	 ZKL = -zgrid(kl-1) + p5*(DZT(:,:,kl  ,bid) + &
+                                  DZT(:,:,kl-1,bid))
+      else
+         ZKL = -zgrid(kl)
+      endif
+
+      VSHEAR(:,1) = c0
+      do j=2,ny_block
+         VSHEAR(1,j) = c0
+         do i=2,nx_block
+            VSHEAR(i,j) = max(WORK(i,j  ), WORK(i-1,j  ),   &
+                              WORK(i,j-1), WORK(i-1,j-1))
+         enddo
+      enddo
+
+!-----------------------------------------------------------------------
+!
+!     compute bfsfc= Bo + radiative contribution down to hbf * hbl
+!     add epsilon to BFSFC to ensure never = 0
+!
+!-----------------------------------------------------------------------
+
+      if (lshort_wave) then
+
+         select case (sw_absorption_type)
+
+         case ('top-layer')
+
+           BFSFC = BO + BOSOL
+
+         case ('jerlov')
+
+           do j=1,ny_block
+           do i=1,nx_block
+              call sw_absorb_frac(ZKL(i,j), absorb_frac)
+              BFSFC(i,j) = BO(i,j) + BOSOL(i,j)*(c1 - absorb_frac) 
+           enddo
+           enddo
+
+         case ('chlorophyll')
+#ifdef unsupported
+           call sw_trans_chl(2*kl-1,this_block)
+           BFSFC = BO + BOSOL*(c1-TRANS(:,:,bid))
+#endif
+
+         end select
+
+
+      else
+         BFSFC = BO
+      endif
+
+      STABLE = MERGE(c1, c0, BFSFC >= c0)
+
+      BFSFC  = BFSFC + STABLE*eps
+
+!-----------------------------------------------------------------------
+!
+!     compute the Ekman and Monin Obukhov depths using above stability
+!
+!-----------------------------------------------------------------------
+
+      if (lcheckekmo) then
+
+         ! DIR$ COLLAPSE
+         do j=1,ny_block
+         do i=1,nx_block
+            if ( STABLE(i,j) > p5 .and. HEKMAN(i,j) >= -zgrid(km) ) then
+               HEKMAN(i,j) = max(ZKL(i,j), &
+                           cekman*USTAR(i,j)/(abs(FCORT(i,j,bid))+eps))
+            endif
+         end do
+         end do
+
+         HMONOB(:,:,kdn) = STABLE*cmonob*USTAR*USTAR*USTAR/vonkar/BFSFC + &
+                          (STABLE-c1)*zgrid(km)
+
+         ! DIR$ COLLAPSE
+         do j=1,ny_block
+         do i=1,nx_block
+            if (HMONOB(i,j,kdn) <= ZKL(i,j) .and. &
+                HMONOB(i,j,kup) >  -z_up) then
+               WORK(i,j) = (HMONOB(i,j,kdn) - HMONOB(i,j,kup))/ &
+                           (z_up + ZKL(i,j))
+               HLIMIT(i,j) = (HMONOB(i,j,kdn) - WORK(i,j)*ZKL(i,j))/ &
+                             (c1 - WORK(i,j))
+
+            endif
+         end do
+         end do
+      endif
+
+!-----------------------------------------------------------------------
+!
+!     compute velocity scales at sigma, for hbl = -zgrid(kl)
+!
+!-----------------------------------------------------------------------
+
+      SIGMA = epssfc
+
+      call wscale(SIGMA, ZKL, USTAR, BFSFC, 2, WM, WS)
+
+!-----------------------------------------------------------------------
+!
+!     compute the turbulent shear contribution to RI_BULK and store
+!     in WM.
+!
+!-----------------------------------------------------------------------
+
+      if (partial_bottom_cells) then
+         if (kl < km) then
+            B_FRQNCY = sqrt( &
+                       p5*(DBLOC(:,:,kl) + abs(DBLOC(:,:,kl)) + eps2)/  &
+                      (p5*(DZT(:,:,kl,bid) + DZT(:,:,kl+1,bid))) )
+         else
+            B_FRQNCY = sqrt( &
+                       p5*(DBLOC(:,:,kl) + abs(DBLOC(:,:,kl)) + eps2)/  &
+                       DZT(:,:,kl,bid) )
+         end if
+      else
+         B_FRQNCY = sqrt( &
+                    p5*(DBLOC(:,:,kl) + abs(DBLOC(:,:,kl)) + eps2)/  &
+                    (zgrid(kl)-zgrid(kl+1)) )
+      endif
+
+      WM = ZKL*WS*B_FRQNCY* &
+          ( (Vtc/Ricr(kl))*max(2.1_r8 - 200.0_r8*B_FRQNCY,concv) )
+
+!-----------------------------------------------------------------------
+! 
+!     compute bulk Richardson number at new level
+!
+!-----------------------------------------------------------------------
+
+      if (partial_bottom_cells) then
+         WORK = merge( DBSFC(:,:,kl)/(-zgrid(kl-1)+            &
+                                      p5*(DZT(:,:,kl-1,bid) +  &
+                                          DZT(:,:,kl  ,bid) -  &
+                                          DZT(:,:,1   ,bid))), & 
+                       c0, KMT(:,:,bid) >= kl)
+         WM = WM/(-zgrid(kl-1) +          &
+                  p5*(DZT(:,:,kl-1,bid) + &
+                      DZT(:,:,kl  ,bid) - &
+                      DZT(:,:,1   ,bid)))**2
+         RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps/(-zgrid(kl-1)+   &
+                                   p5*(DZU(:,:,kl,bid) +         &
+                                       DZU(:,:,kl-1,bid) -       &
+                                       DZU(:,:,1,bid)))**2)
+      else
+         WORK = MERGE( (zgrid(1)-zgrid(kl))*DBSFC(:,:,kl), &
+                      c0, KMT(:,:,bid) >= kl)
+         if ( linertial ) then
+           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+USTAR*BOLUS_SP(:,:,bid)+eps)
+         else
+           RI_BULK(:,:,kdn) = WORK/(VSHEAR+WM+eps)
+         endif
+      endif
+
+!-----------------------------------------------------------------------
+!
+!       find hbl where Rib = Ricr. if possible, use a quadratic
+!       interpolation. if not, linearly interpolate. the quadratic
+!       equation coefficients are determined using the slope and
+!       Ri_bulk at z_up and Ri_bulk at zgrid(kl). the slope at
+!       z_up is computed linearly between z_upper and z_up.
+!
+!       compute Langmuir depth always 
+!-----------------------------------------------------------------------
+
+      do j=1,ny_block
+      do i=1,nx_block
+         if ( KBL(i,j) == KMT(i,j,bid) .and.  &
+              RI_BULK(i,j,kdn) > Ricr(kl) ) then
+
+            slope_up =  (RI_BULK(i,j,kupper) - RI_BULK(i,j,kup))/ &
+                        (z_up - z_upper)
+            a_co = (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup) -         &
+                    slope_up*(ZKL(i,j) + z_up) )/(z_up + ZKL(i,j))**2
+            b_co = slope_up + c2 * a_co * z_up
+            c_co = RI_BULK(i,j,kup) + &
+                   z_up*(a_co*z_up + slope_up) - Ricr(kl)
+            sqrt_arg = b_co**2 - c4*a_co*c_co
+
+            if ( ( abs(b_co) > eps .and. abs(a_co)/abs(b_co) <= eps ) &
+                 .or. sqrt_arg <= c0 ) then
+                 	
+               HBLT(i,j) = -z_up + (z_up + ZKL(i,j)) *               &
+                           (Ricr(kl)         - RI_BULK(i,j,kup))/    &
+                           (RI_BULK(i,j,kdn) - RI_BULK(i,j,kup))
+            else
+               HBLT(i,j) = (-b_co + sqrt(sqrt_arg)) / (c2*a_co)
+            endif
+            
+            KBL(i,j) = kl
+            RSH_HBLT(i,j) =  (VSHEAR(i,j)*Ricr(kl)/ &
+                              (DBSFC(i,j,kl)+eps))/HBLT(i,j)
+
+            HLANGM(i,j) = USTAR(i,j) * SQRT( FSTOKES(i,j,bid)*ZKL(i,j)/(DBSFC(i,j,kl)+eps) ) &
+                          / 0.9_r8
+
+         endif
+      enddo
+      enddo
+
+!-----------------------------------------------------------------------
+!
+!     swap klevel indices and move to next level
+!
+!-----------------------------------------------------------------------
+
+      ktmp   = kupper
+      kupper = kup
+      kup    = kdn
+      kdn    = ktmp
+      z_upper = z_up
+      z_up    = zgrid(kl)
+
+   end do
+
+!-----------------------------------------------------------------------
+!
+!     apply Langmuir parameterization if requested 
+!
+!-----------------------------------------------------------------------
+
+   if ( llangmuir ) then
+     do kl = km,2,-1
+        where ( HLANGM > HBLT          .and.   &
+                HLANGM >  -zgrid(kl-1) .and.   &
+                HLANGM <= ZKL                  )
+           HBLT  = HLANGM
+           KBL   = kl
+        end where
+     enddo
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  first combine Ekman and Monin-Obukhov depth limits. then apply
+!  these restrictions to HBLT. note that HLIMIT is set to -zgrid(km)
+!  in unstable forcing.
+!
+!-----------------------------------------------------------------------
+
+   if ( lcheckekmo ) then
+
+      where ( HEKMAN < HLIMIT )  HLIMIT = HEKMAN
+
+      do kl = 2,km
+         where ( HLIMIT < HBLT          .and.   &
+                 HLIMIT >  -zgrid(kl-1) .and.   &
+                 HLIMIT <= ZKL                  )
+            HBLT = HLIMIT
+            KBL = kl
+         end where
+      enddo
+
+   endif
+
+!-----------------------------------------------------------------------
+!
+!  apply a Gaussian filter
+!
+!-----------------------------------------------------------------------
+
+   call smooth_hblt (.true., .false., bid, HBLT=HBLT, KBL=KBL)
+
+!-----------------------------------------------------------------------
+!
+!  correct stability and buoyancy forcing for SW up to boundary layer
+!
+!-----------------------------------------------------------------------
+
+   if (lshort_wave) then
+      select case (sw_absorption_type)
+
+      case ('top-layer')
+
+        BFSFC   = BO + BOSOL
+!       QSW_HBL = SHF_QSW
+        if (tavg_requested(tavg_QSW_HBL)) then
+           WORK = SHF_QSW/hflux_factor
+           call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
+        endif
+
+
+      case ('jerlov')
+
+         do j = 1,ny_block
+         do i = 1,nx_block
+            call sw_absorb_frac(HBLT(i,j),absorb_frac)
+            BFSFC(i,j)  = BO(i,j) + BOSOL(i,j)*(c1 - absorb_frac) 
+         enddo
+         enddo
+
+!         if (tavg_requested(tavg_QSW_HBL)) then
+!            WORK = SHF_QSW*(c1-absorb_frac)/hflux_factor
+!            call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
+!         endif
+
+      case ('chlorophyll')
+
+#ifdef unsupported
+         ZTRANS(:,:,bid) = HBLT(:,:)
+         call sw_trans_chl(0,this_block)
+         BFSFC   = BO + BOSOL*(c1-TRANS(:,:,bid))
+
+         if (tavg_requested(tavg_QSW_HBL)) then
+           !QSW_HBL = SHF_QSW   *(c1-TRANS(:,:,bid)) ! boundary layer sw heating
+            WORK = SHF_QSW*(c1-TRANS(:,:,bid))/hflux_factor
+            call accumulate_tavg_field(WORK,tavg_QSW_HBL,bid,1)
+         endif
+#endif
+
+      end select
+
+
+   endif
+
+   STABLE = MERGE(c1, c0, BFSFC >= c0)
+
+
+   BFSFC  = BFSFC + STABLE * eps ! ensures bfsfc never=0
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine bldepth_test
+
+
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: blmix
 ! !INTERFACE:
 
  subroutine blmix(VISC, VDC, HBLT, USTAR, BFSFC, STABLE, &
-                  KBL, GHAT, bid) 
+                  KBL, GHAT, bid) bind (c)
 
 ! !DESCRIPTION:
 !  This routine computes mixing coefficients within boundary layer 
@@ -2905,7 +3561,7 @@ end subroutine interior_convection
 ! !IROUTINE: ddmix
 ! !INTERFACE:
 
- subroutine ddmix(VDC, TRCR, bid)
+ subroutine ddmix(VDC, TRCR, bid) bind (c)
 
 ! !DESCRIPTION:
 !  $R_\rho$ dependent interior flux parameterization.
@@ -3041,7 +3697,7 @@ end subroutine interior_convection
 ! !IROUTINE: buoydiff
 ! !INTERFACE:
 
- subroutine buoydiff(DBLOC, DBSFC, TRCR, bid)
+ subroutine buoydiff(DBLOC, DBSFC, TRCR, bid) bind (c)
 
 ! !DESCRIPTION:
 !  This routine calculates the buoyancy differences at model levels.
@@ -3189,7 +3845,8 @@ end subroutine interior_convection
 !
 !-----------------------------------------------------------------------
 
-   if (.not. allocated(KPP_SRC)) return
+!this is not the way to check whether kpp was chosen - Ben
+!   if (.not. allocated(KPP_SRC)) return
 
 !-----------------------------------------------------------------------
 !

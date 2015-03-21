@@ -34,9 +34,11 @@
    use global_reductions
    use exit_mod
 
+
    implicit none
    private
    save
+
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
@@ -113,11 +115,13 @@
       FCOR, FCORT         ,&! coriolis parameter at U,T points
       UAREA, TAREA        ,&! area of U,T cells
       UAREA_R, TAREA_R    ,&! reciprocal of area of U,T cells
-      HT, HU, HUR           ! ocean depth at T,U points
+      HT, HU, HUR         ,&! ocean depth at T,U points
+      AU		    ! weights for ugrid to tgrid conversion on the GPU
+
 
    !*** 3d depth fields for partial bottom cells
 
-   real (POP_r8), dimension(:,:,:,:), allocatable, public :: &
+   real (POP_r8), dimension(:,:,:,:), pointer, public :: &
       DZU, DZT               ! thickness of U,T cell for pbc
 
    !*** 2d landmasks
@@ -788,6 +792,7 @@
                                  trim(bottom_cell_file)
       endif
       call read_bottom_cell(DZBC,bottom_cell_file)
+
       allocate (DZT(nx_block,ny_block,0:km+1,max_blocks_clinic), &
                 DZU(nx_block,ny_block,0:km+1,max_blocks_clinic))
       DZT = c0
@@ -2482,6 +2487,8 @@
 !   to U points.
 !
 !-----------------------------------------------------------------------
+
+   AU = TAREA * p25 * UAREA_R
 
    AU0  = TAREA
    AUN  = eoshift(TAREA,dim=2,shift=+1)

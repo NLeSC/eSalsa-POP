@@ -101,7 +101,13 @@ endif
 CUSRCS	= $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(CUSRCS))
   OBJS := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(OBJS)
-  # DEPENDS := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(DEPENDS)
+#  DEPENDS := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS:.cu=.o))) $(DEPENDS)
+endif
+
+CCSRCS	= $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cc)))
+ifneq (,$(CUSRCS))
+  OBJS := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CCSRCS:.cc=.o))) $(OBJS)
+#  DEPENDS := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CCSRCS:.cc=.o))) $(DEPENDS)
 endif
 
 #----------------------------------------------------------------------------
@@ -136,6 +142,8 @@ include $(DEPENDS)
 %.o : %.f
 %.o : %.f90
 %.o : %.c
+%.o : %.cc
+%.o : %.cu
 
 %.o: %.f
 	@echo $(POPARCH) Compiling with implicit rule $(FFLAGS) $<
@@ -149,7 +157,16 @@ include $(DEPENDS)
 	@echo $(POPARCH) Compiling with implicit rule $(Cpp_opts) $(CFLAGS) $<
 	@cd $(POPEXEDIR)/compile && $(CC) $(Cpp_opts) $(CFLAGS) -c $(notdir $<)
 
+%.o: %.cc
+	@echo $(POPARCH) Compiling with implicit rule $(Cpp_opts) $(CFLAGS) $<
+	@cd $(POPEXEDIR)/compile && $(CC) $(Cpp_opts) $(CFLAGS) -c $(notdir $<)
+
 %.o: %.cu
 	@echo $(POPARCH) Compiling with implicit rule $(CUFLAGS) $<
-	@cd $(POPEXEDIR)/compile && $(NVCC) $(CUFLAGS) -ptx $<
 	@cd $(POPEXEDIR)/compile && $(NVCC) $(CUFLAGS) -c $(notdir $<)
+
+
+
+
+
+#	@cd $(POPEXEDIR)/compile && $(NVCC) $(CUFLAGS) -ptx $<

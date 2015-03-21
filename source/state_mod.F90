@@ -60,10 +60,12 @@
 !
 !-----------------------------------------------------------------------
 
+   real (r8), dimension(km), public :: & 
+      pressz              ! ref pressure (bars) at each level
+
    real (r8), dimension(km) :: & 
       tmin, tmax,        &! valid temperature range for level k
-      smin, smax,        &! valid salinity    range for level k
-      pressz              ! ref pressure (bars) at each level
+      smin, smax          ! valid salinity    range for level k
 
 !-----------------------------------------------------------------------
 !

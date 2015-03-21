@@ -18,7 +18,7 @@ SHELL    = /bin/sh
 
 #  First clean out current list of suffixes, then define them
 .SUFFIXES: 
-.SUFFIXES: .c .f .f90 .F .F90 .C
+.SUFFIXES: .c .f .f90 .F .F90 .C .cu .cc .h
 
 #----------------------------------------------------------------------------
 #
@@ -62,6 +62,30 @@ SOURCES =
 CUSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
 ifneq (,$(CUSRCS))
   SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CUSRCS))) \
+             $(SOURCES)
+endif
+
+#----------------------------------------------------------------------------
+#
+# Define .cc sources that must be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+CCSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cc)))
+ifneq (,$(CCSRCS))
+  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(CCSRCS))) \
+             $(SOURCES)
+endif
+
+#----------------------------------------------------------------------------
+#
+# Define .h sources that must be copied into the build directory
+#
+#----------------------------------------------------------------------------
+
+HSRCS = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.h)))
+ifneq (,$(HSRCS))
+  SOURCES := $(addprefix $(POPEXEDIR)/compile/, $(notdir $(HSRCS))) \
              $(SOURCES)
 endif
 
@@ -206,6 +230,10 @@ $(POPEXEDIR)/compile/%.f90: %.f90
 $(POPEXEDIR)/compile/%.c: %.c
 	@echo '$(POPARCH) preprocessing ' $<
 	@$(Cp) $< $(POPEXEDIR)/compile/$*.c
+
+$(POPEXEDIR)/compile/%.cc: %.cc
+	@echo '$(POPARCH) preprocessing ' $<
+	@$(Cp) $< $(POPEXEDIR)/compile/$*.cc
 
 $(POPEXEDIR)/compile/%.cu: %.cu
 	@echo '$(POPARCH) preprocessing ' $<

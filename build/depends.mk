@@ -28,7 +28,7 @@ DepDir = $(POPEXEDIR)/compile/Depends
 
 #  First clean out current list of suffixes, then define them
 .SUFFIXES: 
-.SUFFIXES: .f .f90 .c d .do
+.SUFFIXES: .f .f90 .c .cc .cu d .do
 
 ifeq ($(OPTIMIZE),yes)
   DEPSUF = .do
@@ -87,6 +87,18 @@ ifneq (,$(CSRCS))
               $(DEPFILES)
 endif
 
+CUSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cu)))
+ifneq (,$(CUSRCS))
+  DEPFILES := $(addprefix $(DepDir)/, $(notdir $(CUSRCS:.cu=$(DEPSUF)))) \
+              $(DEPFILES)
+endif
+
+CCSRCS   = $(strip $(foreach dir,$(SRCDIRS),$(wildcard $(dir)*.cc)))
+ifneq (,$(CCSRCS))
+  DEPFILES := $(addprefix $(DepDir)/, $(notdir $(CCSRCS:.cc=$(DEPSUF)))) \
+              $(DEPFILES)
+endif
+
 #----------------------------------------------------------------------------
 #
 #  Generate the dependencies - implicit rules handle all cases.
@@ -120,6 +132,14 @@ $(DepDir)/%$(DEPSUF): %.f
 # will need to test for includes delimited by quotes.
 
 $(DepDir)/%$(DEPSUF): %.c
+	@echo '$(POPARCH) Making depends for compiling' $<
+	@echo '$(*).o $(DepDir)/$(*)$(DEPSUF): $(basename $<)$(suffix $<)' > $(DepDir)/$(@F)
+
+$(DepDir)/%$(DEPSUF): %.cu
+	@echo '$(POPARCH) Making depends for compiling' $<
+	@echo '$(*).o $(DepDir)/$(*)$(DEPSUF): $(basename $<)$(suffix $<)' > $(DepDir)/$(@F)
+
+$(DepDir)/%$(DEPSUF): %.cc
 	@echo '$(POPARCH) Making depends for compiling' $<
 	@echo '$(*).o $(DepDir)/$(*)$(DEPSUF): $(basename $<)$(suffix $<)' > $(DepDir)/$(@F)
 
