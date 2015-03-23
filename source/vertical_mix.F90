@@ -574,7 +574,8 @@
                                  bid,                 &
                                  convect_diff, convect_visc, &
                                  SMFT=SMFT)
-         else
+         else      
+           if (use_gpu) then
             call vmix_coeffs_kpp_gpu(VDC(:,:,:,:,bid),           &
                                  VVC(:,:,:,  bid),           &
                                  TMIX,UMIX,VMIX,RHOMIX,      &
@@ -582,6 +583,16 @@
                                  bid,                 &
                                  convect_diff, convect_visc, &
                                  SMF=SMF)
+           else
+            call vmix_coeffs_kpp(VDC(:,:,:,:,bid),           &
+                                 VVC(:,:,:,  bid),           &
+                                 TMIX,UMIX,VMIX,RHOMIX,      &
+                                 STF,SHF_QSW,                &
+                                 bid,                 &
+                                 convect_diff, convect_visc, &
+                                 SMF=SMF)
+
+           endif
          endif
       endif
 

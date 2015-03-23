@@ -48,7 +48,6 @@
 !generated interface block for GPU entry point
 interface
 
-
 subroutine vmix_coeffs_kpp_gpu_entry (VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, bid, convect_diff, convect_visc, SMF, HMXL, & 
                                                KPP_HBLT, KPP_SRC) bind (c)
   use iso_c_binding
@@ -59,6 +58,17 @@ subroutine vmix_coeffs_kpp_gpu_entry (VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, bi
   real (c_double) :: &
       convect_diff, convect_visc
 end subroutine vmix_coeffs_kpp_gpu_entry
+
+subroutine vmix_coeffs_kpp_gpu_entry_test (VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, bid, convect_diff, convect_visc, SMF, HMXL, & 
+                                               KPP_HBLT, KPP_SRC) bind (c)
+  use iso_c_binding
+  real (c_double), dimension (*) :: &
+      VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, SMF, HMXL, KPP_HBLT, KPP_SRC
+  integer (c_int) :: &
+      bid
+  real (c_double) :: &
+      convect_diff, convect_visc
+end subroutine vmix_coeffs_kpp_gpu_entry_test
 
 subroutine init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, &
                                              pressz, AU) bind (c)
@@ -1067,7 +1077,7 @@ end interface
 
    call vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
                             bid, convect_diff, convect_visc, &
-                            SMF, HMXL(:,:,bid), KPP_HBLT(:,:,bid), KPP_SRC(:,:,:,:,bid))
+                            SMF, HMXL(:,:,bid), KPP_HBLT(:,:,bid), KPP_SRC)
 
 
 !any removed tavg_requested stuff should go here

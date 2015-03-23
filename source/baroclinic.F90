@@ -23,8 +23,8 @@
    use POP_DomainSizeMod, only : POP_km, POP_nt, POP_maxBlocksClinic
 
    use blocks, only: nx_block, ny_block, block, get_block
-!   use distribution, only: 
-   use domain, only: nblocks_clinic, blocks_clinic, POP_haloClinic
+!   use distribution
+   use domain, only: nblocks_clinic, blocks_clinic, POP_haloClinic, distrb_clinic
    use constants, only: delim_fmt, blank_fmt, p5, field_loc_center,          &
        field_type_scalar, c0, c1, c2, grav, ndelim_fmt,                      &
        hflux_factor, salinity_factor, salt_to_ppt
@@ -65,6 +65,8 @@
    use floats, only: define_float_field, float_requested, update_float_buffer
    use operators, only: zcurl
    use exit_mod, only: sigAbort, exit_pop
+
+   use timers
 
    implicit none
    private
@@ -136,6 +138,15 @@
       float_SALT,       &! float id for salinity
       float_PV,         &! float id for potential vorticity
       float_PD           ! float id for potential density ref to surface
+
+
+!added timers
+
+   integer (POP_i4) :: &
+      timer_tracer_update, &! timer number for tracer update
+      timer_clinic          ! timer number for clinic
+ 
+
 
 !EOC
 !***********************************************************************
@@ -387,6 +398,20 @@
                           long_name='Potential Density Ref to Surface',&
                           units='gram/centimeter^3', grid_loc='3111')
 
+
+
+
+
+!timers
+
+      call get_timer(timer_tracer_update,'TRACER_UPDATE', &
+                                  nblocks_clinic, distrb_clinic%nprocs)
+
+      call get_timer(timer_clinic,'CLINIC', &
+                                  nblocks_clinic, distrb_clinic%nprocs)
+
+
+
 !-----------------------------------------------------------------------
 !EOC
 
@@ -546,7 +571,7 @@
 !
 !-----------------------------------------------------------------------
 
-
+call timer_start(timer_tracer_update, block_id=iblock)
          call tracer_update(k, WTK,                             &
                                TRACER (:,:,:,:,newtime,iblock), &
                                TRACER (:,:,:,:,oldtime,iblock), &
@@ -564,6 +589,8 @@
                                PSURF  (:,:    ,oldtime,iblock), &
                                PSURF  (:,:    ,curtime,iblock), &
                                this_block, errorCode)
+
+   call timer_stop(timer_tracer_update, block_id=iblock)
 
          if (errorCode /= POP_Success) then
             call POP_ErrorSet(errorCode, &
@@ -983,6 +1010,7 @@
 !
 !-----------------------------------------------------------------------
 
+call timer_start(timer_clinic, block_id=iblock)
          call clinic(k, FX, FY, WUK,                &
                         UVEL(:,:,:,curtime,iblock), &
                         VVEL(:,:,:,curtime,iblock), &
@@ -996,6 +1024,8 @@
                         SMF (:,:,:,iblock),         &
                         DHU (:,:,iblock),           &
                         this_block, errorCode)
+
+call timer_stop(timer_clinic, block_id=iblock)
 
          if (errorCode /= POP_Success) then
             call POP_ErrorSet(errorCode, &
