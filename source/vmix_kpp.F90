@@ -3170,7 +3170,7 @@ end subroutine interior_convection
             R     (i,j) = c1 - DELHAT(i,j) /DZT(i,j,k,bid)
 
 	    if (k == 1) then
-		DVDZUP(i,j) = (0 - VISC(i,j,k  ))/DZT(i,j,k,bid)
+		DVDZUP(i,j) = (c0 - VISC(i,j,k  ))/DZT(i,j,k,bid)
 	    else
 		DVDZUP(i,j) = (VISC(i,j,k-1) - VISC(i,j,k  ))/DZT(i,j,k,bid)
 	    endif
@@ -3181,7 +3181,7 @@ end subroutine interior_convection
                                (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
 	    if (k == 1) then
-		DVDZUP(i,j) = (0 - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
+		DVDZUP(i,j) = (c0 - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
 	    else
 		DVDZUP(i,j) = (VDC(i,j,k-1,2) - VDC(i,j,k  ,2))/DZT(i,j,k,bid)
 	    endif
@@ -3192,7 +3192,7 @@ end subroutine interior_convection
                                (DVDZDN(i,j) + abs(DVDZDN(i,j))) )
 
 	    if (k == 1) then
-		DVDZUP(i,j) = (0 - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
+		DVDZUP(i,j) = (c0 - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
 	    else
 		DVDZUP(i,j) = (VDC(i,j,k-1,1) - VDC(i,j,k  ,1))/DZT(i,j,k,bid)
 	    endif

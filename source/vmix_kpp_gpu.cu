@@ -2470,7 +2470,7 @@ if (KBL == NULL) {
         //removed for (j=1;j<ny_block;j+=1)
         //removed for (i=1;i<nx_block;i+=1)
         
-        if (kl+1 == KBL (i,j) ) {  //adjusted to c
+        if (kl == KBL (i,j)-1 ) {  //adjusted to c
           HBLT(i,j) = ZKL;
         }
       }
@@ -2740,7 +2740,7 @@ if (KBL == NULL) {
       k = max(k,0); //sanity check
     
       if (k == 0) { //adjusted to c
-        CASEA = p5 + sign (p5, -zgrid(0) -HBLT(i,j) );
+        CASEA = p5 + sign (p5, -zgrid(-1) -HBLT(i,j) ); //adjusted to c
       }
       else {
         CASEA = p5 + sign (p5, -zgrid(k-1) +p5*DZT(i,j,k-1,bid) -HBLT(i,j) );
