@@ -72,11 +72,11 @@ using namespace std;
 
 
 #define km 42
-#define nx_block 229
+#define nx_block 304
 #define ny_block 154
 #define nt 2
-#define max_blocks_clinic 1
-#define nblocks_clinic 1
+#define max_blocks_clinic 4
+#define nblocks_clinic 4
 
 #define BLOCK_X 32
 #define BLOCK_Y 16
@@ -437,6 +437,9 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
 
 
 
+  cudaDeviceSynchronize();
+  err = cudaGetLastError();
+  if (err != cudaSuccess) { fprintf (stderr, "Error in init global variables vmix KPP GPU: %s\n", cudaGetErrorString (err)); }
 
 }
 
@@ -653,6 +656,8 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       if (d_VDC == NULL) {
         err = cudaMalloc ((void **) &d_VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double));
         if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_VDC: %s\n", cudaGetErrorString (err)); }
+        err = cudaMemset (d_VDC, 0, nx_block * ny_block * (km+1) * 2 * sizeof(double));
+        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemset d_VDC: %s\n", cudaGetErrorString (err)); }
       }
 
       //! OUTPUT PARAMETERS:
@@ -771,18 +776,9 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       //copy inputs from Host to Device
       err = cudaMemcpyAsync(d_TRCR, TRCR, nx_block * ny_block * km * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
       if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_TRCR: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_UUU, UUU, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_UUU: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_VVV, VVV, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VVV: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_STF, STF, nx_block * ny_block * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_STF: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_SHF_QSW, SHF_QSW, nx_block * ny_block * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SHF_QSW: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_SMF, SMF, nx_block * ny_block * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SMF: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_VDC, VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VDC: %s\n", cudaGetErrorString(err)); }
+
+//      err = cudaMemcpyAsync(d_VDC, VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+//      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VDC: %s\n", cudaGetErrorString(err)); }
 
 //      double *DEBUG = (double *) NULL;
 //      float time;
@@ -798,8 +794,13 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       //! -----------------------------------------------------------------------
       buoydiff_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_TRCR, bid, KMT);
 
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in buoydiff kernel: %s\n", cudaGetErrorString (err)); }
+//      err = cudaPeekAtLastError();
+//      if (err != cudaSuccess) { fprintf (stderr, "Error in buoydiff kernel: %s\n", cudaGetErrorString (err)); }
+
+      err = cudaMemcpyAsync(d_UUU, UUU, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_UUU: %s\n", cudaGetErrorString(err)); }
+      err = cudaMemcpyAsync(d_VVV, VVV, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VVV: %s\n", cudaGetErrorString(err)); }
 
       //! -----------------------------------------------------------------------
       //!
@@ -811,8 +812,8 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
 
       ri_iwmix_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_VISC, d_VDC, d_UUU, d_VVV, d_RHOMIX, convect_diff, convect_visc, bid, d_VSHEARU, DZT, KMT);
 
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in ri_iwmix kernel: %s\n", cudaGetErrorString (err)); }
+//      err = cudaPeekAtLastError();
+//      if (err != cudaSuccess) { fprintf (stderr, "Error in ri_iwmix kernel: %s\n", cudaGetErrorString (err)); }
 
       //! -----------------------------------------------------------------------
       //!
@@ -821,14 +822,21 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       //! -----------------------------------------------------------------------
       ddmix_kernel<<<grid, threads, 0, stream[0]>>>(d_VDC, d_TRCR, bid);
    
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in ddmix kernel: %s\n", cudaGetErrorString (err)); }
+//      err = cudaPeekAtLastError();
+//      if (err != cudaSuccess) { fprintf (stderr, "Error in ddmix kernel: %s\n", cudaGetErrorString (err)); }
 
       //! -----------------------------------------------------------------------
       //!
       //! compute boundary layer depth
       //!
       //! -----------------------------------------------------------------------
+
+      err = cudaMemcpyAsync(d_STF, STF, nx_block * ny_block * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_STF: %s\n", cudaGetErrorString(err)); }
+      err = cudaMemcpyAsync(d_SHF_QSW, SHF_QSW, nx_block * ny_block * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SHF_QSW: %s\n", cudaGetErrorString(err)); }
+      err = cudaMemcpyAsync(d_SMF, SMF, nx_block * ny_block * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SMF: %s\n", cudaGetErrorString(err)); }
 
       compute_ustaru<<<grid, threads, 0, stream[0]>>>(d_STABLE, d_SMF); //storing temporary result in stable
       ugrid_to_tgrid_kernel<<<grid, threads, 0, stream[0]>>>(d_USTAR, d_STABLE, 0);
@@ -837,9 +845,12 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       smooth_hblt_kernel<<<grid, threads, 0, stream[0]>>>(bid, d_KPP_HBLT, d_KBL, d_WORK3, KMT, DZT);
       correct_stability_and_buoyancy<<<grid, threads, 0, stream[0]>>>(d_BFSFC, d_STABLE, d_WORK1, d_WORK2, d_KPP_HBLT); 
     
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in bldepth kernel: %s\n", cudaGetErrorString (err)); }
+//      err = cudaPeekAtLastError();
+//      if (err != cudaSuccess) { fprintf (stderr, "Error in bldepth kernel: %s\n", cudaGetErrorString (err)); }
  
+      err = cudaMemcpyAsync(KPP_HBLT, d_KPP_HBLT, nx_block * ny_block * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host KPP_HBLT: %s\n", cudaGetErrorString (err)); }
+
       //! -----------------------------------------------------------------------
       //!
       //! compute boundary layer diffusivities
@@ -847,8 +858,8 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       //! -----------------------------------------------------------------------
       blmix_kernel<<<grid, threads, 0, stream[0]>>>(d_VISC, d_VDC, d_KPP_HBLT, d_USTAR, d_BFSFC, d_STABLE, d_KBL, d_GHAT, bid, DZT);
 
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in blmix kernel: %s\n", cudaGetErrorString (err)); }
+//      err = cudaPeekAtLastError();
+//      if (err != cudaSuccess) { fprintf (stderr, "Error in blmix kernel: %s\n", cudaGetErrorString (err)); }
  
       //! -----------------------------------------------------------------------
       //!
@@ -859,8 +870,8 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       interior_convection_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, KPP_SRC, d_HMXL, d_VSHEARU, DZT, KMT); //reuse VSHEARU to store VISC on T grid
       interior_convection_part2<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, KPP_SRC, d_HMXL, AU, d_VSHEARU, DZT, KMT, KMU);
     
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in interior convection kernel: %s\n", cudaGetErrorString (err)); }
+//      err = cudaPeekAtLastError();
+//      if (err != cudaSuccess) { fprintf (stderr, "Error in interior convection kernel: %s\n", cudaGetErrorString (err)); }
  
       //! -----------------------------------------------------------------------
       //! EOC
@@ -871,14 +882,12 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host VVC: %s\n", cudaGetErrorString (err)); }
       err = cudaMemcpyAsync(HMXL, d_HMXL, nx_block * ny_block * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
       if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host HMXL: %s\n", cudaGetErrorString (err)); }
-      err = cudaMemcpyAsync(KPP_HBLT, d_KPP_HBLT, nx_block * ny_block * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host KPP_HBLT: %s\n", cudaGetErrorString (err)); }
 //      err = cudaMemcpyAsync(KPP_SRC, d_KPP_SRC, nx_block * ny_block * km * nt * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
 //      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host KPP_SRC: %s\n", cudaGetErrorString (err)); }
 
       cudaDeviceSynchronize();
       err = cudaGetLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in test version of entrypoint: %s\n", cudaGetErrorString (err)); }
+      if (err != cudaSuccess) { fprintf (stderr, "Error in GPU version of entrypoint: %s\n", cudaGetErrorString (err)); }
 
 //      printf("finished execution of entrypoint\n");
 
@@ -1994,11 +2003,12 @@ if (KBL == NULL) {
       //!
       //! -----------------------------------------------------------------------
       WORK3 = c0;
+      double hmxl = 0.0;
     
       if (KMT(i,j,bid) == 1) { //converted from where statement
-        HMXL(i,j,bid) = zt(0); //adjusted to c
+        hmxl = zt(0); //adjusted to c
       } else {
-        HMXL(i,j,bid) = c0;
+        hmxl = c0;
       }
     
       for (k = 1; k<km; k++) {
@@ -2006,7 +2016,7 @@ if (KBL == NULL) {
         if (k <= KMT(i,j,bid)-1 ) { //converted from where statement  //adjusted to c
           WORK5 = zt(k-1) + p5* (DZT(i,j,k-1,bid) + DZT(i,j,k,bid) );
           WORK3 = max (DBSFC(i,j,k) /WORK5,WORK3);
-          HMXL(i,j,bid) = WORK5;
+          hmxl = WORK5;
         }
       }
     
@@ -2022,10 +2032,12 @@ if (KBL == NULL) {
           WORK4 = (VISC(i,j,k) - WORK3) / (VISC(i,j,k)-VISC(i,j,k-1) );
           //! tqian
           //! HMXL (:,:,bid) = (zt (k-1) + p5*DZT (:,:,k-1,bid) ) * (c1-WORK4) ! + (zt (k-1) - p5*DZT (:,:,k-1,bid) ) *WORK4
-          HMXL(i,j,bid) = (zt(k-1) + p25* (DZT(i,j,k-1,bid) +DZT(i,j,k,bid) ) ) * (c1-WORK4) + (zt(k-1) - p25* (DZT(i,j,k-2,bid) +DZT(i,j,k-1,bid) ) ) *WORK4;
+          hmxl = (zt(k-1) + p25* (DZT(i,j,k-1,bid) +DZT(i,j,k,bid) ) ) * (c1-WORK4) + (zt(k-1) - p25* (DZT(i,j,k-2,bid) +DZT(i,j,k-1,bid) ) ) *WORK4;
           WORK3 = c0;
         }
       }
+
+      HMXL(i,j,bid) = hmxl;
 
 
       }

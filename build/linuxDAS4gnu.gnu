@@ -111,7 +111,7 @@ FFLAGS := $(FFLAGS) -Wall -fdefault-double-8 -fdefault-real-8 -fconvert=swap -fi
 
 #CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
 
-CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v 
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -fmad=false
 
 #CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
