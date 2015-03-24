@@ -47,7 +47,6 @@
    private
    save
 
-#include "cuda.h"
 
 ! !PUBLIC MEMBER FUNCTIONS:
 

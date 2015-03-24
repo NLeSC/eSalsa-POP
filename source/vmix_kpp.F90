@@ -42,7 +42,6 @@
    private
    save
 
-#include "cuda.h"
 
 
 !generated interface block for GPU entry point

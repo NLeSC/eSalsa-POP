@@ -26,7 +26,6 @@
    public
    save
 
-#include "cuda.h"
 
 ! !PUBLIC DATA TYPES:
 
