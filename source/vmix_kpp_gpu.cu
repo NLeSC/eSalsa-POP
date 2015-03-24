@@ -666,6 +666,8 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       if (d_HMXL == NULL) {
         err = cudaMalloc ((void **) &d_HMXL, nx_block * ny_block * sizeof(double));
         if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_HMXL: %s\n", cudaGetErrorString (err)); }
+        err = cudaMemset (d_HMXL, 0, nx_block * ny_block * sizeof(double));
+        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemset d_HMXL: %s\n", cudaGetErrorString (err)); }
       }
 
       static double *d_KPP_HBLT = (double *) NULL;

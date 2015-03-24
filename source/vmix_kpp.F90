@@ -1075,7 +1075,7 @@ end interface
    end if
 
 
-   call vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
+   call vmix_coeffs_kpp_gpu_entry_test(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
                             bid, convect_diff, convect_visc, &
                             SMF, HMXL(:,:,bid), KPP_HBLT(:,:,bid), KPP_SRC)
 
