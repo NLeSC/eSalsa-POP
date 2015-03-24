@@ -15,6 +15,7 @@ module gpu_mod
 
  implicit none
 
+#include "cuda.h"
 
  !PUBLIC MEMBER FUNCTIONS:
  public :: init_gpu_mod
@@ -79,7 +80,9 @@ module gpu_mod
 
 
   ! now we know if the gpu should be used or not
-
+  if (use_gpu) then
+    call cuda_init(my_task)
+  endif
 
 
 

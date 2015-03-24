@@ -10,6 +10,7 @@
 
 extern "C" {
 
+  void cuda_init(int *pmy_task);
 
   void cudamallochost(void **hostptr, int *p_size);
 
@@ -17,23 +18,34 @@ extern "C" {
 
 
 
+int my_task;
 int cuda_initialized = 0;
 
-void cuda_init() {
-  cudaSetDeviceFlags(cudaDeviceMapHost);
-  cudaSetDevice(0);
-  cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
-  cudaDeviceSynchronize();
+//Fortran entry for initializing CUDA
+void cuda_init(int *pmy_task) {
+  if (cuda_initialized == 0) {
+    cuda_initialized = 1;
+    my_task = *pmy_task;
+    int deviceCount = 0;
 
+    cudaError_t err = cudaGetDeviceCount(&deviceCount);
+    if (err != cudaSuccess) fprintf(stderr, "Error in cuda initialization: %s\n", cudaGetErrorString( err ));
 
+    int dev = my_task%deviceCount;
+
+    cudaSetDeviceFlags(cudaDeviceMapHost);
+    cudaSetDevice(dev);
+
+    cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
+    cudaDeviceSynchronize();
+  }
 }
 
 
 //Fortran entry for allocating pinned memory
 void cudamallochost(void **hostptr, int *p_size) {
   if (!cuda_initialized) {
-    cuda_initialized = 1;
-    cuda_init();
+    printf("Error: cudamallochost called before cuda_init\n");
   }
  
   cudaError_t err;

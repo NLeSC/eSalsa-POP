@@ -8,12 +8,12 @@
 #-----------------------------------------------------------------------
 
 #CUDALIB = -L/hpc/sw/cuda/5.5/lib64
-CUDALIB = -L/hpc/sw/cuda/6.0.37/lib64
+CUDALIB = -L/hpc/sw/cuda/6.5.14/lib64
 
 F77 = mpiifort -r8
 F90 = mpiifort -r8
 LD = mpiifort -r8 -lcurl $(CUDALIB) -lcudart -lstdc++
-CC = mpiicc -r8
+CC = mpiicc
 ABI = 
 
 NVCC = nvcc -O3
@@ -67,7 +67,7 @@ endif
 
 # CFLAGS := $(CFLAGS) -mcmodel=medium
 
-CFLAGS := $(CFLAGS) -convert big_endian -assume byterecl
+CFLAGS := $(CFLAGS) 
  
 #----------------------------------------------------------------------------
 #
@@ -100,14 +100,14 @@ FFLAGS := $(FFLAGS) -convert big_endian -assume byterecl
 
 #CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
 
-CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v 
 
 # CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
 #-prec-sqrt=true -fmad=false
 
 ifeq ($(OPTIMIZE),yes)
-  CUFLAGS := $(CUFLAGS) 
+  CUFLAGS := $(CUFLAGS)
 endif
 
 #----------------------------------------------------------------------------

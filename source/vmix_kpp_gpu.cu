@@ -72,11 +72,11 @@ using namespace std;
 
 
 #define km 42
-#define nx_block 304
+#define nx_block 229
 #define ny_block 154
 #define nt 2
-#define max_blocks_clinic 4
-#define nblocks_clinic 4
+#define max_blocks_clinic 1
+#define nblocks_clinic 1
 
 #define BLOCK_X 32
 #define BLOCK_Y 16
