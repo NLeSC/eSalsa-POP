@@ -2488,7 +2488,8 @@
 !
 !-----------------------------------------------------------------------
 
-   AU = TAREA * p25 * UAREA_R
+!Store only AU on the GPU
+   AU = TAREA * p25 
 
    AU0  = TAREA
    AUN  = eoshift(TAREA,dim=2,shift=+1)

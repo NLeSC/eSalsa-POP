@@ -70,10 +70,10 @@ subroutine vmix_coeffs_kpp_gpu_entry_test (VDC, VVC, TRCR, UUU, VVV, STF, SHF_QS
 end subroutine vmix_coeffs_kpp_gpu_entry_test
 
 subroutine init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, &
-                                             pressz, AU) bind (c)
+                                             pressz, AU, UAREA_R) bind (c)
   use iso_c_binding
   real (c_double), dimension (*) :: &
-     DZT, dz, zt, DZU, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU
+     DZT, dz, zt, DZU, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU, UAREA_R
   integer (c_int), dimension (*) :: &
      KMU, KMT
 end subroutine init_global_variables
@@ -671,9 +671,9 @@ end interface
  ! initialize global variables on the GPU
  !
  !---------------------------------------------------------------------
-
- call init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU)
-
+ if (use_gpu) then
+   call init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU, UAREA_R)
+ endif
 
 
  end subroutine init_vmix_kpp

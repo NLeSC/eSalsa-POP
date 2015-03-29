@@ -58,6 +58,7 @@ using namespace std;
 #define ARRAY_UGRID(i,j,k) ARRAY_UGRID[(i)+(j)*nx_block+(k)*nx_block*ny_block]
 #define ARRAY_TGRID(i,j,k) ARRAY_TGRID[(i)+(j)*nx_block+(k)*nx_block*ny_block]
 #define AU(i,j,b) AU[(i)+(j)*nx_block+(b)*nx_block*ny_block]
+#define UAREA_R(i,j,b) UAREA_R[(i)+(j)*nx_block+(b)*nx_block*ny_block]
 
 #define VSHEARU(i,j,k) VSHEARU[(i)+(j)*nx_block+(k)*nx_block*ny_block]
 
@@ -72,11 +73,11 @@ using namespace std;
 
 
 #define km 42
-#define nx_block 304
-#define ny_block 154
+#define nx_block 64
+#define ny_block 64
 #define nt 2
-#define max_blocks_clinic 4
-#define nblocks_clinic 4
+#define max_blocks_clinic 7
+#define nblocks_clinic 7
 
 #define BLOCK_X 32
 #define BLOCK_Y 16
@@ -161,11 +162,11 @@ extern "C" {
     void fill_random(double *p, int *n);
 
     int compare_int(int *a1, int *a2, int N);
-    int compare (double *a1, double *a2, int N, char *);
+    int compare (double *a1, double *a2, int N, const char *);
     int compare_to (double *a1, double *a2, int N, double *a3);
 
     __global__ void interior_convection_kernel (double *DBLOC, double *DBSFC, int *KBL, double *STF, double *GHAT, double *VISC, double convect_diff, double convect_visc, int bid, double *VDC, double *VVC, double *KPP_SRC, double *HMXL, double *VISCT, double *DZT, int *KMT);
-    __global__ void interior_convection_part2 (double *DBLOC, double *DBSFC, int *KBL, double *STF, double *GHAT, double *VISC, double convect_diff, double convect_visc, int bid, double *VDC, double *VVC, double *KPP_SRC, double *HMXL, double *AU, double *VISCT, double *DZT, int *KMT, int *KMU);
+    __global__ void interior_convection_part2 (double *DBLOC, double *DBSFC, int *KBL, double *STF, double *GHAT, double *VISC, double convect_diff, double convect_visc, int bid, double *VDC, double *VVC, double *KPP_SRC, double *HMXL, double *AU, double *UAREA_R, double *VISCT, double *DZT, int *KMT, int *KMU);
     __global__ void compute_vshear_ugrid(double *VSHEARU, double *UUU, double *VVV, double *DZU, int bid);
     __global__ void ri_iwmix_kernel (double *DBLOC, double *VISC, double *VDC, double *UUU, double *VVV, double *RHOMIX, double convect_diff, double convect_visc, int bid, double *VSHEARU, double *DZT, int *KMT);
     __global__ void compute_ustaru(double *USTAR, double *SMF);
@@ -181,7 +182,7 @@ extern "C" {
     __device__ double wmscale (double sigma, double hbl, double ustar, double bfsfc);
     __device__ double wsscale (double sigma, double hbl, double ustar, double bfsfc);
     __device__ double ugrid_to_tgrid (double *ARRAY_UGRID, int i, int j, int k);
-    __device__ double tgrid_to_ugrid(double *ARRAY_TGRID, double *AU, int iblock, int i, int j, int k);
+    __device__ double tgrid_to_ugrid(double *ARRAY_TGRID, double *AU, double *UAREA_R, int iblock, int i, int j, int k);
     __device__ double sw_absorb_frac(double depth);
     __device__ double compute_rho(double temp, double salt, int k);
     __device__ double mwjf_numerator(double tq, double sq, int k);
@@ -190,7 +191,7 @@ extern "C" {
     __device__ double compute_drhods(double tq, double sq, double sqr, int k, double nomk, double denomk);
 
 
-    void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU);
+    void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU, double *h_UAREA_R);
     void vmix_coeffs_kpp_gpu_entry (double *VDC, double *VVC, double *TRCR, double *UUU, double *VVV, double *STF, double *SHF_QSW, int *pbid, double *pconvect_diff, double *pconvect_visc, double *SMF, double *HMXL, double *KPP_HBLT, double *KPP_SRC);
 
     void vmix_coeffs_kpp_gpu_entry_test (double *VDC, double *VVC, double *TRCR, double *UUU, double *VVV, double *STF, double *SHF_QSW, int *pbid, double *pconvect_diff, double *pconvect_visc, double *SMF, double *HMXL, double *KPP_HBLT, double *KPP_SRC);
@@ -266,6 +267,7 @@ double *HMXL = (double *) NULL;
 int *KMU = (int *) NULL;
 double *DZT = (double *) NULL;
 double *AU = (double *) NULL;
+double *UAREA_R = (double *) NULL;
 
 __constant__ double hwide[km+2];
 __constant__ double zgrid[km+2];
@@ -276,15 +278,14 @@ __constant__ double dz[km];
 __constant__ double bckgrnd_vvc[km];
 __constant__ double bckgrnd_vdc[km];
 
+extern int my_task;
 
-
-void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU) {
+void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU, double *h_UAREA_R) {
 
   cudaError_t err;
 
   err = cudaStreamCreate(stream);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cuda stream creation: %s\n", cudaGetErrorString (err)); }
-
 
 
   err = cudaMalloc ((void **) &DZT, nx_block * ny_block * (km+2) * max_blocks_clinic * sizeof(double));
@@ -355,6 +356,12 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc DZU: %s\n", cudaGetErrorString (err)); }
 
   err = cudaMemcpyAsync(AU, h_AU, nx_block * ny_block * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device DZU: %s\n", cudaGetErrorString(err)); }
+
+  err = cudaMalloc ((void **) &UAREA_R, nx_block * ny_block * max_blocks_clinic * sizeof(double));
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc DZU: %s\n", cudaGetErrorString (err)); }
+
+  err = cudaMemcpyAsync(UAREA_R, h_UAREA_R, nx_block * ny_block * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device DZU: %s\n", cudaGetErrorString(err)); }
 
   //constants for blmix
@@ -440,6 +447,12 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
   cudaDeviceSynchronize();
   err = cudaGetLastError();
   if (err != cudaSuccess) { fprintf (stderr, "Error in init global variables vmix KPP GPU: %s\n", cudaGetErrorString (err)); }
+
+
+  if (my_task == 0) {
+    printf("Initialized KPP GPU version using thread block size: %d x %d\n", BLOCK_X, BLOCK_Y);
+  }
+
 
 }
 
@@ -681,12 +694,14 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
         if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_KPP_HBLT: %s\n", cudaGetErrorString (err)); }
       }
 
-      static double *d_KPP_SRC = (double *) NULL;
-//      if (d_KPP_SRC == NULL) {
-//        err = cudaMalloc ((void **) &d_KPP_SRC, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double));
-//        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_KPP_SRC: %s\n", cudaGetErrorString (err)); }
-//      }
-
+/*      static double *d_KPP_SRC = (double *) NULL;
+      if (d_KPP_SRC == NULL) {
+        err = cudaMalloc ((void **) &d_KPP_SRC, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double));
+        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_KPP_SRC: %s\n", cudaGetErrorString (err)); }
+        err = cudaMemset (d_KPP_SRC, 0, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double));
+        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemset d_KPP_SRC: %s\n", cudaGetErrorString (err)); }
+      }
+*/
       //! EOP
       //! BOC
       //! -----------------------------------------------------------------------
@@ -777,6 +792,18 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       err = cudaMemcpyAsync(d_TRCR, TRCR, nx_block * ny_block * km * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
       if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_TRCR: %s\n", cudaGetErrorString(err)); }
 
+      err = cudaMemcpyAsync(d_UUU, UUU, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_UUU: %s\n", cudaGetErrorString(err)); }
+      err = cudaMemcpyAsync(d_VVV, VVV, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VVV: %s\n", cudaGetErrorString(err)); }
+
+      err = cudaMemcpyAsync(d_STF, STF, nx_block * ny_block * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_STF: %s\n", cudaGetErrorString(err)); }
+      err = cudaMemcpyAsync(d_SHF_QSW, SHF_QSW, nx_block * ny_block * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SHF_QSW: %s\n", cudaGetErrorString(err)); }
+      err = cudaMemcpyAsync(d_SMF, SMF, nx_block * ny_block * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SMF: %s\n", cudaGetErrorString(err)); }
+
 //      err = cudaMemcpyAsync(d_VDC, VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
 //      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VDC: %s\n", cudaGetErrorString(err)); }
 
@@ -796,11 +823,6 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
 
 //      err = cudaPeekAtLastError();
 //      if (err != cudaSuccess) { fprintf (stderr, "Error in buoydiff kernel: %s\n", cudaGetErrorString (err)); }
-
-      err = cudaMemcpyAsync(d_UUU, UUU, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_UUU: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_VVV, VVV, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VVV: %s\n", cudaGetErrorString(err)); }
 
       //! -----------------------------------------------------------------------
       //!
@@ -830,13 +852,6 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       //! compute boundary layer depth
       //!
       //! -----------------------------------------------------------------------
-
-      err = cudaMemcpyAsync(d_STF, STF, nx_block * ny_block * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_STF: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_SHF_QSW, SHF_QSW, nx_block * ny_block * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SHF_QSW: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_SMF, SMF, nx_block * ny_block * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SMF: %s\n", cudaGetErrorString(err)); }
 
       compute_ustaru<<<grid, threads, 0, stream[0]>>>(d_STABLE, d_SMF); //storing temporary result in stable
       ugrid_to_tgrid_kernel<<<grid, threads, 0, stream[0]>>>(d_USTAR, d_STABLE, 0);
@@ -868,7 +883,7 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       //! -----------------------------------------------------------------------
 
       interior_convection_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, KPP_SRC, d_HMXL, d_VSHEARU, DZT, KMT); //reuse VSHEARU to store VISC on T grid
-      interior_convection_part2<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, KPP_SRC, d_HMXL, AU, d_VSHEARU, DZT, KMT, KMU);
+      interior_convection_part2<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, KPP_SRC, d_HMXL, AU, UAREA_R, d_VSHEARU, DZT, KMT, KMU);
     
 //      err = cudaPeekAtLastError();
 //      if (err != cudaSuccess) { fprintf (stderr, "Error in interior convection kernel: %s\n", cudaGetErrorString (err)); }
@@ -891,384 +906,8 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
 
 //      printf("finished execution of entrypoint\n");
 
-    }
-
-
-
-
-
-
-
-
-
-/*
-    void vmix_coeffs_kpp_gpu_entry (double *VDC, double *VVC, double *TRCR, double *UUU, double *VVV, double *STF, double *SHF_QSW, int *pbid, double *pconvect_diff, double *pconvect_visc, double *SMF, double *HMXL, double *KPP_HBLT, double *KPP_SRC) {
-
-      cudaError_t err;
-
-      
-      //! DESCRIPTION:
-      //! This is the main GPU driver routine which calculates the vertical
-      //! mixing coefficients for the KPP mixing scheme as outlined in
-      //! Large, McWilliams and Doney, Reviews of Geophysics, 32, 363
-      //! (November 1994) . The non-local mixing is also computed here, but
-      //! is treated as a source term in baroclinic. This routine will be
-      //! translated to C.
-      //!
-      //! REVISION HISTORY:
-      //! same as module
-      //! INPUT PARAMETERS:
-      static double *d_TRCR = (double *) NULL;
-      if (d_TRCR == NULL) {
-        err = cudaMalloc ((void **) &d_TRCR, nx_block * ny_block * km * nt * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_TRCR: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_UUU = (double *) NULL;
-      if (d_UUU == NULL) {
-        err = cudaMalloc ((void **) &d_UUU, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_UUU: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_VVV = (double *) NULL;
-      if (d_VVV == NULL) {
-        err = cudaMalloc ((void **) &d_VVV, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_VVV: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_STF = (double *) NULL;
-      if (d_STF == NULL) {
-        err = cudaMalloc ((void **) &d_STF, nx_block * ny_block * nt * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_STF: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_SHF_QSW = (double *) NULL;
-      if (d_SHF_QSW == NULL) {
-        err = cudaMalloc ((void **) &d_SHF_QSW, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_SHF_QSW: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_SMF = (double *) NULL;
-      if (d_SMF == NULL) {
-        err = cudaMalloc ((void **) &d_SMF, nx_block * ny_block * 2 * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_SMF: %s\n", cudaGetErrorString (err)); }
-      }
-
-      double convect_diff = *pconvect_diff;
-      double convect_visc = *pconvect_visc;
-      int fbid = *pbid;
-      int bid = *pbid-1;//adjusted to c
-      //! INPUT/OUTPUT PARAMETERS:
-      static double *d_VDC = (double *) NULL;
-      if (d_VDC == NULL) {
-        err = cudaMalloc ((void **) &d_VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_VDC: %s\n", cudaGetErrorString (err)); }
-      }
-
-      //! OUTPUT PARAMETERS:
-      static double *d_VVC = (double *) NULL;
-      if (d_VVC == NULL) {
-        err = cudaMalloc ((void **) &d_VVC, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_VVC: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_HMXL = (double *) NULL;
-      if (d_HMXL == NULL) {
-        err = cudaMalloc ((void **) &d_HMXL, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_HMXL: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_KPP_HBLT = (double *) NULL;
-      if (d_KPP_HBLT == NULL) {
-        err = cudaMalloc ((void **) &d_KPP_HBLT, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_KPP_HBLT: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_KPP_SRC = (double *) NULL;
-//      if (d_KPP_SRC == NULL) {
-//        err = cudaMalloc ((void **) &d_KPP_SRC, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double));
-//        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_KPP_SRC: %s\n", cudaGetErrorString (err)); }
-//      }
-
-      //! EOP
-      //! BOC
-      //! -----------------------------------------------------------------------
-      //!
-      //! local variables
-      //!
-      //! -----------------------------------------------------------------------
-      static int *d_KBL = (int *) NULL;
-      if (d_KBL == NULL) {
-        err = cudaMalloc ((void **) &d_KBL, nx_block * ny_block * sizeof(int));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_KBL: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_USTAR = (double *) NULL;
-      if (d_USTAR == NULL) {
-        err = cudaMalloc ((void **) &d_USTAR, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_USTAR: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_BFSFC = (double *) NULL;
-      if (d_BFSFC == NULL) {
-        err = cudaMalloc ((void **) &d_BFSFC, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_BFSFC: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_STABLE = (double *) NULL;
-      if (d_STABLE == NULL) {
-        err = cudaMalloc ((void **) &d_STABLE, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_STABLE: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_DBLOC = (double *) NULL;
-      if (d_DBLOC == NULL) {
-        err = cudaMalloc ((void **) &d_DBLOC, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_DBLOC: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_DBSFC = (double *) NULL;
-      if (d_DBSFC == NULL) {
-        err = cudaMalloc ((void **) &d_DBSFC, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_DBSFC: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_GHAT = (double *) NULL;
-      if (d_GHAT == NULL) {
-        err = cudaMalloc ((void **) &d_GHAT, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_GHAT: %s\n", cudaGetErrorString (err)); }
-      }
-
-      static double *d_VISC = (double *) NULL;
-      if (d_VISC == NULL) {
-        err = cudaMalloc ((void **) &d_VISC, nx_block * ny_block * (km+1) * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_VISC: %s\n", cudaGetErrorString (err)); }
-      }
-
-      //! dummy variable that is not used by ri_iwmix but added here to have the
-      //! same interface during testing
-      static double *d_RHOMIX = (double *) NULL;
-      if (d_RHOMIX == NULL) {
-        err = cudaMalloc ((void **) &d_RHOMIX, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_RHOMIX: %s\n", cudaGetErrorString (err)); }
-      }
-
-      //! temporary variable for storing velocity shear squared on u grid, converted to t grid by ri_iwmix
-      static double *d_VSHEARU = (double *) NULL;
-      if (d_VSHEARU == NULL) {
-        err = cudaMalloc ((void **) &d_VSHEARU, nx_block * ny_block * km * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_VSHEARU: %s\n", cudaGetErrorString (err)); }
-      }
-      static double *d_WORK1 = (double *) NULL;
-      if (d_WORK1 == NULL) {
-        err = cudaMalloc ((void **) &d_WORK1, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_WORK1: %s\n", cudaGetErrorString (err)); }
-      }
-      static double *d_WORK2 = (double *) NULL;
-      if (d_WORK2 == NULL) {
-        err = cudaMalloc ((void **) &d_WORK2, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_WORK2: %s\n", cudaGetErrorString (err)); }
-      }
-      static double *d_WORK3 = (double *) NULL;
-      if (d_WORK3 == NULL) {
-        err = cudaMalloc ((void **) &d_WORK3, nx_block * ny_block * sizeof(double));
-        if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_WORK3: %s\n", cudaGetErrorString (err)); }
-      }
-
-      //copy inputs from Host to Device
-      err = cudaMemcpyAsync(d_TRCR, TRCR, nx_block * ny_block * km * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_TRCR: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_UUU, UUU, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_UUU: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_VVV, VVV, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VVV: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_STF, STF, nx_block * ny_block * nt * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_STF: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_SHF_QSW, SHF_QSW, nx_block * ny_block * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SHF_QSW: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_SMF, SMF, nx_block * ny_block * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_SMF: %s\n", cudaGetErrorString(err)); }
-      err = cudaMemcpyAsync(d_VDC, VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double), cudaMemcpyHostToDevice, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device d_VDC: %s\n", cudaGetErrorString(err)); }
-
-      double *DEBUG = (double *) NULL;
-      float time;
-
-      //setup threads and grid
-      dim3 threads(BLOCK_X, BLOCK_Y);
-      dim3 grid( (int)ceilf((float) nx_block / (float)(BLOCK_X)) , (int)ceilf((float) ny_block / (float)(BLOCK_Y)));
-
-      //! -----------------------------------------------------------------------
-      //!
-      //! compute buoyancy differences at each vertical level.
-      //!
-      //! -----------------------------------------------------------------------
-      cudaDeviceSynchronize();
-      start_timer();
-      buoydiff_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_TRCR, bid, KMT);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("buoydiff: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in buoydiff kernel: %s\n", cudaGetErrorString (err)); }
-
-      //! -----------------------------------------------------------------------
-      //!
-      //! compute mixing due to shear instability, internal waves and
-      //! convection
-      //!
-      //! -----------------------------------------------------------------------
-      start_timer();
-      compute_vshear_ugrid<<<grid, threads, 0, stream[0]>>>(d_VSHEARU, d_UUU, d_VVV, DZU, bid);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("vshear ugrid: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in vshear ugrid kernel: %s\n", cudaGetErrorString (err)); }
- 
-      start_timer();
-      ri_iwmix_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_VISC, d_VDC, d_UUU, d_VVV, d_RHOMIX, convect_diff, convect_visc, bid, d_VSHEARU, DZT, KMT);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("ri_iwmix: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in ri_iwmix kernel: %s\n", cudaGetErrorString (err)); }
-
-      //! -----------------------------------------------------------------------
-      //!
-      //! compute double diffusion if desired
-      //!
-      //! -----------------------------------------------------------------------
-      start_timer();
-      ddmix_kernel<<<grid, threads, 0, stream[0]>>>(d_VDC, d_TRCR, bid);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("ddmix: %.6f ms\n", time);
-   
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in ddmix kernel: %s\n", cudaGetErrorString (err)); }
-
-      //! -----------------------------------------------------------------------
-      //!
-      //! compute boundary layer depth
-      //!
-      //! -----------------------------------------------------------------------
-
-      start_timer();
-      compute_ustaru<<<grid, threads, 0, stream[0]>>>(d_STABLE, d_SMF); //storing temporary result in stable
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("compute ustaru: %.6f ms\n", time);
-
-      start_timer();
-      ugrid_to_tgrid_kernel<<<grid, threads, 0, stream[0]>>>(d_USTAR, d_STABLE, 0);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("ugrid_to_grid kernel: %.6f ms\n", time);
-
-      start_timer();
-      compute_vshearu_bldepth<<<grid, threads, 0, stream[0]>>>(d_VSHEARU, d_UUU, d_VVV, DZU, bid);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("vshearu bldepth: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in vshearu bldepth kernel: %s\n", cudaGetErrorString (err)); }
- 
-      start_timer();
-      bldepth_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_TRCR, d_UUU, d_VVV, d_STF, d_SHF_QSW, d_KPP_HBLT, d_USTAR, d_BFSFC, d_STABLE, d_KBL, bid, d_SMF, d_VSHEARU, d_WORK1, d_WORK2, d_WORK3, DZT, DZU, KMT, DEBUG);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("bldepth: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in bldepth kernel: %s\n", cudaGetErrorString (err)); }
- 
-      start_timer();
-      smooth_hblt_kernel<<<grid, threads, 0, stream[0]>>>(bid, d_KPP_HBLT, d_KBL, d_WORK3, KMT, DZT);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("smooth hblt: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in smooth hblt kernel: %s\n", cudaGetErrorString (err)); }
- 
-      start_timer();
-      correct_stability_and_buoyancy<<<grid, threads, 0, stream[0]>>>(d_BFSFC, d_STABLE, d_WORK1, d_WORK2, d_KPP_HBLT); 
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("correct stable bfsfc: %.6f ms\n", time);
     
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in correct stable bfsfc kernel: %s\n", cudaGetErrorString (err)); }
-
- 
-      //! -----------------------------------------------------------------------
-      //!
-      //! compute boundary layer diffusivities
-      //!
-      //! -----------------------------------------------------------------------
-      start_timer();
-      blmix_kernel<<<grid, threads, 0, stream[0]>>>(d_VISC, d_VDC, d_KPP_HBLT, d_USTAR, d_BFSFC, d_STABLE, d_KBL, d_GHAT, bid, DZT, DEBUG);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("blmix: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in blmix kernel: %s\n", cudaGetErrorString (err)); }
- 
-      //! -----------------------------------------------------------------------
-      //!
-      //! consider interior convection:
-      //!
-      //! -----------------------------------------------------------------------
-
-      cudaDeviceSynchronize();
-      start_timer();
-      interior_convection_kernel<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, KPP_SRC, d_HMXL, d_VSHEARU, DZT, KMT); //reuse VSHEARU to store VISC on T grid
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("interior part1: %.6f ms\n", time);
-
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in interior part1 kernel: %s\n", cudaGetErrorString (err)); }
- 
-      start_timer();
-      interior_convection_part2<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, KPP_SRC, d_HMXL, AU, d_VSHEARU, DZT, KMT, KMU);
-      cudaDeviceSynchronize();
-      stop_timer(&time);
-      printf("interior part2: %.6f ms\n", time);
-    
-      err = cudaPeekAtLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in interior part2 kernel: %s\n", cudaGetErrorString (err)); }
- 
-      //! -----------------------------------------------------------------------
-      //! EOC
-          //copy outputs from Device to Host
-      err = cudaMemcpyAsync(VDC, d_VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host VDC: %s\n", cudaGetErrorString (err)); }
-      err = cudaMemcpyAsync(VVC, d_VVC, nx_block * ny_block * km * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host VVC: %s\n", cudaGetErrorString (err)); }
-      err = cudaMemcpyAsync(HMXL, d_HMXL, nx_block * ny_block * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host HMXL: %s\n", cudaGetErrorString (err)); }
-      err = cudaMemcpyAsync(KPP_HBLT, d_KPP_HBLT, nx_block * ny_block * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
-      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host KPP_HBLT: %s\n", cudaGetErrorString (err)); }
-//      err = cudaMemcpyAsync(KPP_SRC, d_KPP_SRC, nx_block * ny_block * km * nt * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
-//      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host KPP_SRC: %s\n", cudaGetErrorString (err)); }
-
-      cudaDeviceSynchronize();
-      err = cudaGetLastError();
-      if (err != cudaSuccess) { fprintf (stderr, "Error in test version of entrypoint: %s\n", cudaGetErrorString (err)); }
-
-      printf("finished execution of entrypoint\n");
-
-    }
-  
-
-*/
+}
 
 
 
@@ -1812,7 +1451,7 @@ if (KBL == NULL) {
       if (err != cudaSuccess) { fprintf (stderr, "Error in interior part1 kernel: %s\n", cudaGetErrorString (err)); }
  
       start_timer();
-      interior_convection_part2<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, d_KPP_SRC, d_HMXL, AU, d_VSHEARU, DZT, KMT, KMU);
+      interior_convection_part2<<<grid, threads, 0, stream[0]>>>(d_DBLOC, d_DBSFC, d_KBL, d_STF, d_GHAT, d_VISC, convect_diff, convect_visc, bid, d_VDC, d_VVC, d_KPP_SRC, d_HMXL, AU, UAREA_R, d_VSHEARU, DZT, KMT, KMU);
       cudaDeviceSynchronize();
       stop_timer(&time);
       printf("interior part2: %.6f ms\n", time);
@@ -1956,7 +1595,7 @@ if (KBL == NULL) {
 //split kernel here
     }
 
-    __global__ void interior_convection_part2 (double *DBLOC, double *DBSFC, int *KBL, double *STF, double *GHAT, double *VISC, double convect_diff, double convect_visc, int bid, double *VDC, double *VVC, double *KPP_SRC, double *HMXL, double *AU, double *VISCT, double *DZT, int *KMT, int *KMU) {
+    __global__ void interior_convection_part2 (double *DBLOC, double *DBSFC, int *KBL, double *STF, double *GHAT, double *VISC, double convect_diff, double convect_visc, int bid, double *VDC, double *VVC, double *KPP_SRC, double *HMXL, double *AU, double *UAREA_R, double *VISCT, double *DZT, int *KMT, int *KMU) {
 
       int j = threadIdx.y + blockIdx.y * blockDim.y;
       int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -1972,7 +1611,7 @@ if (KBL == NULL) {
 
       //! *** now average visc to U grid
       for (k = 0; k<km-1; k++) {
-        WORK2 = tgrid_to_ugrid(VISCT, AU, bid, i, j, k);
+        WORK2 = tgrid_to_ugrid(VISCT, AU, UAREA_R, bid, i, j, k);
      
         VVC(i,j,k) = ((k < KMU(i,j,bid)-1 ) ? WORK2 : c0); //adjusted k to k+1 in c
 
@@ -2995,7 +2634,7 @@ if (KBL == NULL) {
  * this function computes momentum, which equals wscale with m_or_s = 1
  */
 
-    __device__ double wmscale (double sigma, double hbl, double ustar, double bfsfc) {
+    __device__ __forceinline__ double wmscale (double sigma, double hbl, double ustar, double bfsfc) {
 
       double zeta;
       double zetah;
@@ -3027,7 +2666,7 @@ if (KBL == NULL) {
       return wm;
     }
 
-    __device__ double wsscale (double sigma, double hbl, double ustar, double bfsfc) {
+    __device__ __forceinline__ double wsscale (double sigma, double hbl, double ustar, double bfsfc) {
       double zeta;
       double zetah;
       double ws;
@@ -3109,9 +2748,9 @@ if (KBL == NULL) {
       double temp;
       double salt;
 
-      PRANDTL = (temp_kup < -c2 ? -c2 : temp_kup); //adjusted to c
+      //PRANDTL = (temp_kup < -c2 ? -c2 : temp_kup); //adjusted to c
 
-      double tq = max(min(PRANDTL,TMAX),TMIN);
+      double tq = max(min(temp_kup,TMAX),TMIN);
       double sq = 1000.0 * max(min(salt_kup,SMAX),SMIN);
       double sqr = sqrt(sq);
 
@@ -3128,9 +2767,9 @@ if (KBL == NULL) {
           temp = TRCR(i,j,k+1,0);
           salt = TRCR(i,j,k+1,1);
 
-          PRANDTL = (temp < -c2 ? -c2 : temp); //adjusted to c
+          //PRANDTL = (temp < -c2 ? -c2 : temp); //adjusted to c
           
-          tq = max(min(PRANDTL,TMAX),TMIN);
+          tq = max(min(temp,TMAX),TMIN);
           sq = 1000.0 * max(min(salt,SMAX),SMIN);
           sqr = sqrt(sq);          
           nomk = mwjf_numerator(tq, sq, k+1);
@@ -3505,10 +3144,11 @@ if (KBL == NULL) {
    AUNE = AUNE*p25*UAREA_R
  *
  * GPU version uses
-   AU = TAREA *p25*UAREA_R
+   AU = TAREA(i,j) *p25 
+   ugrid *= UAREA_R
  *
  */
-   __device__ double tgrid_to_ugrid(double *ARRAY_TGRID, double *AU, int iblock, int i, int j, int k) {
+   __device__ double tgrid_to_ugrid(double *ARRAY_TGRID, double *AU, double *UAREA_R, int iblock, int i, int j, int k) {
 
       double ugrid = 0.0;
       
@@ -3525,10 +3165,12 @@ if (KBL == NULL) {
       //! -----------------------------------------------------------------------
       if (i < nx_block-1) {
         if (j < ny_block-1) {
-          ugrid =	AU(i,j,iblock)	  *ARRAY_TGRID(i,j,k) +
-			AU(i,j+1,iblock)  *ARRAY_TGRID(i,j+1,k) +
-			AU(i+1,j,iblock)  *ARRAY_TGRID(i+1,j,k) +
-			AU(i+1,j+1,iblock)*ARRAY_TGRID(i+1,j+1,k);
+          double uarea_r = UAREA_R(i,j,iblock);
+          ugrid =	AU(i,j,iblock)    * ARRAY_TGRID(i,j,k) +
+			AU(i,j+1,iblock)  * ARRAY_TGRID(i,j+1,k) +
+			AU(i+1,j,iblock)  * ARRAY_TGRID(i+1,j,k) +
+			AU(i+1,j+1,iblock)* ARRAY_TGRID(i+1,j+1,k);
+          ugrid *= uarea_r;
         }
       }
 
@@ -3617,7 +3259,7 @@ if (KBL == NULL) {
         return 1.0/work2;
   }
 
-  __device__ double compute_drhodt(double tq, double sq, double sqr, int k, double nomk, double denomk) {
+  __device__ __forceinline__ double compute_drhodt(double tq, double sq, double sqr, int k, double nomk, double denomk) {
           double work3 = // dP_1/dT
                  mwjfnums0t1 + tq * (2.0*mwjfnums0t2[k] +
                  3.0*mwjfnums0t3 * tq) + mwjfnums1t1 * sq;
@@ -3631,7 +3273,7 @@ if (KBL == NULL) {
           return (work3 - nomk*denomk*work4)*denomk;
   }
 
-  __device__ double compute_drhods(double tq, double sq, double sqr, int k, double nomk, double denomk) {
+  __device__ __forceinline__ double compute_drhods(double tq, double sq, double sqr, int k, double nomk, double denomk) {
           double work3 = // dP_1/dS
                  mwjfnums1t0[k] + mwjfnums1t1 * tq + 2.0*mwjfnums2t0 * sq;
 
@@ -3872,7 +3514,7 @@ int compare_int (int *a1, int *a2, int N) {
 
 
 
-int compare (double *a1, double *a2, int N, char* str) {
+int compare (double *a1, double *a2, int N, const char * str) {
   int i=0, res=0;
   int print = 0;
   int zero_one = 0;

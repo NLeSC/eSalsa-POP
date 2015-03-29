@@ -31,7 +31,12 @@ void cuda_init(int *pmy_task) {
     cudaError_t err = cudaGetDeviceCount(&deviceCount);
     if (err != cudaSuccess) fprintf(stderr, "Error in cuda initialization: %s\n", cudaGetErrorString( err ));
 
-    int dev = my_task%deviceCount;
+    if (deviceCount < 1) {
+      fprintf(stderr,"Error: less than 1 cuda capable device detected proc=%d\n", my_task);
+    }
+
+    int dev = my_task % deviceCount;
+    //fprintf(stdout,"Process %d: using CUDA device %d\n",my_task,dev);
 
     cudaSetDeviceFlags(cudaDeviceMapHost);
     cudaSetDevice(dev);

@@ -16,7 +16,7 @@ LD = mpiifort -r8 -lcurl $(CUDALIB) -lcudart -lstdc++
 CC = mpiicc
 ABI = 
 
-NVCC = nvcc -O3
+NVCC = nvcc 
 
 Cp = /bin/cp
 Cpp = cpp -P
@@ -100,14 +100,14 @@ FFLAGS := $(FFLAGS) -convert big_endian -assume byterecl
 
 #CUFLAGS = -Xptxas=-v -arch=compute_20 -code=sm_20
 
-CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v 
+CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64 
 
 # CUFLAGS = -gencode arch=compute_20,code=sm_20 -Xptxas=-v
 
 #-prec-sqrt=true -fmad=false
 
 ifeq ($(OPTIMIZE),yes)
-  CUFLAGS := $(CUFLAGS)
+  CUFLAGS := $(CUFLAGS) -O3
 endif
 
 #----------------------------------------------------------------------------
