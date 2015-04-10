@@ -1629,7 +1629,6 @@ if (KBL == NULL) {
         KPP_SRC(i,j,0,n,bid) = STF(i,j,n) /dz(0) * (-VDC(i,j,0,n) *GHAT(i,j,0) ); //adjusted to c
       
         for (k = 1; k<km; k++) {
-//          KPP_SRC(:,:,k,n,bid) = STF(:,:,n) /DZT(:,:,k,bid) * ( VDC(:,:,k-1,mt2) *GHAT(:,:,k-1) -VDC(:,:,k ,mt2) *GHAT (:,:,k) )
           KPP_SRC(i,j,k,n,bid) = STF(i,j,n) /DZT(i,j,k,bid) * ( VDC(i,j,k-1,n)   *GHAT(i,j,k-1) -VDC(i,j,k,n) *GHAT(i,j,k) );
         }
       }
@@ -1677,7 +1676,6 @@ if (KBL == NULL) {
       }
 
       HMXL(i,j,bid) = hmxl;
-
 
       }
     }
@@ -1757,7 +1755,6 @@ if (KBL == NULL) {
       //!
       //! -----------------------------------------------------------------------
     
-      //! VISC (:,:,0) = c0
       for (k  = 0; k < km; k ++) {
 
         //average velocity shear squared from u grid to t grid
@@ -1766,7 +1763,6 @@ if (KBL == NULL) {
         } else {
           VSHEAR = 0.0;
         }
-
 
         //! -----------------------------------------------------------------------
         //!
@@ -1793,8 +1789,6 @@ if (KBL == NULL) {
         }
 
       }
-    
-
 
       //! -----------------------------------------------------------------------
       //!
@@ -1825,8 +1819,6 @@ if (KBL == NULL) {
         }
       }
 
-
-
       //! -----------------------------------------------------------------------
       //!
       //! now that we have a smoothed Ri field, finish computing coeffs
@@ -1849,9 +1841,6 @@ if (KBL == NULL) {
         //! convection is added later
         //!
         //! -----------------------------------------------------------------------
-        //if ( k < km-1 ) {//adjusted to c
-        //  KVMIX = bckgrnd_vdc(i,j,k,bid);
-        //}
       
         FRI = min ( (max (VISC(i,j,k), c0)) / Riinfty, c1);
 
@@ -1869,11 +1858,6 @@ if (KBL == NULL) {
         //! set seafloor values to zero
         //!
         //! -----------------------------------------------------------------------
-        //! DIR$ NODEP
-        //! DIR$ COLLAPSE
-        //removed for (j=1;j<ny_block;j+=1)
-        //! DIR$ NODEP
-        //removed for (i=1;i<nx_block;i+=1)
         
         if ( k+1 >= KMT (i,j,bid) ) {//adjusted to c
           VISC(i,j,k) = c0;
@@ -1895,8 +1879,6 @@ if (KBL == NULL) {
         //! -----------------------------------------------------------------------
       }
 
-
-    
       //! -----------------------------------------------------------------------
       //!
       //! fill extra coefficients for blmix
@@ -1910,10 +1892,8 @@ if (KBL == NULL) {
       VDC(i,j,km,0) = c0;//adjusted to c
       VDC(i,j,km,1) = c0;//adjusted to c
   
-  
       //! -----------------------------------------------------------------------
       //! EOC
-
 
       }
     }
@@ -2476,15 +2456,6 @@ if (KBL == NULL) {
       DAT1[0] = min (DAT1[0], 0.0); //adjusted to c
       DAT1[1] = min (DAT1[1], 0.0); //adjusted to c
       DAT1[2] = min (DAT1[2], 0.0); //adjusted to c    
-//      if (DAT1[0] >= 0) { DAT1[0] = 0.0; }
-//      if (DAT1[1] >= 0) { DAT1[1] = 0.0; }
-//      if (DAT1[2] >= 0) { DAT1[2] = 0.0; }
-
-
-
-
-
-//correct so far
 
       //! -----------------------------------------------------------------------
       //!
@@ -2514,10 +2485,6 @@ if (KBL == NULL) {
       DKM1(1) = HBLT(i,j) *WS *SIGMA * (1.0+SIGMA * ( (SIGMA -2.0) + (3.0-2.0*SIGMA ) *GAT1(1) + (SIGMA -1.0) *DAT1(1) ) ); //adjusted to c
       DKM1(2) = HBLT(i,j) *WS *SIGMA * (1.0+SIGMA * ( (SIGMA -2.0) + (3.0-2.0*SIGMA ) *GAT1(2) + (SIGMA -1.0) *DAT1(2) ) ); //adjusted to c
 
-
-
-
-
       //! -----------------------------------------------------------------------
       //!
       //! compute the dimensionless shape functions and diffusivities
@@ -2543,21 +2510,6 @@ if (KBL == NULL) {
         //removed for (j=1;j<ny_block;j+=1)
         //removed for (i=1;i<nx_block;i+=1)
         
-/* This computation has some difficulty with numerical stability, still experimenting
-        double sig3 = SIGMA*SIGMA*SIGMA;
-        double sig2 = SIGMA*SIGMA;
-
-        double a = (sig3 - 2.0*sig2);
-        double b = (3.0*sig2-2.0*sig3);
-        double c = (sig3 - sig2);
-
-        double term1 = SIGMA + a + b * GAT1(0) + c * DAT1(0);
-        BLMC[0] = HBLT(i,j) * WM * term1;
-        double term2 = SIGMA + a + b * GAT1(1) + c * DAT1(1);
-        BLMC[1] = HBLT(i,j) * WS * term2;
-        double term3 = SIGMA + a + b * GAT1(2) + c * DAT1(2);
-        BLMC[2] = HBLT(i,j) * WS * term3;
-*/
           BLMC[0] = HBLT(i,j) * WM * SIGMA * (1.0+SIGMA * ( (SIGMA -2.0) + (3.0-2.0*SIGMA ) *GAT1(0) + (SIGMA -1.0) *DAT1(0) ) ); //adjusted to c
           BLMC[1] = HBLT(i,j) * WS * SIGMA * (1.0+SIGMA * ( (SIGMA -2.0) + (3.0-2.0*SIGMA ) *GAT1(1) + (SIGMA -1.0) *DAT1(1) ) ); //adjusted to c
           BLMC[2] = HBLT(i,j) * WS * SIGMA * (1.0+SIGMA * ( (SIGMA -2.0) + (3.0-2.0*SIGMA ) *GAT1(2) + (SIGMA -1.0) *DAT1(2) ) ); //adjusted to c
@@ -2620,9 +2572,6 @@ if (KBL == NULL) {
 
       } // end of for-loop over k (fused three for-loops)
 
-
-
-    
       //! -----------------------------------------------------------------------
       //! EOC
       }
@@ -2635,7 +2584,6 @@ if (KBL == NULL) {
  */
 
     __device__ __forceinline__ double wmscale (double sigma, double hbl, double ustar, double bfsfc) {
-
       double zeta;
       double zetah;
       double wm;
@@ -2665,6 +2613,7 @@ if (KBL == NULL) {
 
       return wm;
     }
+
 
     __device__ __forceinline__ double wsscale (double sigma, double hbl, double ustar, double bfsfc) {
       double zeta;
