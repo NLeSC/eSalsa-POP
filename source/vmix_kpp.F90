@@ -70,12 +70,14 @@ subroutine vmix_coeffs_kpp_gpu_entry_test (VDC, VVC, TRCR, UUU, VVV, STF, SHF_QS
 end subroutine vmix_coeffs_kpp_gpu_entry_test
 
 subroutine init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, &
-                                             pressz, AU, UAREA_R) bind (c)
+                                             pressz, AU, UAREA_R, nblocks_clinic) bind (c)
   use iso_c_binding
   real (c_double), dimension (*) :: &
      DZT, dz, zt, DZU, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU, UAREA_R
   integer (c_int), dimension (*) :: &
      KMU, KMT
+  integer (c_int) :: &
+     nblocks_clinic
 end subroutine init_global_variables
 
 end interface
@@ -665,14 +667,14 @@ end interface
  call POP_IOUnitsFlush(POP_stdout)
 
 
- !---------------------------------------------------------------------
- !
- !
- ! initialize global variables on the GPU
- !
- !---------------------------------------------------------------------
+!---------------------------------------------------------------------
+!
+!
+! initialize global variables on the GPU
+!
+!---------------------------------------------------------------------
  if (use_gpu) then
-   call init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU, UAREA_R)
+   call init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU, UAREA_R, nblocks_clinic)
  endif
 
 
@@ -1074,7 +1076,7 @@ end interface
    end if
 
 
-   call vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
+   call vmix_coeffs_kpp_gpu_entry_test(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
                             bid, convect_diff, convect_visc, &
                             SMF, HMXL(:,:,bid), KPP_HBLT(:,:,bid), KPP_SRC)
 
@@ -1263,7 +1265,7 @@ end interface
 
 
 subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff, &
-                                      convect_visc, bid, VDC, VVC, KPP_SRC, HMXL) bind (c)
+                                      convect_visc, bid, VDC, VVC, KPP_SRC, HMXLB) bind (c)
 
 ! DESCRIPTION:
 !
@@ -1314,8 +1316,8 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
    real (r8), dimension(nx_block,ny_block,km), intent(out) :: &
       VVC        ! viscosity for momentum diffusion
 
-   real (r8), dimension(nx_block,ny_block,nblocks_clinic), intent(out) :: &
-      HMXL       ! mixed layer depth
+   real (r8), dimension(nx_block,ny_block), intent(out) :: &
+      HMXLB       ! mixed layer depth of the current block
 
    real (r8), dimension(nx_block,ny_block,km,nt,nblocks_clinic), intent(out) :: &
       KPP_SRC    ! non-local mixing (treated as source term)
@@ -1433,9 +1435,9 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
 
    WORK3 = c0
    where (KMT(:,:,bid) == 1)
-      HMXL(:,:,bid) = zt(1)
+      HMXLB(:,:) = zt(1)
    elsewhere
-      HMXL(:,:,bid) = c0
+      HMXLB(:,:) = c0
    endwhere
 
    if (partial_bottom_cells) then
@@ -1443,7 +1445,7 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
          where (k <= KMT(:,:,bid))
             WORK5 = zt(k-1) + p5*(DZT(:,:,k-1,bid) + DZT(:,:,k,bid))
             WORK3 = max(DBSFC(:,:,k)/WORK5,WORK3)
-            HMXL(:,:,bid) = WORK5
+            HMXLB(:,:) = WORK5
          endwhere
       enddo
 
@@ -1461,7 +1463,7 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
 ! tqian
 !            HMXL(:,:,bid) =   (zt(k-1) + p5*DZT(:,:,k-1,bid))*(c1-WORK4) &
 !                            + (zt(k-1) - p5*DZT(:,:,k-1,bid))*WORK4
-             HMXL(:,:,bid) =   (zt(k-1) + p25*(DZT(:,:,k-1,bid)+DZT(:,:,k,bid)))*(c1-WORK4) &
+             HMXLB(:,:) =   (zt(k-1) + p25*(DZT(:,:,k-1,bid)+DZT(:,:,k,bid)))*(c1-WORK4) &
                              + (zt(k-1) - p25*(DZT(:,:,k-2,bid)+DZT(:,:,k-1,bid)))*WORK4
 
             WORK3(:,:) = c0
@@ -1471,7 +1473,7 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
       do k=2,km
          where (k <= KMT(:,:,bid))
             WORK3 = max(DBSFC(:,:,k)/zt(k),WORK3)
-            HMXL(:,:,bid) = zt(k)
+            HMXLB(:,:) = zt(k)
          endwhere
       enddo
 
@@ -1486,7 +1488,7 @@ subroutine interior_convection(DBLOC, DBSFC, KBL, STF, GHAT, VISC, convect_diff,
                  WORK3 > c0 )   ! avoid divide by zero
             WORK4 = (VISC(:,:,k) - WORK3)/ &
                     (VISC(:,:,k)-VISC(:,:,k-1))
-            HMXL(:,:,bid) = -p5*(zgrid(k  ) + zgrid(k-1))*(c1-WORK4) &
+            HMXLB(:,:) = -p5*(zgrid(k  ) + zgrid(k-1))*(c1-WORK4) &
                             -p5*(zgrid(k-1) + zgrid(k-2))*WORK4
             WORK3(:,:) = c0
          endwhere

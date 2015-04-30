@@ -59,6 +59,7 @@ Cpp_opts := $(Cpp_opts) -DPOSIX
 CFLAGS = $(ABI) 
 
 ifeq ($(OPTIMIZE),yes)
+#  CFLAGS := $(CFLAGS) -g
   CFLAGS := $(CFLAGS) -O2
 else
   CFLAGS := $(CFLAGS) -g
@@ -83,6 +84,7 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
+#  FFLAGS = $(FBASE) -g -check bounds
   FFLAGS = $(FBASE) -O2
 else
   FFLAGS = $(FBASE) -g -check bounds
@@ -107,7 +109,10 @@ CUFLAGS = -gencode arch=compute_35,code=sm_35 -Xptxas=-v -maxrregcount=64
 #-prec-sqrt=true -fmad=false
 
 ifeq ($(OPTIMIZE),yes)
+#  CUFLAGS := $(CUFLAGS) -O0 -fmad=false -prec-div=true -prec-sqrt=true
   CUFLAGS := $(CUFLAGS) -O3
+else
+  CUFLAGS := $(CUFLAGS) -O0 -fmad=false -prec-div=true -prec-sqrt=true
 endif
 
 #----------------------------------------------------------------------------

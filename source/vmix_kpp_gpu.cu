@@ -1,9 +1,27 @@
+/*
+ * Copyright 2013 Netherlands eScience Center
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
 
 using namespace std;
+
+#include "gpu_domain.h"
 
 #define DBLOC(i,j,k) DBLOC[(i)+(j)*nx_block+(k)*nx_block*ny_block]
 #define VISC(i,j,k) VISC[(i)+(j)*nx_block+(k)*nx_block*ny_block]
@@ -15,7 +33,7 @@ using namespace std;
 #define dz(i) dz[(i)]
 #define GHAT(i,j,k) GHAT[(i)+(j)*nx_block+(k)*nx_block*ny_block]
 #define KMT(i,j,k) KMT[(i)+(j)*nx_block+(k)*nx_block*ny_block]
-#define HMXL(i,j,k) HMXL[(i)+(j)*nx_block+(k)*nx_block*ny_block]
+#define HMXL(i,j) HMXL[(i)+(j)*nx_block]
 #define zt(i) zt[(i)]
 #define DBSFC(i,j,k) DBSFC[(i)+(j)*nx_block+(k)*nx_block*ny_block]
 #define UUU(i,j,k) UUU[(i)+(j)*nx_block+(k)*nx_block*ny_block]
@@ -72,12 +90,6 @@ using namespace std;
 #define h_KMT(i,j,k) h_KMT[(i)+(j)*nx_block+(k)*nx_block*ny_block]
 
 
-#define km 42
-#define nx_block 64
-#define ny_block 64
-#define nt 2
-#define max_blocks_clinic 7
-#define nblocks_clinic 7
 
 #define BLOCK_X 32
 #define BLOCK_Y 16
@@ -88,7 +100,7 @@ using namespace std;
 #define nint(x) ((int) nearbyint(x))
 
 
-
+extern int my_task;
 
 /* constants for equation of state */
 
@@ -191,7 +203,7 @@ extern "C" {
     __device__ double compute_drhods(double tq, double sq, double sqr, int k, double nomk, double denomk);
 
 
-    void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU, double *h_UAREA_R);
+    void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU, double *h_UAREA_R, int *pnblocks_clinic);
     void vmix_coeffs_kpp_gpu_entry (double *VDC, double *VVC, double *TRCR, double *UUU, double *VVV, double *STF, double *SHF_QSW, int *pbid, double *pconvect_diff, double *pconvect_visc, double *SMF, double *HMXL, double *KPP_HBLT, double *KPP_SRC);
 
     void vmix_coeffs_kpp_gpu_entry_test (double *VDC, double *VVC, double *TRCR, double *UUU, double *VVV, double *STF, double *SHF_QSW, int *pbid, double *pconvect_diff, double *pconvect_visc, double *SMF, double *HMXL, double *KPP_HBLT, double *KPP_SRC);
@@ -280,24 +292,28 @@ __constant__ double bckgrnd_vdc[km];
 
 extern int my_task;
 
-void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU, double *h_UAREA_R) {
+int nblocks_clinic = max_blocks_clinic; //init at max, may be lowered by init_global_variables
+
+void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_zt, double *h_DZU, int *h_KMT, double *h_bckgrnd_vdc, double *h_bckgrnd_vvc, double *h_zgrid, double *h_Ricr, double *h_hwide, double *pressz, double *h_AU, double *h_UAREA_R, int* pnblocks_clinic) {
 
   cudaError_t err;
+
+  nblocks_clinic = *pnblocks_clinic;
 
   err = cudaStreamCreate(stream);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cuda stream creation: %s\n", cudaGetErrorString (err)); }
 
 
-  err = cudaMalloc ((void **) &DZT, nx_block * ny_block * (km+2) * max_blocks_clinic * sizeof(double));
+  err = cudaMalloc ((void **) &DZT, nx_block * ny_block * (km+2) * nblocks_clinic * sizeof(double));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc DZT: %s\n", cudaGetErrorString (err)); }
 
-  err = cudaMemcpyAsync(DZT, h_DZT, nx_block * ny_block * (km+2) * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
+  err = cudaMemcpyAsync(DZT, h_DZT, nx_block * ny_block * (km+2) * nblocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device DZT: %s\n", cudaGetErrorString(err)); }
 
-  err = cudaMalloc ((void **) &KMU, nx_block * ny_block * max_blocks_clinic * sizeof(int));
+  err = cudaMalloc ((void **) &KMU, nx_block * ny_block * nblocks_clinic * sizeof(int));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc KMU: %s\n", cudaGetErrorString (err)); }
 
-  err = cudaMemcpyAsync(KMU, h_KMU, nx_block * ny_block * max_blocks_clinic * sizeof(int), cudaMemcpyHostToDevice, 0);
+  err = cudaMemcpyAsync(KMU, h_KMU, nx_block * ny_block * nblocks_clinic * sizeof(int), cudaMemcpyHostToDevice, 0);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device KMU: %s\n", cudaGetErrorString(err)); }
 
   err = cudaMemcpyToSymbol(dz, h_dz, km * sizeof(double), 0, cudaMemcpyHostToDevice);
@@ -306,33 +322,33 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
   err = cudaMemcpyToSymbol(zt, h_zt, km * sizeof(double), 0, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device zt: %s\n", cudaGetErrorString(err)); }
 
-  err = cudaMalloc ((void **) &DZU, nx_block * ny_block * (km+2) * max_blocks_clinic * sizeof(double));
+  err = cudaMalloc ((void **) &DZU, nx_block * ny_block * (km+2) * nblocks_clinic * sizeof(double));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc DZU: %s\n", cudaGetErrorString (err)); }
 
-  err = cudaMemcpyAsync(DZU, h_DZU, nx_block * ny_block * (km+2) * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
+  err = cudaMemcpyAsync(DZU, h_DZU, nx_block * ny_block * (km+2) * nblocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device DZU: %s\n", cudaGetErrorString(err)); }
 
-  err = cudaMalloc ((void **) &KMT, nx_block * ny_block * max_blocks_clinic * sizeof(int));
+  err = cudaMalloc ((void **) &KMT, nx_block * ny_block * nblocks_clinic * sizeof(int));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc KMT: %s\n", cudaGetErrorString (err)); }
 
-  err = cudaMemcpyAsync(KMT, h_KMT, nx_block * ny_block * max_blocks_clinic * sizeof(int), cudaMemcpyHostToDevice, 0);
+  err = cudaMemcpyAsync(KMT, h_KMT, nx_block * ny_block * nblocks_clinic * sizeof(int), cudaMemcpyHostToDevice, 0);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device KMT: %s\n", cudaGetErrorString(err)); }
 
-//  err = cudaMalloc ((void **) &bckgrnd_vdc, nx_block * ny_block * km * nblocks_clinic * sizeof(double));
+//  err = cudaMalloc ((void **) &bckgrnd_vdc, nx_block * ny_block * km * max_blocks_clinic * sizeof(double));
   err = cudaMalloc ((void **) &bckgrnd_vdc, km * sizeof(double));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc bckgrnd_vdc: %s\n", cudaGetErrorString (err)); }
 
-//  err = cudaMemcpyAsync(bckgrnd_vdc, h_bckgrnd_vdc, nx_block * ny_block * km * nblocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
+//  err = cudaMemcpyAsync(bckgrnd_vdc, h_bckgrnd_vdc, nx_block * ny_block * km * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
   double background[km];
   for (int k = 0; k<km; k++) {
     background[k] = h_bckgrnd_vdc[(k)*nx_block*ny_block];
   }
 
-//  err = cudaMemcpyAsync(bckgrnd_vdc, h_bckgrnd_vdc, nx_block * ny_block * km * nblocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
+//  err = cudaMemcpyAsync(bckgrnd_vdc, h_bckgrnd_vdc, nx_block * ny_block * km * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
   err = cudaMemcpyToSymbol(bckgrnd_vdc, background, km * sizeof(double), 0, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device bckgrnd_vdc: %s\n", cudaGetErrorString(err)); }
 
-//  err = cudaMalloc ((void **) &bckgrnd_vvc, nx_block * ny_block * km * nblocks_clinic * sizeof(double));
+//  err = cudaMalloc ((void **) &bckgrnd_vvc, nx_block * ny_block * km * max_blocks_clinic * sizeof(double));
   err = cudaMalloc ((void **) &bckgrnd_vvc, km * sizeof(double));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc bckgrnd_vvc: %s\n", cudaGetErrorString (err)); }
 
@@ -352,16 +368,16 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
   err = cudaMemcpyToSymbol(hwide, h_hwide, (km+2) * sizeof(double), 0, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device hwide: %s\n", cudaGetErrorString(err)); }
 
-  err = cudaMalloc ((void **) &AU, nx_block * ny_block * max_blocks_clinic * sizeof(double));
+  err = cudaMalloc ((void **) &AU, nx_block * ny_block * nblocks_clinic * sizeof(double));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc DZU: %s\n", cudaGetErrorString (err)); }
 
-  err = cudaMemcpyAsync(AU, h_AU, nx_block * ny_block * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
+  err = cudaMemcpyAsync(AU, h_AU, nx_block * ny_block * nblocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device DZU: %s\n", cudaGetErrorString(err)); }
 
-  err = cudaMalloc ((void **) &UAREA_R, nx_block * ny_block * max_blocks_clinic * sizeof(double));
+  err = cudaMalloc ((void **) &UAREA_R, nx_block * ny_block * nblocks_clinic * sizeof(double));
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc DZU: %s\n", cudaGetErrorString (err)); }
 
-  err = cudaMemcpyAsync(UAREA_R, h_UAREA_R, nx_block * ny_block * max_blocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
+  err = cudaMemcpyAsync(UAREA_R, h_UAREA_R, nx_block * ny_block * nblocks_clinic * sizeof(double), cudaMemcpyHostToDevice, 0);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy host to device DZU: %s\n", cudaGetErrorString(err)); }
 
   //constants for blmix
@@ -900,7 +916,7 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
 //      err = cudaMemcpyAsync(KPP_SRC, d_KPP_SRC, nx_block * ny_block * km * nt * sizeof(double), cudaMemcpyDeviceToHost, stream[0]);
 //      if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpy device to host KPP_SRC: %s\n", cudaGetErrorString (err)); }
 
-      cudaDeviceSynchronize();
+      cudaStreamSynchronize(stream[0]);
       err = cudaGetLastError();
       if (err != cudaSuccess) { fprintf (stderr, "Error in GPU version of entrypoint: %s\n", cudaGetErrorString (err)); }
 
@@ -989,6 +1005,7 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
       if (d_HMXL == NULL) {
         err = cudaMalloc ((void **) &d_HMXL, nx_block * ny_block * sizeof(double));
         if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_HMXL: %s\n", cudaGetErrorString (err)); }
+
         err = cudaMemset (d_HMXL, 0, nx_block * ny_block * sizeof(double));
         if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemset d_HMXL: %s\n", cudaGetErrorString (err)); }
       }
@@ -1001,9 +1018,9 @@ void init_global_variables( double *h_DZT, int *h_KMU, double *h_dz, double *h_z
 
       static double *d_KPP_SRC = (double *) NULL;
       if (d_KPP_SRC == NULL) {
-        err = cudaMalloc ((void **) &d_KPP_SRC, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double));
+        err = cudaMalloc ((void **) &d_KPP_SRC, nx_block * ny_block * km * nt * nblocks_clinic * sizeof(double));
         if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMalloc d_KPP_SRC: %s\n", cudaGetErrorString (err)); }
-        err = cudaMemset (d_KPP_SRC, 0, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double));
+        err = cudaMemset (d_KPP_SRC, 0, nx_block * ny_block * km * nt * nblocks_clinic * sizeof(double));
         if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemset d_KPP_SRC: %s\n", cudaGetErrorString (err)); }
         
       }
@@ -1145,32 +1162,32 @@ if (TRCR_REF == NULL) {
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaHostAlloc HMXL: %s\n", cudaGetErrorString (err)); }
   err = cudaHostAlloc ((void **) &KPP_HBLT_REF, nx_block * ny_block * sizeof(double), cudaHostAllocMapped);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaHostAlloc KPP_HBLT: %s\n", cudaGetErrorString (err)); }
-  err = cudaHostAlloc ((void **) &KPP_SRC_REF, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double), cudaHostAllocMapped);
+  err = cudaHostAlloc ((void **) &KPP_SRC_REF, nx_block * ny_block * km * nt * nblocks_clinic * sizeof(double), cudaHostAllocMapped);
   if (err != cudaSuccess) { fprintf (stderr, "Error in cudaHostAlloc KPP_SRC: %s\n", cudaGetErrorString (err)); }
 }
   //make sure CPU and GPU version compute on same data
   err = cudaMemcpy(TRCR_REF, TRCR, nx_block * ny_block * km * nt * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost TRCR %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(UUU_REF, UUU, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost UUU %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(VVV_REF, VVV, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost VVV %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(STF_REF, STF, nx_block * ny_block * nt * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost STF %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(SHF_QSW_REF, SHF_QSW, nx_block * ny_block * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost SHF_QSW %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(SMF_REF, SMF, nx_block * ny_block * 2 * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost SMF %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(VDC_REF, VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost VDC %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(VVC_REF, VVC, nx_block * ny_block * km * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
-  err = cudaMemcpy(HMXL_REF, HMXL, nx_block * ny_block * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost VVC %s\n", cudaGetErrorString (err)); }
+  err = cudaMemcpy(HMXL_REF, d_HMXL, nx_block * ny_block * sizeof(double), cudaMemcpyDeviceToHost); //HMXL is never written by host thread, use GPU result
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost HMXL %s\n", cudaGetErrorString (err)); }
   err = cudaMemcpy(KPP_HBLT_REF, KPP_HBLT, nx_block * ny_block * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
-  err = cudaMemcpy(KPP_SRC_REF, KPP_SRC, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double), cudaMemcpyHostToHost);
-  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost %s\n", cudaGetErrorString (err)); }
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost KPP_HBLT %s\n", cudaGetErrorString (err)); }
+  err = cudaMemcpy(KPP_SRC_REF, KPP_SRC, nx_block * ny_block * km * nt * nblocks_clinic * sizeof(double), cudaMemcpyHostToHost);
+  if (err != cudaSuccess) { fprintf (stderr, "Error in cudaMemcpyHostToHost KPP_SRC %s\n", cudaGetErrorString (err)); }
 
   static int *KBL_REF = (int *) NULL;
   static double *USTAR_REF = (double *) NULL;
@@ -1439,6 +1456,19 @@ if (KBL == NULL) {
       //! consider interior convection:
       //!
       //! -----------------------------------------------------------------------
+      err = cudaMemcpy(DBSFC_REF, d_DBSFC, nx_block * ny_block * km * sizeof(double), cudaMemcpyDeviceToHost);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in prestage interior convection kernel DBSFC: %s\n", cudaGetErrorString (err)); }
+
+      memset(HMXL_REF, 0, nx_block*ny_block*sizeof(double));
+      cudaMemset(d_HMXL, 0, nx_block*ny_block*sizeof(double));
+
+      err = cudaMemcpy(VDC_REF, d_VDC, nx_block * ny_block * (km+1) * 2 * sizeof(double), cudaMemcpyDeviceToHost);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in prestage interior convection kernel VDC: %s\n", cudaGetErrorString (err)); }
+      err = cudaMemcpy(GHAT_REF, d_GHAT, nx_block * ny_block * km * sizeof(double), cudaMemcpyDeviceToHost);
+      if (err != cudaSuccess) { fprintf (stderr, "Error in prestage interior convection kernel GHAT: %s\n", cudaGetErrorString (err)); }
+
+
+
 
       cudaDeviceSynchronize();
       start_timer();
@@ -1471,13 +1501,13 @@ if (KBL == NULL) {
       if (err != cudaSuccess) { fprintf (stderr, "Error in blmix kernel memcpy: %s\n", cudaGetErrorString (err)); }
       err = cudaMemcpy(HMXL, d_HMXL, nx_block * ny_block * sizeof(double), cudaMemcpyDeviceToHost);
       if (err != cudaSuccess) { fprintf (stderr, "Error in blmix kernel memcpy: %s\n", cudaGetErrorString (err)); }
-      err = cudaMemcpy(KPP_SRC, d_KPP_SRC, nx_block * ny_block * km * nt * max_blocks_clinic * sizeof(double), cudaMemcpyDeviceToHost);
+      err = cudaMemcpy(KPP_SRC, d_KPP_SRC, nx_block * ny_block * km * nt * nblocks_clinic * sizeof(double), cudaMemcpyDeviceToHost);
       if (err != cudaSuccess) { fprintf (stderr, "Error in blmix kernel memcpy: %s\n", cudaGetErrorString (err)); }
 
       compare(VVC, VVC_REF, nx_block * ny_block * km, "interior VVC");
       compare(VDC, VDC_REF, nx_block * ny_block * (km+1) * 2, "interior VDC");
       compare(HMXL, HMXL_REF, nx_block * ny_block, "interior HMXL");
-      compare(KPP_SRC, KPP_SRC_REF, nx_block * ny_block * km * nt * max_blocks_clinic, "interior KPP_SRC");
+      compare(KPP_SRC, KPP_SRC_REF, nx_block * ny_block * km * nt * nblocks_clinic, "interior KPP_SRC");
 
 
       //! -----------------------------------------------------------------------
@@ -1636,46 +1666,72 @@ if (KBL == NULL) {
       //! -----------------------------------------------------------------------
       //!
       //! compute diagnostic mixed layer depth (cm) using a max buoyancy
-      //! gradient criterion. This part previously used USTAR and BFSFC as temps.
-      //! These have been renamed to WORK3 and WORK4
+      //! gradient criterion. This part previously reused USTAR and BFSFC as temps.
+      //! These have been renamed to WORK3 and WORK4.
       //!
       //! -----------------------------------------------------------------------
-      WORK3 = c0;
+      WORK3 = 0.0;
       double hmxl = 0.0;
     
       if (KMT(i,j,bid) == 1) { //converted from where statement
         hmxl = zt(0); //adjusted to c
       } else {
-        hmxl = c0;
+        hmxl = 0.0;
       }
     
+/*
       for (k = 1; k<km; k++) {
-        
         if (k <= KMT(i,j,bid)-1 ) { //converted from where statement  //adjusted to c
           WORK5 = zt(k-1) + p5* (DZT(i,j,k-1,bid) + DZT(i,j,k,bid) );
           WORK3 = max (DBSFC(i,j,k) /WORK5,WORK3);
           hmxl = WORK5;
         }
       }
-    
-      VISC(i,j,0) = c0;
-    
+*/
+      //Ben's interpretation:
+      //search for max buoyancy / depth ratio and store in work3
+      //hmxl will be set to depth at level k = kmt
       for (k = 1; k<km; k++) {
-        
-        if (WORK3 > c0 ) { //converted from where statement
-          VISC(i,j,k) = (DBSFC(i,j,k) -DBSFC(i,j,k-1) ) / (p5* (DZT(i,j,k,bid) + DZT(i,j,k-1,bid) ) );
-        }
-      
-        if ( (VISC(i,j,k) >= WORK3) && ((VISC(i,j,k)-VISC(i,j,k-1)) != c0) && (WORK3 > c0) ) { //converted from where statement
-          WORK4 = (VISC(i,j,k) - WORK3) / (VISC(i,j,k)-VISC(i,j,k-1) );
-          //! tqian
-          //! HMXL (:,:,bid) = (zt (k-1) + p5*DZT (:,:,k-1,bid) ) * (c1-WORK4) ! + (zt (k-1) - p5*DZT (:,:,k-1,bid) ) *WORK4
-          hmxl = (zt(k-1) + p25* (DZT(i,j,k-1,bid) +DZT(i,j,k,bid) ) ) * (c1-WORK4) + (zt(k-1) - p25* (DZT(i,j,k-2,bid) +DZT(i,j,k-1,bid) ) ) *WORK4;
-          WORK3 = c0;
+        if (k <= KMT(i,j,bid)-1 ) { //converted from where statement  //adjusted to c
+          WORK5 = zt(k-1) + 0.5* (DZT(i,j,k-1,bid) + DZT(i,j,k,bid) );
+          WORK3 = max (DBSFC(i,j,k) / WORK5, WORK3);
+          hmxl = WORK5;
         }
       }
+    
+      //buoyancy with respect to the surface divided by depth (bk is for current level k, bkm1 for level k-1)
+      double bkm1 = 0.0;
+      double bk = 0.0;
 
-      HMXL(i,j,bid) = hmxl;
+//WARNING: THIS CODE NEEDS DEBUGGING
+
+      for (k = 1; (k<km) && (WORK3 > 0.0); k++) { //added "&& (WORK3 > 0.0)" because the loop does not do anything otherwise
+        
+        if (WORK3 > 0.0 ) { //converted from where statement
+          bk = (DBSFC(i,j,k) - DBSFC(i,j,k-1) ) / (0.5* (DZT(i,j,k,bid) + DZT(i,j,k-1,bid) ) );
+        }
+      
+        if ( (bk >= WORK3) && ((bk - bkm1) != 0.0) && (WORK3 > 0.0) ) { //converted from where statement
+          WORK4 = (bk - WORK3) / (bk - bkm1);
+          //! tqian
+          //! HMXL (:,:,bid) = (zt (k-1) + p5*DZT (:,:,k-1,bid) ) * (c1-WORK4) ! + (zt (k-1) - p5*DZT (:,:,k-1,bid) ) *WORK4
+          hmxl =   (zt(k-1) + 0.25* (DZT(i,j,k-1,bid) +DZT(i,j,k  ,bid) ) ) * (1.0-WORK4) 
+                 + (zt(k-1) - 0.25* (DZT(i,j,k-2,bid) +DZT(i,j,k-1,bid) ) ) * WORK4;
+          WORK3 = 0.0;
+         }
+
+        //the following is for debugging only
+        //write a debug value if this happens
+        if ((bk - bkm1) == 0.0) {
+          hmxl = -1337.0; //write debug value
+          WORK3 = 0.0; //stop computation of this gridpoint
+        } //it seems this does not happen any time
+        
+        //store bk for next round
+        bkm1 = bk;
+      }
+
+      HMXL(i,j) = hmxl;
 
       }
     }
@@ -3469,7 +3525,7 @@ int compare (double *a1, double *a2, int N, const char * str) {
   int zero_one = 0;
   int zero_two = 0;
 
-  double eps = 0.000001;
+  double eps = 0.0000001;
 
   for (i=0; i<N; i++) {
 
@@ -3480,7 +3536,7 @@ int compare (double *a1, double *a2, int N, const char * str) {
         res++;
         if (print < 10) {
           print++;
-          fprintf(stderr, "Error in %s isnan at i=%d, a1= %30.27e a2= %30.27e\n",str,i,a1[i],a2[i]);
+          fprintf(stderr, "Process %d: Error in %s isnan at i=%d, a1= %30.27e a2= %30.27e\n",my_task,str,i,a1[i],a2[i]);
         }
     }
 
@@ -3503,20 +3559,21 @@ int compare (double *a1, double *a2, int N, const char * str) {
           fprintf(stderr, "Error detected at i=%d, \t a1= \t %30.27e \t a2= \t %30.27e \t ulp_dist=\t %llu\n",i,a1[i],a2[i],dist);
          */
 
-          fprintf(stderr, "Error in %s at i=%d, \t a1= \t %30.27e \t a2= \t %30.27e \n",str,i,a1[i],a2[i]);
+          fprintf(stderr, "Process %d: Error in %s at i=%d, \t a1= \t %30.27e \t a2= \t %30.27e \n", my_task, str,i,a1[i],a2[i]);
         }
     }
 
   }
 
+/*don't complain about zeros for now
   if (zero_one > 3*(N/4)) { fprintf(stderr, "Error: array1 contains %d zeros\n", zero_one); }
   if (zero_two > 3*(N/4)) { fprintf(stderr, "Error: array2 contains %d zeros\n", zero_two); }
 
   if (zero_one != zero_two) {
     fprintf(stderr, "Error in %s number of zeros in arrays dont correspond zero1=%d, zero2=%d\n", str, zero_one, zero_two);
   }
-
-  if (res > 0) { fprintf(stdout,"Number of errors in GPU result %s: %d\n",str,res); }
+*/
+  if (res > 0) { fprintf(stdout,"Process %d: Number of errors in GPU result %s: %d\n",my_task, str,res); }
 
   return res;
 }
