@@ -1,11 +1,10 @@
 eSalsa POP GPU Version
 ======================
 
-This is the user guide of the GPU-enabled version of the Parallel Ocean Program.
+This is the user guide of GPU-POP (the GPU-enabled version of the Parallel Ocean Program).
 
 Unfortunately, only the computation of vertical mixing coefficients happens on the GPU as of now. Hopefully, we 
 will be able to port more of POP in the future.
-
 
 How to get it?
 --------------
@@ -21,7 +20,7 @@ This will create a directory called eSalsa-POP that will become the POPDIR for t
 Required settings
 -----------------
 
-It's extremely important to realize that the GPU version will only be correct for 0.1 degree resolution and the following namelist settings:
+It's **extremely important** to realize that the GPU version will only produce correct results for 0.1 degree resolution runs with the following namelist settings:
 
 &vmix_kpp_nml  
    Prandtl         = 10.0  
@@ -57,11 +56,12 @@ It's extremely important to realize that the GPU version will only be correct fo
    state_range_opt = 'enforce'  
 /  
 
-There is no fundamental reason why only this specific list of settings is supported. It was mainly done to save time. If you really need an option different from what is listed here, let me know.
+There is no fundamental reason why only this specific list of settings is supported. It was mainly done to save development time. If you really need an option different from what is listed here, 
+let me know.
 
 
-Configuring of the GPU Version
-------------------------------
+Configuring the GPU Version
+---------------------------
 
 There are a couple of things that are specific to the GPU version:
 
@@ -76,7 +76,7 @@ the values you use in POP_DomainSizeMod.F90. I know this is not very user friend
 
 Actually, I recommend to not change the block size to anything other than 60x60 for the 0.1 degree resolution. Larger blocks will allow for less land-only blocks to be 
 removed, smaller blocks will increase the total amount of work because the increase in removed land-only blocks is outweighed by the increase in the number of halo cells around blocks. 60x60 is the 
-optimal setting for this resolution and landmask.
+optimal setting for the 0.1 degree resolution and present-day landmask.
 
 
 Building GPU-POP
