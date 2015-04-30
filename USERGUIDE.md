@@ -23,39 +23,39 @@ Required settings
 
 It's extremely important to realize that the GPU version will only be correct for 0.1 degree resolution and the following namelist settings:
 
-&vmix_kpp_nml
-   Prandtl         = 10.0
-   rich_mix        = 50.0
-   lrich           = .true.
-   ldbl_diff	   = .true.
-   lshort_wave     = .true.
-   lcheckekmo	   = .false.
-   lhoriz_varying_bckgrnd = .false.
-   llangmuir              = .false.
-   linertial              = .false.
-   num_v_smooth_Ri = 1
-/
+&vmix_kpp_nml  
+   Prandtl         = 10.0  
+   rich_mix        = 50.0  
+   lrich           = .true.  
+   ldbl_diff	   = .true.  
+   lshort_wave     = .true.  
+   lcheckekmo	   = .false.  
+   lhoriz_varying_bckgrnd = .false.  
+   llangmuir              = .false.  
+   linertial              = .false.  
+   num_v_smooth_Ri = 1  
+/  
 (the false values in vmix_kpp_nml are actually default values so can be left out of the namelist)
 
-&grid_nml
-  partial_bottom_cells = .true.
-/
+&grid_nml  
+  partial_bottom_cells = .true.  
+/  
 
-&tidal_nml
-  ltidal_mixing = .false.
-/
+&tidal_nml  
+  ltidal_mixing = .false.  
+/  
 (this is the default value, namelist can be left empty)
 
-&sw_absorption_nml
-  sw_absorption_type   = 'jerlov'
-   jerlov_water_type    =    3
-/
+&sw_absorption_nml  
+  sw_absorption_type   = 'jerlov'  
+   jerlov_water_type    =    3  
+/  
 (these are the default values, namelist can be left empty)
 
-&state_nml
-   state_choice = 'mwjf'
-   state_range_opt = 'enforce'
-/
+&state_nml  
+   state_choice = 'mwjf'  
+   state_range_opt = 'enforce'  
+/  
 
 There is no fundamental reason why only this specific list of settings is supported. It was mainly done to save time. If you really need an option different from what is listed here, let me know.
 
@@ -67,9 +67,9 @@ There are a couple of things that are specific to the GPU version:
 
 First, in pop_in you should have a namelist like this:
 
-&gpu_mod_nml
-  use_gpu = .true.
-/
+&gpu_mod_nml  
+  use_gpu = .true.  
+/  
 
 And secondly, if you want to use a block size other than 60 by 60 you should also change the gpu_domain.h file in the directory 'source'. It's important that nx_block and ny_block are set to +4 of 
 the values you use in POP_DomainSizeMod.F90. I know this is not very user friendly, but there is no simple way to prevent this without introducing yet another settings file.
