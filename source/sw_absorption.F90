@@ -98,7 +98,7 @@
       chl_bndy_loc,              &! location and field types for ghost
       chl_bndy_type               !    cell update routines
 
-   integer (int_kind) ::         &
+   integer (int_kind), public ::         &
       jerlov_water_type           ! jerlov water type from 1 to 5
 
    real (r8), dimension(0:km) :: &

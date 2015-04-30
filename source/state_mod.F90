@@ -73,20 +73,20 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), parameter :: &
+   integer (int_kind), parameter, public :: &
       state_type_jmcd       = 1,    &! integer ids for state choice
       state_type_mwjf       = 2,    &
       state_type_polynomial = 3,    &
       state_type_linear     = 4
 
-   integer (int_kind) ::    &
+   integer (int_kind), public ::    &
       state_itype           ! input state type chosen
 
-   integer (int_kind) ::    &
+   integer (int_kind), public ::    &
       state_range_iopt,     &! option for checking valid T,S range
       state_range_freq       ! freq (in steps) for checking T,S range
 
-   integer (int_kind), parameter :: &
+   integer (int_kind), parameter, public :: &
       state_range_ignore  = 1, &! do not check T,S range
       state_range_check   = 2, &! check T,S range and report invalid
       state_range_enforce = 3   ! force polynomial eval within range

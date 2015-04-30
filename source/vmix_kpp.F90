@@ -674,7 +674,34 @@ end interface
 !
 !---------------------------------------------------------------------
  if (use_gpu) then
-   call init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU, UAREA_R, nblocks_clinic)
+
+   !--------------------------------------------------------------------- 
+   !
+   ! check if the combination of settings is supported.
+   ! this check is not complete, refer to userguide for full list
+   !
+   !---------------------------------------------------------------------
+
+   if (lrich       == .true.            .and. &
+      ldbl_diff	   == .true.            .and. &
+      lshort_wave  == .true.            .and. &
+      lcheckekmo   == .false.           .and. &
+      lhoriz_varying_bckgrnd == .false. .and. &
+      llangmuir              == .false. .and. &
+      linertial              == .false. .and. &
+      partial_bottom_cells == .true.    .and. &
+      Prandtl         == 10.0           .and. &
+      rich_mix        == 50.0           .and. & 
+      num_v_smooth_Ri == 1             ) then
+
+     call init_global_variables( DZT, KMU, dz, zt, DZU, KMT, bckgrnd_vdc, bckgrnd_vvc, zgrid, Ricr, hwide, pressz, AU, UAREA_R, nblocks_clinic)
+
+   else
+     call exit_POP(sigAbort, 'ERROR KPP GPU VERSION: Settings not correct please refer to userguide')
+
+   endif
+
+
  endif
 
 
@@ -1076,7 +1103,7 @@ end interface
    end if
 
 
-   call vmix_coeffs_kpp_gpu_entry_test(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
+   call vmix_coeffs_kpp_gpu_entry(VDC, VVC, TRCR, UUU, VVV, STF, SHF_QSW, &
                             bid, convect_diff, convect_visc, &
                             SMF, HMXL(:,:,bid), KPP_HBLT(:,:,bid), KPP_SRC)
 

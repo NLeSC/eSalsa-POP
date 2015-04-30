@@ -83,7 +83,7 @@ Building GPU-POP
 ----------------
 
 The build file used on Cartesius is called bull-gpu-intel.gnu and is located in the directory build. Please set POPARCH to bull-gpu-intel, POPDIR to eSalsa-POP, POPEXEDIR to your run directory.
-
+If you are not running on Cartesius copy bull-gpu-intel and adjust the settings to your local configuration.
 
 
 
