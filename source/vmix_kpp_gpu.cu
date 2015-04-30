@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Netherlands eScience Center
+ * Copyright 2015 Netherlands eScience Center
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,6 +12,22 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ */
+
+
+/**
+ * This file contains a GPU implementation of the K-Profile Parameterization as
+ * implemented in the Parallel Ocean Program, including a few helper functions.
+ * The majority of this code was automatically translated using a tool named Marver[1].
+ * After that the generated code was manually finished into correct CUDA code.
+ * This file also contains various routines used for testing and verification of
+ * GPU results.
+ *
+ * [1] "An integrated approach to porting large scientific applications to GPUs"
+ *     B. van Werkhoven and P. Hijma. In: Submitted (2015).
+ *
+ * @author Ben van Werkhoven <b.vanwerkhoven@esciencecenter.nl>
+ * @version 0.1
  */
 
 
