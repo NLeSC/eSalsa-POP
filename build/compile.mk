@@ -18,6 +18,7 @@ SHELL = /bin/sh
 #----------------------------------------------------------------------------
 
 TARGETX = pop
+CODELIB = libpop.a
 ifeq ($(OPTIMIZE),no)
   #  If building a debug version, append "_db" to the executable name
   TARGETX := $(TARGETX)_db
@@ -104,9 +105,32 @@ endif
 #
 #----------------------------------------------------------------------------
 
-$(POPEXEDIR)/$(TARGETX): $(OBJS)
+all: $(POPEXEDIR)/$(TARGETX) $(POPEXEDIR)/$(CODELIB)
+
+LIBOBJ = $(addprefix $(POPEXEDIR)/compile/, interface.o)
+EXEOBJS = $(filter-out $(LIBOBJ), $(OBJS))
+
+$(POPEXEDIR)/$(TARGETX): $(EXEOBJS)
 	@echo "  GNUmakefile is making target '$(TARGETX)'"
-	@$(LD) -o $(TARGETX) $(LDFLAGS) $(OBJS) $(LDLIBS) 
+	@$(LD) -o $(TARGETX) $(LDFLAGS) $(EXEOBJS) $(LDLIBS) 
+
+#----------------------------------------------------------------------------
+#
+#  Make the library.
+#
+#----------------------------------------------------------------------------
+
+AR = ar ruv
+RANLIB = ranlib
+
+POPOBJ = $(addprefix $(POPEXEDIR)/compile/, POP.o)
+CODEOBJS = $(filter-out $(POPOBJ), $(OBJS))
+
+$(POPEXEDIR)/$(CODELIB): $(CODEOBJS)
+	@echo "  GNUmakefile is making target '$(CODELIB)'"
+	@echo $(CODEOBJS)
+	@$(AR) $(CODELIB) $(CODEOBJS)
+	@$(RANLIB) $(CODELIB)
 
 #----------------------------------------------------------------------------
 #
