@@ -39,6 +39,16 @@
    real (r8), public :: &! needed by restart
       ws_interp_last     ! time when last interpolation was done
 
+   real (r8), public ::       &
+      ws_data_inc,    &! time increment between values of forcing data
+      ws_data_next,   &! time for next value of forcing data needed
+      ws_data_update, &! time new forcing value needs to be added to interpolation set
+      ws_interp_inc,  &! time increment between interpolation
+      ws_interp_next   ! time when next interpolation will be done
+
+   character (char_len), public :: &
+      ws_interp_freq  ! keyword for period of temporal interpolation
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -58,13 +68,6 @@
    real (r8), dimension(20) :: &
       ws_data_renorm  ! factors for converting to model units
 
-   real (r8) ::       &
-      ws_data_inc,    &! time increment between values of forcing data
-      ws_data_next,   &! time for next value of forcing data needed
-      ws_data_update, &! time new forcing value needs to be added to interpolation set
-      ws_interp_inc,  &! time increment between interpolation
-      ws_interp_next   ! time when next interpolation will be done
-
    integer (int_kind) ::   &
       ws_interp_order,     &! order of temporal interpolation
       ws_data_time_min_loc  ! index of first time index of SMF_DATA
@@ -73,7 +76,6 @@
    character (char_len) :: &
       ws_filename,     &! name of file conainting forcing data
       ws_file_fmt,     &! format (bin or nc) for forcing file
-      ws_interp_freq,  &! keyword for period of temporal interpolation
       ws_interp_type,  &!
       ws_data_label,   &! name of data to be read
       ws_formulation    ! formulation to use to compute wind stress
