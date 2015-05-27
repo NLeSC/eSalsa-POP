@@ -74,6 +74,8 @@
    write(*,*) 'JASON initializing pop: ', cycles2, (cycles2-cycles1)
 #endif
 
+   call POP_Initialize0(errorCode)
+
    call POP_Initialize(errorCode)
 
    fstop_now = get_time_flag_id('stop_now')

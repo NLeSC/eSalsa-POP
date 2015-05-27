@@ -33,7 +33,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_tavg,             &
+   public :: read_tavg_namelist,    &
+             init_tavg,             &
              define_tavg_field,     &
              accumulate_tavg_field, &
              tavg_requested,        &
@@ -52,6 +53,22 @@
       tavg_method_avg     = 1,              &
       tavg_method_min     = 2,              &
       tavg_method_max     = 3
+
+   integer (i4), public ::     &
+      tavg_freq,       &! frequency of tavg output
+      tavg_start        ! start tavg after tavg_start
+
+   character (char_len), public ::    &
+      tavg_infile,            & ! filename for restart input
+      tavg_outfile,           & ! root filename for tavg output
+      tavg_fmt_in,            & ! format (nc or bin) for reading
+      tavg_fmt_out              ! format (nc or bin) for writing
+
+   character (char_len), public :: &
+      tavg_freq_opt,       &! choice for frequency of tavg output
+      tavg_start_opt,      &! choice for starting averaging
+      tavg_contents,       &! filename for choosing fields for output
+      char_temp             ! temporary for manipulating fields
 
 !EOP
 !BOC
@@ -115,15 +132,7 @@
 
    integer (i4) ::     &
       tavg_freq_iopt,  &! frequency option for writing tavg
-      tavg_freq,       &! frequency of tavg output
-      tavg_start_iopt, &! start after option
-      tavg_start        ! start tavg after tavg_start
-
-   character (char_len) ::    &
-      tavg_infile,            & ! filename for restart input
-      tavg_outfile,           & ! root filename for tavg output
-      tavg_fmt_in,            & ! format (nc or bin) for reading
-      tavg_fmt_out              ! format (nc or bin) for writing
+      tavg_start_iopt   ! start after option
 
    type (datafile) :: tavg_file_desc    ! IO file descriptor
 
@@ -143,6 +152,17 @@
    character (10) :: &
       beg_date       ! date on which the current accumulated sum
                      ! was started (not the tavg_start date)
+!-----------------------------------------------------------------------
+!
+!  namelist options
+!
+!-----------------------------------------------------------------------
+
+   character (33), parameter :: &
+      freq_fmt = "('tavg diagnostics every ',i6,a8)"
+
+   character (44), parameter :: &
+      start_fmt = "('tavg sums accumulated starting at ',a5,i8)"
 
 !EOC
 !***********************************************************************
@@ -151,10 +171,10 @@
 
 !***********************************************************************
 !EOP
-! !IROUTINE: init_tavg
+! !IROUTINE: init_tavg, split into read_tavg_namelist
 ! !INTERFACE:
 
- subroutine init_tavg
+ subroutine read_tavg_namelist
 
 ! !DESCRIPTION:
 !  This routine initializes tavg options and reads in contents file to
@@ -171,26 +191,8 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (i4) ::         &
-      n,                   &! dummy index
-      iblock,              &! local block index
-      loc,                 &! location of field in buffer
-      nu,                  &! unit for contents input file
-      cindex,              &! character index for manipulating strings
-      nml_error,           &! namelist i/o error flag
-      contents_error        ! error flag for contents file read
-
-   character (char_len) :: &
-      tavg_freq_opt,       &! choice for frequency of tavg output
-      tavg_start_opt,      &! choice for starting averaging
-      tavg_contents,       &! filename for choosing fields for output
-      char_temp             ! temporary for manipulating fields
-
-   character (33), parameter :: &
-      freq_fmt = "('tavg diagnostics every ',i6,a8)"
-
-   character (44), parameter :: &
-      start_fmt = "('tavg sums accumulated starting at ',a5,i8)"
+   integer (i4) ::      &
+      nml_error          ! namelist i/o error flag
 
    namelist /tavg_nml/ tavg_freq_opt, tavg_freq, tavg_infile,       &
                        tavg_outfile, tavg_contents, tavg_start_opt, &
@@ -235,6 +237,33 @@
    if (nml_error /= 0) then
       call exit_POP(sigAbort,'ERROR reading tavg_nml')
    endif
+
+end subroutine read_tavg_namelist
+!split here
+
+subroutine init_tavg
+! !DESCRIPTION:
+!  This routine initializes tavg options and reads in contents file to
+!  determine which fields for which the user wants time-averaged data.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (i4) ::         &
+      n,                   &! dummy index
+      iblock,              &! local block index
+      loc,                 &! location of field in buffer
+      nu,                  &! unit for contents input file
+      cindex,              &! character index for manipulating strings
+      contents_error        ! error flag for contents file read
 
    if (my_task == master_task) then
       select case (tavg_freq_opt)

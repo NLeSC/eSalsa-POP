@@ -40,7 +40,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public  :: init_grid1,     &
+   public  :: read_grid_namelist, &
+              init_grid1,     &
               init_grid2,     &
               tgrid_to_ugrid, &
               ugrid_to_tgrid, &
@@ -226,7 +227,7 @@
 !
 !-----------------------------------------------------------------------
 
-   character (char_len) ::  &
+   character (char_len), public ::  &
       horiz_grid_opt,       &! horizontal grid option
       vert_grid_opt,        &! vertical grid option
       sfc_layer_opt,        &! choice for surface layer type
@@ -245,10 +246,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: init_grid1
+! !IROUTINE: init_grid1, split into read_grid_namelist and init_grid1
 ! !INTERFACE:
 
- subroutine init_grid1
+ subroutine read_grid_namelist
 
 ! !DESCRIPTION:
 !  Initializes only grid quantities necessary for completing
@@ -338,6 +339,10 @@
    if (partial_bottom_cells) then
       call broadcast_scalar(bottom_cell_file, master_task)
    endif
+
+end subroutine read_grid_namelist
+
+subroutine init_grid1
 
 !-----------------------------------------------------------------------
 !

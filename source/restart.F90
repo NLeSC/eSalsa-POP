@@ -59,13 +59,25 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_restart,  &
+   public :: read_restart_namelist, &
+             init_restart,  &
              write_restart, &
              read_restart
 
 ! !PUBLIC DATA MEMBERS:
    public :: restart_fmt,   &
              read_restart_filename
+
+   character (POP_charLength), public :: &
+      restart_freq_opt,    &! input option for freq of restart dumps
+      restart_start_opt     ! choice for starting regular restart writes 
+
+   character (POP_charLength), public :: &
+      restart_outfile       ! restart output filename root
+
+   integer (POP_i4), public :: &
+      restart_freq          ! restart frequency
+
 
 !EOP
 !BOC
@@ -75,8 +87,8 @@
 !
 !-----------------------------------------------------------------------
 
-   character (POP_charLength) :: &
-      restart_outfile       ! restart output filename root
+   character (POP_charLength), parameter :: &
+      start_fmt = "('regular restart writes will start at ',a,i8)"
 
    character (POP_charLength) :: &
       restart_fmt           ! format (bin or nc) of output restart
@@ -97,7 +109,6 @@
       out_stop_now,       &! time flag id for stop_now flag
       restart_cpl_ts,     &! time flag id for coupled_ts time flag
       restart_freq_iopt,  &! restart frequency option
-      restart_freq,       &! restart frequency
       restart_start_iopt, &! start after option 
       restart_start        ! start regular restart writes after restart_start
 
@@ -1089,13 +1100,14 @@
 
    !*** write restart files if code is stopping for any reason
 
-   if (check_time_flag(out_stop_now) .and. &
-       (lrestart_on .or. leven_odd_on)) then
-
-      lrestart_write = .true.
-      restart_type = char_blank
-      restart_type = 'end'
-   endif
+!   if (check_time_flag(out_stop_now) .and. &
+!       (lrestart_on .or. leven_odd_on)) then
+!
+!      lrestart_write = .true.
+!      restart_type = char_blank
+!      restart_type = 'end'
+!   endif
+! disabled by Ben for flexible AMUSE integration
 
    !*** check if it is time for even/odd output
    !*** (but not if an end file is written)
@@ -1582,10 +1594,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: init_restart
+! !IROUTINE: init_restart, split into read_restart_namelist and init_restart
 ! !INTERFACE:
 
- subroutine init_restart(errorCode)
+ subroutine read_restart_namelist(errorCode)
 
 ! !DESCRIPTION:
 !  Initializes quantities associated with writing all the data
@@ -1608,15 +1620,7 @@
 !-----------------------------------------------------------------------
 
    integer (POP_i4) :: &
-      n,                  &! tracer loop index
       nml_error            ! namelist i/o error flag
-
-   character (POP_charLength) :: &
-      restart_freq_opt,    &! input option for freq of restart dumps
-      restart_start_opt     ! choice for starting regular restart writes 
-
-   character (POP_charLength), parameter :: &
-      start_fmt = "('regular restart writes will start at ',a,i8)"
 
    namelist /restart_nml/ restart_freq_opt, restart_freq, &
                           restart_outfile, restart_fmt,   &
@@ -1624,15 +1628,7 @@
                           pressure_correction,            &
                           restart_start_opt, restart_start
 
-!-----------------------------------------------------------------------
-!
-!     register init_restart
-!
-!-----------------------------------------------------------------------
-
    errorCode = POP_Success
-
-      call register_string('init_restart')
 
 !-----------------------------------------------------------------------
 !
@@ -1672,6 +1668,42 @@
          'ERROR reading restart_nml')
       return
    endif
+
+   call broadcast_scalar (restart_outfile,      master_task)
+   call broadcast_scalar (restart_freq,         master_task)
+   call broadcast_scalar (restart_start,        master_task)
+   call broadcast_scalar (restart_fmt,          master_task)
+   call broadcast_scalar (leven_odd_on,         master_task)
+   call broadcast_scalar (even_odd_freq,        master_task)
+   call broadcast_scalar (pressure_correction,  master_task)
+
+
+end subroutine read_restart_namelist
+
+
+subroutine init_restart(errorCode)
+
+   integer(POP_i4), intent(out) :: &
+      errorCode         ! returned error code
+
+   integer (POP_i4) :: &
+      n                 ! tracer loop index
+
+!-----------------------------------------------------------------------
+!
+!     register init_restart
+!
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+   call register_string('init_restart')
+
+!-----------------------------------------------------------------------
+!
+!  read namelist input and broadcast variables
+!
+!-----------------------------------------------------------------------
 
    if (my_task == master_task) then
       select case (restart_freq_opt)
@@ -1714,15 +1746,9 @@
 
    endif
 
-   call broadcast_scalar (restart_outfile,      master_task)
+
    call broadcast_scalar (restart_freq_iopt,    master_task)
-   call broadcast_scalar (restart_freq,         master_task)
    call broadcast_scalar (restart_start_iopt,   master_task)
-   call broadcast_scalar (restart_start,        master_task)
-   call broadcast_scalar (restart_fmt,          master_task)
-   call broadcast_scalar (leven_odd_on,         master_task)
-   call broadcast_scalar (even_odd_freq,        master_task)
-   call broadcast_scalar (pressure_correction,  master_task)
 
    if (restart_freq_iopt == -1000) then
       call exit_POP(sigAbort,'unknown restart frequency option')

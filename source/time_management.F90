@@ -32,7 +32,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_time1,            &
+   public :: read_time_namelist,    &
+             init_time1,            &
              init_time2,            &
              time_manager,          &
              init_time_flag,        &
@@ -443,6 +444,17 @@
    real (r8), dimension(:), allocatable :: &
       interval_cum_dayfrac
 
+!-----------------------------------------------------------------------
+!
+!  namelist variables
+!
+!-----------------------------------------------------------------------
+
+   character (char_len) :: &
+      time_mix_opt,        &! option for time mixing (Matsuno,averaging)
+      accel_file,          &! file containing acceleration factors
+      message
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -468,58 +480,7 @@
 !maltrud DEBUG debug
       debug_time_management   = .false. 
 
-!EOC
-!***********************************************************************
-
- contains
-
-!***********************************************************************
-!BOP
-! !IROUTINE: init_time1
-! !INTERFACE:
-
- subroutine init_time1
-
-! !DESCRIPTION:
-!  Initializes some time manager variables from namelist inputs
-!  and sets time step.  Remaining time manager variables are 
-!  initialized after restart files are read.
-!
-! !REVISION HISTORY:
-!  same as module
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      k,                 &! vertical level index
-      nu,                &! i/o unit number
-      nm                  ! month index
-
-   logical (log_kind)   ::  &
-      last_step, error_code ! stepsize error testing
-
-   character (char_len) ::  &
-      stepsize_string, message_string ! last step/error condition reporting string
-!-----------------------------------------------------------------------
-!
-!  namelist input
-!
-!-----------------------------------------------------------------------
-
-   integer (int_kind) :: &
-      nml_error           ! namelist i/o error flag
-
-   character (char_len) :: &
-      time_mix_opt,        &! option for time mixing (Matsuno,averaging)
-      accel_file,          &! file containing acceleration factors
-      message
-
+   !namelist
    namelist /time_manager_nml/                                   &
                runid,          time_mix_opt,    time_mix_freq,   &
                impcor,         laccel,          accel_file,      &
@@ -532,17 +493,26 @@
                allow_leapyear, fit_freq
 
 
+!EOC
+!***********************************************************************
+
+ contains
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_time1, split into read_time_namelist and init_time1
+! !INTERFACE:
+
+ subroutine read_time_namelist
 
 !-----------------------------------------------------------------------
 !
-!  Define and initialize time flags
+!  namelist input
 !
 !-----------------------------------------------------------------------
 
-   call init_time_flag('stop_now' , stop_now,   owner='init_time1', default=.false.)
-   call init_time_flag('coupled_ts',coupled_ts, owner='init_time1' )
-
-   call reset_switches
+   integer (int_kind) :: &
+      nml_error           ! namelist i/o error flag
 
 !-----------------------------------------------------------------------
 !
@@ -603,6 +573,69 @@
       call exit_POP(sigAbort,'ERROR reading time_manager_nml')
    endif
 
+   call broadcast_scalar (runid           , master_task)
+   call broadcast_scalar (fit_freq        , master_task)
+   call broadcast_scalar (time_mix_freq   , master_task)
+   call broadcast_scalar (impcor          , master_task)
+   call broadcast_scalar (laccel          , master_task)
+   call broadcast_scalar (dtuxcel         , master_task)
+   call broadcast_scalar (iyear0          , master_task)
+   call broadcast_scalar (imonth0         , master_task)
+   call broadcast_scalar (iday0           , master_task)
+   call broadcast_scalar (ihour0          , master_task)
+   call broadcast_scalar (iminute0        , master_task)
+   call broadcast_scalar (isecond0        , master_task)
+   call broadcast_scalar (dt_option       , master_task)
+   call broadcast_scalar (dt_count        , master_task)
+   call broadcast_scalar (stop_option     , master_task)
+   call broadcast_scalar (stop_count      , master_task)
+   call broadcast_scalar (allow_leapyear  , master_task)
+   call broadcast_scalar (date_separator  , master_task)
+   call broadcast_scalar (robert_filter_weight  , master_task)
+   call broadcast_scalar (robert_filter_alpha   , master_task)
+
+end subroutine read_time_namelist
+!split here
+
+subroutine init_time1
+! !DESCRIPTION:
+!  Initializes some time manager variables from namelist inputs
+!  and sets time step.  Remaining time manager variables are 
+!  initialized after restart files are read.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      k,                 &! vertical level index
+      nu,                &! i/o unit number
+      nm                  ! month index
+
+   logical (log_kind)   ::  &
+      last_step, error_code ! stepsize error testing
+
+   character (char_len) ::  &
+      stepsize_string, message_string ! last step/error condition reporting string
+
+!-----------------------------------------------------------------------
+!
+!  Define and initialize time flags
+!
+!-----------------------------------------------------------------------
+
+   call init_time_flag('stop_now' , stop_now,   owner='init_time1', default=.false.)
+   call init_time_flag('coupled_ts',coupled_ts, owner='init_time1' )
+
+   call reset_switches
+
    if (my_task == master_task) then
       write(stdout,blank_fmt)
       write(stdout,ndelim_fmt)
@@ -634,28 +667,8 @@
       end select
    endif
 
-   call broadcast_scalar (runid           , master_task)
    call broadcast_scalar (tmix_iopt       , master_task)
-   call broadcast_scalar (fit_freq        , master_task)
-   call broadcast_scalar (time_mix_freq   , master_task)
-   call broadcast_scalar (impcor          , master_task)
-   call broadcast_scalar (laccel          , master_task)
-   call broadcast_scalar (dtuxcel         , master_task)
-   call broadcast_scalar (iyear0          , master_task)
-   call broadcast_scalar (imonth0         , master_task)
-   call broadcast_scalar (iday0           , master_task)
-   call broadcast_scalar (ihour0          , master_task)
-   call broadcast_scalar (iminute0        , master_task)
-   call broadcast_scalar (isecond0        , master_task)
-   call broadcast_scalar (dt_option       , master_task)
-   call broadcast_scalar (dt_count        , master_task)
-   call broadcast_scalar (stop_option     , master_task)
-   call broadcast_scalar (stop_count      , master_task)
-   call broadcast_scalar (allow_leapyear  , master_task)
-   call broadcast_scalar (date_separator  , master_task)
-   call broadcast_scalar (robert_filter_weight  , master_task)
-   call broadcast_scalar (robert_filter_alpha   , master_task)
- 
+
 
 !-----------------------------------------------------------------------
 !

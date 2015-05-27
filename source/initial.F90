@@ -23,7 +23,7 @@
    use blocks, only: block, nx_block, ny_block, get_block
    use domain_size
    use domain, only: nblocks_clinic, blocks_clinic, init_domain_blocks,    &
-       init_domain_distribution, distrb_clinic
+       init_domain_distribution, distrb_clinic, read_domain_namelist
    use constants, only: radian, delim_fmt, blank_fmt, field_loc_center, blank_fmt, &
        c0, ppt_to_salt, mpercm, c1, field_type_scalar, init_constants,     &
        stefan_boltzmann, latent_heat_vapor, vonkar, emissivity, &
@@ -35,7 +35,8 @@
    use prognostic, only: init_prognostic, max_blocks_clinic, nx_global,    &
        ny_global, km, nt, TRACER, curtime, RHO, newtime, oldtime
    use grid, only: init_grid1, init_grid2, kmt, kmt_g, zt,    &
-       fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells
+       fill_points, sfc_layer_varthick, sfc_layer_type, TLON, TLAT, partial_bottom_cells, &
+       read_grid_namelist
    use io
 #ifdef USEPIO
    use pio, only: init_pio
@@ -52,11 +53,11 @@
    use state_mod, only: init_state, state
    use time_management, only: first_step, init_time1, init_time2, &
                               dttxcel, dtuxcel, check_time_flag_int,  &
-                              get_time_flag_id
+                              get_time_flag_id, read_time_namelist
    use topostress, only: init_topostress
    use ice
    use output, only: init_output
-   use tavg, only: ltavg_restart
+   use tavg, only: ltavg_restart, read_tavg_namelist
    use forcing, only: init_forcing
    use forcing_sfwf, only: sfwf_formulation, sfwf_data_type, lfw_as_salt_flx
    use forcing_shf, only: luse_cpl_ifrac, OCN_WGT, shf_formulation, shf_data_type
@@ -64,7 +65,9 @@
    use sw_absorption, only: init_sw_absorption
    use passive_tracers, only: init_passive_tracers
    use exit_mod, only: sigAbort, exit_pop
-   use restart, only: read_restart, restart_fmt, read_restart_filename
+   use restart, only: read_restart, restart_fmt, read_restart_filename, &
+       read_restart_namelist
+   use movie, only: read_movie_namelist
    use forcing_coupled, only: pop_init_coupled, pop_init_partially_coupled
    use global_reductions, only: init_global_reductions, global_sum
    use timers, only: init_timers
@@ -84,7 +87,7 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: pop_init_phase1, pop_init_phase2
+   public :: pop_init_phase0, pop_init_phase1, pop_init_phase2
 
 !EOP
 !BOC
@@ -94,19 +97,109 @@
 !
 !-----------------------------------------------------------------------
 
-   character (char_len) :: &
-      init_ts_file_fmt      ! format (bin or nc) for input file
-
    logical (log_kind), public ::  &! context variables
       lcoupled,                   &! T ==> pop is coupled to another system
       lccsm,                      &! T ==> pop is being run in the ccsm context
       b4b_flag                     ! T ==> pop is being run in the "bit-for-bit" mode
 
+   character (char_len), public :: &
+      init_ts_option,      &! option for initializing t,s
+      init_ts_suboption,   &! suboption for initializing t,s (rest or spunup)
+      init_ts_file,        &! filename for input T,S file
+      init_ts_file_fmt,    &! format (bin or nc) for input file
+      init_ts_outfile,     &! filename for output T,S file
+      init_ts_outfile_fmt   ! format for output T,S file (bin or nc)
+
+    namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt, &
+                          init_ts_suboption, init_ts_outfile, &
+              init_ts_outfile_fmt
 
 !EOC
 !***********************************************************************
 
  contains
+
+!***********************************************************************
+!BOP
+! !IROUTINE: pop_init_phase0
+! !INTERFACE:
+
+subroutine pop_init_phase0(errorCode)
+
+! !DESCRIPTION:
+!  This routine reads the namelists to allow options to be overwritten
+!  before the real initialization takes place
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode         ! returned error code
+
+   errorCode = POP_Success
+
+!-----------------------------------------------------------------------
+!
+!  initialize message-passing or other communication protocol
+!
+!-----------------------------------------------------------------------
+
+   call init_communicate
+
+!-----------------------------------------------------------------------
+!
+!  initialize registry, which keeps track of which initialization
+!  routines have been called.  This feature is used for error checking
+!  in routines whose calling order is important
+!
+!-----------------------------------------------------------------------
+
+   call init_registry
+
+!-----------------------------------------------------------------------
+!
+!  initialize constants and i/o stuff
+!
+!-----------------------------------------------------------------------
+
+   call init_io
+
+!-----------------------------------------------------------------------
+!
+!  read namelists
+!
+!-----------------------------------------------------------------------
+
+   call read_domain_namelist(errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Initialize: error reading domain namelist')
+      return
+   endif
+
+   call read_grid_namelist()
+
+   call read_time_namelist() 
+
+   call read_ts_namelist(errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Initialize: error reading ts namelist')
+      return
+   endif
+
+   call read_tavg_namelist()
+   call read_movie_namelist()
+   call read_restart_namelist(errorCode)
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Initialize: error reading restart namelist')
+      return
+   endif
+
+
+end subroutine pop_init_phase0
+
+
 !***********************************************************************
 !BOP
 ! !IROUTINE: pop_init_phase1
@@ -139,33 +232,7 @@
       k,                      &! dummy vertical level index
       ier                      ! error flag
 
-!-----------------------------------------------------------------------
-!
-!  initialize message-passing or other communication protocol
-!
-!-----------------------------------------------------------------------
-
    errorCode = POP_Success
-
-   call init_communicate
-
-!-----------------------------------------------------------------------
-!
-!  initialize registry, which keeps track of which initialization
-!  routines have been called.  This feature is used for error checking
-!  in routines whose calling order is important
-!
-!-----------------------------------------------------------------------
-
-   call init_registry
-
-!-----------------------------------------------------------------------
-!
-!  initialize constants and i/o stuff
-!
-!-----------------------------------------------------------------------
-
-   call init_io
 
 !-----------------------------------------------------------------------
 !
@@ -701,19 +768,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: init_ts
+! !IROUTINE: init_ts, split into read_ts_namelist and init_ts
 ! !INTERFACE:
 
- subroutine init_ts(errorCode)
-
-! !DESCRIPTION:
-!  Initializes temperature and salinity and
-!  initializes prognostic variables from restart if required
-!
-! !REVISION HISTORY:
-!  same as module
-!
-! !OUTPUT PARAMETERS:
+ subroutine read_ts_namelist(errorCode)
 
    integer (POP_i4), intent(out) :: &
       errorCode             ! returned error code
@@ -728,16 +786,46 @@
 
    integer (int_kind) :: nml_error ! namelist i/o error flag
 
-   character (char_len) :: &
-      init_ts_option,      &! option for initializing t,s
-      init_ts_suboption,   &! suboption for initializing t,s (rest or spunup)
-      init_ts_file,        &! filename for input T,S file
-      init_ts_outfile,     &! filename for output T,S file
-      init_ts_outfile_fmt   ! format for output T,S file (bin or nc)
+   errorCode = POP_Success
 
-   namelist /init_ts_nml/ init_ts_option, init_ts_file, init_ts_file_fmt, &
-                          init_ts_suboption, init_ts_outfile, &
-		  	  init_ts_outfile_fmt
+   init_ts_suboption = 'rest'
+   init_ts_outfile   = 'unknown_init_ts_outfile'
+   init_ts_outfile_fmt = 'bin'
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=init_ts_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call exit_POP(sigAbort,'ERROR reading init_ts_nml')
+   endif
+
+end subroutine read_ts_namelist
+!split here
+
+ subroutine init_ts(errorCode)
+
+! !DESCRIPTION:
+!  Initializes temperature and salinity and
+!  initializes prognostic variables from restart if required
+!
+! !REVISION HISTORY:
+!  same as module
+!
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode             ! returned error code
 
 !-----------------------------------------------------------------------
 !
@@ -839,28 +927,6 @@
 
    errorCode = POP_Success
 
-   init_ts_suboption = 'rest'
-   init_ts_outfile   = 'unknown_init_ts_outfile'
-   init_ts_outfile_fmt = 'bin'
-
-   if (my_task == master_task) then
-      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-      if (nml_error /= 0) then
-         nml_error = -1
-      else
-         nml_error =  1
-      endif
-      do while (nml_error > 0)
-         read(nml_in, nml=init_ts_nml,iostat=nml_error)
-      end do
-      if (nml_error == 0) close(nml_in)
-   endif
-
-   call broadcast_scalar(nml_error, master_task)
-   if (nml_error /= 0) then
-      call exit_POP(sigAbort,'ERROR reading init_ts_nml')
-   endif
-
    if (my_task == master_task) then
 !maltrud looks like lanl branch == ccsm hybrid bug BUG
        if (init_ts_option == 'branch') init_ts_option = 'hybrid'
@@ -890,9 +956,9 @@
        call POP_IOUnitsFlush(POP_stdout) ; call POP_IOUnitsFlush(stdout)
    endif
 
-   call broadcast_scalar(init_ts_option    , master_task)
    call broadcast_scalar(init_ts_suboption , master_task)
    call broadcast_scalar(luse_pointer_files, master_task)
+   call broadcast_scalar(init_ts_option    , master_task)
    call broadcast_scalar(init_ts_file      , master_task)
    call broadcast_scalar(init_ts_file_fmt  , master_task)
    call broadcast_scalar(init_ts_outfile      , master_task)
@@ -903,7 +969,6 @@
 !  initialize t,s or call restart based on init_ts_option
 !
 !-----------------------------------------------------------------------
-
 
    select case (init_ts_option)
 

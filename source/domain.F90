@@ -39,7 +39,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS
 
-   public  :: init_domain_blocks ,&
+   public  :: read_domain_namelist ,&
+              init_domain_blocks ,&
               init_domain_distribution
 
 ! !PUBLIC DATA MEMBERS:
@@ -82,6 +83,16 @@
    character (POP_charLength), public :: &
        distribution_file   ! optional file containing block distribution
 
+    integer (POP_i4), public :: &! decomposition info
+       nprocs_clinic     ,&! num of processors in baroclinic dist
+       nprocs_tropic       ! num of processors in barotropic dist
+
+    character (POP_charLength), public ::      &
+       clinic_distribution_type, &! method to use for distributing
+       tropic_distribution_type, &!    blocks in each case
+       ew_boundary_type,         &! type of domain bndy in each logical
+       ns_boundary_type           !    direction (ew is i, ns is j)
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -96,16 +107,6 @@
        clinicDistributionMethod, &! method for distributing blocks
        tropicDistributionMethod   ! method for distributing blocks
 
-    character (POP_charLength) ::      &
-       clinic_distribution_type, &! method to use for distributing
-       tropic_distribution_type, &!    blocks in each case
-       ew_boundary_type,         &! type of domain bndy in each logical
-       ns_boundary_type           !    direction (ew is i, ns is j)
-
-    integer (POP_i4) :: &! decomposition info
-       nprocs_clinic     ,&! num of processors in baroclinic dist
-       nprocs_tropic       ! num of processors in barotropic dist
-
     logical (POP_logical), public :: profile_barrier
 !EOC
 !***********************************************************************
@@ -114,10 +115,10 @@
 
 !***********************************************************************
 !BOP
-! !IROUTINE: init_domain_blocks
+! !IROUTINE: init_domain_blocks, split into read_domain_namelist and init_domain_blocks
 ! !INTERFACE:
 
- subroutine init_domain_blocks(errorCode)
+ subroutine read_domain_namelist(errorCode)
 
 ! !DESCRIPTION:
 !  This routine reads in domain information and calls the routine
@@ -199,6 +200,15 @@
    call broadcast_scalar(ns_boundary_type,         master_task)
    call broadcast_scalar(profile_barrier,          master_task)
    call broadcast_scalar(distribution_file,        master_task)
+
+end subroutine read_domain_namelist
+
+
+subroutine init_domain_blocks(errorCode)
+
+   integer (POP_i4), intent(out) :: &
+      errorCode           ! returned error code
+
 
    select case (trim(clinic_distribution_type))
    case ('cartesian','Cartesian','CARTESIAN')

@@ -35,7 +35,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_movie,             &
+   public :: read_movie_namelist,    &
+             init_movie,             &
              define_movie_field,     &
              update_movie_field,     &
              movie_requested,        &
@@ -45,6 +46,16 @@
 
    logical (log_kind), public :: &
       lmovie_on      = .false. ! movie file output wanted
+
+   integer (int_kind), public ::     &
+      movie_freq         ! frequency of movie output
+
+   character (char_len), public ::    &
+      movie_outfile,           & ! root filename for movie output
+      movie_fmt                  ! format (nc or bin) for writing
+
+   character (char_len), public :: &
+      movie_freq_opt       ! choice for frequency of movie output
 
 !EOP
 !BOC
@@ -98,17 +109,26 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::     &
-      movie_freq_iopt,  &! frequency option for writing movie
-      movie_freq         ! frequency of movie output
-
-   character (char_len) ::    &
-      movie_outfile,           & ! root filename for movie output
-      movie_fmt                  ! format (nc or bin) for writing
+      movie_freq_iopt    ! frequency option for writing movie
 
    type (datafile) :: movie_file_desc    ! IO file descriptor
 
    type (io_field_desc), target :: &
       MOVIE_iodesc                  ! io descriptor for movie fields
+
+!-----------------------------------------------------------------------
+!
+!  variables for namelist options
+!
+!-----------------------------------------------------------------------
+   character (char_len) :: &
+      movie_contents,       &! filename for choosing fields for output
+      char_temp             ! temporary for manipulating fields
+
+   character (34), parameter :: &
+      freq_fmt = "('movie diagnostics every ',i6,a8)"
+
+
 
 !-----------------------------------------------------------------------
 !
@@ -126,10 +146,10 @@
 
 !***********************************************************************
 !EOP
-! !IROUTINE: init_movie
+! !IROUTINE: init_movie, split into read_movie_namelist and init_movie
 ! !INTERFACE:
 
- subroutine init_movie
+ subroutine read_movie_namelist
 
 ! !DESCRIPTION:
 !  This routine initializes movie options and reads in contents file to
@@ -146,23 +166,8 @@
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind) ::         &
-      n,                   &! dummy index
-      k,                   &! depth index
-      iblock,              &! local block index
-      loc,                 &! location of field in buffer
-      nu,                  &! unit for contents input file
-      cindex,              &! character index for manipulating strings
-      nml_error,           &! namelist i/o error flag
-      contents_error        ! error flag for contents file read
-
-   character (char_len) :: &
-      movie_freq_opt,       &! choice for frequency of movie output
-      movie_contents,       &! filename for choosing fields for output
-      char_temp             ! temporary for manipulating fields
-
-   character (34), parameter :: &
-      freq_fmt = "('movie diagnostics every ',i6,a8)"
+   integer (int_kind) ::   &
+      nml_error           ! namelist i/o error flag
 
    namelist /movie_nml/ movie_freq_opt, movie_freq,        &
                        movie_outfile, movie_contents, movie_fmt
@@ -203,6 +208,41 @@
    if (nml_error /= 0) then
       call exit_POP(sigAbort,'ERROR reading movie_nml')
    endif
+
+
+end subroutine read_movie_namelist
+!split here
+
+
+subroutine init_movie
+
+! !DESCRIPTION:
+!  This routine initializes movie options and reads in contents file to
+!  determine which fields for which the user wants 2D snapshot data.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::         &
+      n,                   &! dummy index
+      k,                   &! depth index
+      iblock,              &! local block index
+      loc,                 &! location of field in buffer
+      nu,                  &! unit for contents input file
+      cindex,              &! character index for manipulating strings
+      contents_error        ! error flag for contents file read
+
+   namelist /movie_nml/ movie_freq_opt, movie_freq,        &
+                       movie_outfile, movie_contents, movie_fmt
+
 
    if (my_task == master_task) then
       write(stdout,blank_fmt)

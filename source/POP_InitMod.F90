@@ -38,7 +38,7 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: POP_Initialize, POP_Initialize1, POP_Initialize2,  &
+   public :: POP_Initialize, POP_Initialize0, POP_Initialize1, POP_Initialize2,  &
              POP_Initialize_coupling
              
 
@@ -138,6 +138,67 @@
 !EOC
 
  end subroutine POP_Initialize 
+
+!***********************************************************************
+!BOP
+! !IROUTINE: POP_Initialize0
+! !INTERFACE:
+
+ subroutine POP_Initialize0(errorCode)
+
+! !DESCRIPTION:
+!  This routine is the initialization driver that reads the POP namelist
+!  options before the actual initialization routines.
+!
+! !USERDOC:
+!
+! !REFDOC:
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !OUTPUT PARAMETERS:
+
+   integer (POP_i4), intent(out) :: &
+      errorCode              ! Returns an error code if any init fails
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+
+!-----------------------------------------------------------------------
+!
+!  initialize return flag
+!
+!-----------------------------------------------------------------------
+
+   errorCode = POP_Success
+
+!-----------------------------------------------------------------------
+!
+!  call pop initialization routines
+!
+!-----------------------------------------------------------------------
+
+   call pop_init_phase0(errorCode)
+
+   if (errorCode /= POP_Success) then
+      call POP_ErrorSet(errorCode, &
+         'POP_Initialize0: error in pop_init_phase0')
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!EOC
+
+ end subroutine POP_Initialize0
+
+!***********************************************************************
 
 !***********************************************************************
 !BOP
