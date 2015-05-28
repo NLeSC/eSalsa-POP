@@ -67,17 +67,19 @@ CFLAGS := $(CFLAGS)
 #
 #----------------------------------------------------------------------------
 
-FBASE = $(ABI) $(NETCDFINC) $(MPI_COMPILE_FLAGS) -I$(DepDir) 
+FBASE := $(ABI) $(NETCDFINC) $(MPI_COMPILE_FLAGS) -I$(DepDir) 
 MODSUF = mod
 
 ifeq ($(TRAP_FPE),yes)
   FBASE := $(FBASE) 
 endif
 
+FFLAGS := $(POPFFLAGS) $(FBASE)
+
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS := $(FFLAGS) $(FBASE) -O2 
+  FFLAGS := $(FFLAGS) -O2 
 else
-  FFLAGS := $(FFLAGS) $(FBASE) -g -check bounds
+  FFLAGS := $(FFLAGS) -g -check bounds
 endif
 
 
