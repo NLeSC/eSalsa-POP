@@ -75,13 +75,15 @@ ifeq ($(TRAP_FPE),yes)
 endif
 
 ifeq ($(OPTIMIZE),yes)
-  FFLAGS = $(FBASE) -O2
+  FFLAGS := $(FFLAGS) $(FBASE) -O2 
 else
-  FFLAGS = $(FBASE) -g -check bounds
+  FFLAGS := $(FFLAGS) $(FBASE) -g -check bounds
 endif
 
-FFLAGS := $(FFLAGS) -Wall -fdefault-double-8 -fdefault-real-8 -fconvert=swap -fimplicit-none -fbounds-check
- 
+
+
+
+
 #----------------------------------------------------------------------------
 #
 #                           Loader Flags and Libraries
