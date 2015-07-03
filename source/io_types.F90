@@ -169,8 +169,11 @@
       rec_type_real = -2,     &! record length to use for binary files
       rec_type_dbl  = -3       !
 
-   character (7), parameter, public :: &
-      nml_filename = 'pop_in'  ! namelist input file name
+!   character (7), parameter, public :: &
+!      nml_filename = 'pop_in'  ! namelist input file name
+! Ben, making filename changable
+   character (char_len), public :: &
+      nml_filename = ''  ! namelist input file name
 
    integer (i4), public :: &
       num_iotasks   ! num of procs to use for parallel io
@@ -3335,6 +3338,11 @@ contains
 !  initialize io unit manager
 !
 !-----------------------------------------------------------------------
+
+!if nml_filename not set by now, then set it to default
+   if (nml_filename == '') then
+     nml_filename = 'pop_in'
+   endif
 
    in_use = .false.                  ! no unit in use
 

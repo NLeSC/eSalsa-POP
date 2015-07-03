@@ -30,6 +30,7 @@
    use POP_DomainSizeMod
    use domain
    use grid
+   use io_types, only: nml_filename
 
    implicit none
    private
@@ -356,7 +357,7 @@
       write(POP_stdout,POP_blankFormat)
    endif
 
-   call POP_ConfigOpen(configUnit, errorCode)
+   call POP_ConfigOpen(configUnit, errorCode, configFileName=nml_filename)
 
    if (errorCode /= POP_Success) then
       call POP_ErrorSet(errorCode, &
