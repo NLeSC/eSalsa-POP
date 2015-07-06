@@ -35,7 +35,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_sfwf,     &
+   public :: read_sfwf_namelist, &
+             init_sfwf,     &
              set_sfwf
 
 ! !PUBLIC DATA MEMBERS:
@@ -142,7 +143,7 @@
       sfwf_comp_wrest,           &
       sfwf_comp_srest
 
-   real (r8) ::                &
+   real (r8), public ::                &
       ann_avg_precip,          &!
       !sum_fw,                 &!
       !ann_avg_fw,             &!
@@ -169,14 +170,14 @@
    real (r8), parameter :: &
       precip_mean = 3.4e-5_r8
 
-   character (char_len) :: &
+   character (char_len), public :: &
       sfwf_filename,       &! name of file conainting forcing data
       sfwf_file_fmt,       &! format (bin or netcdf) of forcing file
       sfwf_interp_freq,    &! keyword for period of temporal interpolation
       sfwf_interp_type,    &!
       sfwf_data_label
 
-   character (char_len),public :: &
+   character (char_len), public :: &
       sfwf_data_type,      &! keyword for period of forcing data
       sfwf_formulation     
 
@@ -189,66 +190,10 @@
 
  contains
 
-!***********************************************************************
-!BOP
-! !IROUTINE: init_sfwf
-! !INTERFACE:
-
- subroutine init_sfwf(STF)
-
-! !DESCRIPTION:
-!  Initializes surface fresh water flux forcing by either calculating
-!  or reading in the surface fresh water flux.  Also does initial
-!  book-keeping concerning when new data is needed for the temporal
-!  interpolation and when the forcing will need to be updated.
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
-      intent(inout) :: &
-      STF    !  surface tracer fluxes at current timestep
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
+subroutine read_sfwf_namelist
 
    integer(int_kind) :: &
-      k, n,             &! dummy loop indices
-      iblock,           &! block loop index
       nml_error          ! namelist error flag
-
-   character (char_len) :: &
-      forcing_filename     ! full filename for forcing input
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
-      WORK               ! temporary work space
-
-   real (r8), dimension(:,:,:,:,:), allocatable :: &
-      TEMP_DATA          ! temporary array for reading monthly data
-
-   type (block) :: &
-      this_block   ! block info for local block
-
-   type (datafile) ::  &
-      forcing_file     ! data file structure for input forcing file
-
-   type (io_field_desc) :: &
-      io_sss,         &! io field descriptor for input sss field
-      io_precip,      &! io field descriptor for input precip field
-      io_flux,        &! io field descriptor for input flux field
-      io_runoff,      &! io field descriptor for input runoff field
-      io_flxio         ! io field descriptor for input io_flxio field
-
-   type (io_dim) :: &
-      i_dim, j_dim, &! dimension descriptors for horiz dimensions
-      month_dim      ! dimension descriptor  for monthly data
 
    namelist /forcing_sfwf_nml/ sfwf_data_type,      sfwf_data_inc,    &
                                sfwf_interp_type,    sfwf_interp_freq, &
@@ -330,6 +275,72 @@
    call broadcast_scalar(runoff,                 master_task)
    call broadcast_scalar(runoff_and_flux,        master_task)
    call broadcast_scalar(fwf_imposed,            master_task)
+
+end subroutine read_sfwf_namelist
+
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_sfwf
+! !INTERFACE:
+
+ subroutine init_sfwf(STF)
+
+! !DESCRIPTION:
+!  Initializes surface fresh water flux forcing by either calculating
+!  or reading in the surface fresh water flux.  Also does initial
+!  book-keeping concerning when new data is needed for the temporal
+!  interpolation and when the forcing will need to be updated.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,nt,max_blocks_clinic), &
+      intent(inout) :: &
+      STF    !  surface tracer fluxes at current timestep
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer(int_kind) :: &
+      k, n,             &! dummy loop indices
+      iblock,           &! block loop index
+      nml_error          ! namelist error flag
+
+   character (char_len) :: &
+      forcing_filename     ! full filename for forcing input
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic) :: &
+      WORK               ! temporary work space
+
+   real (r8), dimension(:,:,:,:,:), allocatable :: &
+      TEMP_DATA          ! temporary array for reading monthly data
+
+   type (block) :: &
+      this_block   ! block info for local block
+
+   type (datafile) ::  &
+      forcing_file     ! data file structure for input forcing file
+
+   type (io_field_desc) :: &
+      io_sss,         &! io field descriptor for input sss field
+      io_precip,      &! io field descriptor for input precip field
+      io_flux,        &! io field descriptor for input flux field
+      io_runoff,      &! io field descriptor for input runoff field
+      io_flxio         ! io field descriptor for input io_flxio field
+
+   type (io_dim) :: &
+      i_dim, j_dim, &! dimension descriptors for horiz dimensions
+      month_dim      ! dimension descriptor  for monthly data
+
 
 !-----------------------------------------------------------------------
 !

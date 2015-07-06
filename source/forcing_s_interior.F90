@@ -31,7 +31,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_s_interior,      &
+   public ::  read_s_interior_namelist, &
+              init_s_interior,      &
               get_s_interior_data, &
               set_s_interior
 
@@ -105,45 +106,10 @@
 
  contains
 
-!***********************************************************************
-!BOP
-! !IROUTINE: init_s_interior
-! !INTERFACE:
-
- subroutine init_s_interior
-
-! !DESCRIPTION:
-!  Initializes salinity interior forcing by either calculating or
-!  reading in the 3D salinity.  Also performs initial book-keeping
-!  concerning when new data is needed for the temporal interpolation
-!  and when the forcing will need to be updated.
-!
-! !REVISION HISTORY:
-!  same as module
-
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
+subroutine read_s_interior_namelist
 
    integer (int_kind) :: &
-      n,                 &!
       nml_error           ! namelist i/o error flag
-
-   character (char_len) :: &
-      forcing_filename,    &! final filename for forcing data
-      long_name             ! long name for input data
-
-   type (datafile) :: &
-      s_int_data_file  ! data file descriptor for s interior data
-
-   type (io_field_desc) :: &
-      s_int_data_in    ! io field descriptor for input salinity data
-
-   type (io_dim) :: &
-      i_dim, j_dim, &! dimension descriptors for horiz dimensions
-      k_dim          ! dimension descriptor  for vertical levels
 
    namelist /forcing_s_interior_nml/ s_interior_data_type,            &
         s_interior_data_inc,         s_interior_interp_type,          &
@@ -209,6 +175,50 @@
    call broadcast_scalar(s_interior_restore_filename,  master_task)
    call broadcast_scalar(s_interior_restore_file_fmt,  master_task)
    call broadcast_array (s_interior_data_renorm,       master_task)
+
+
+end subroutine read_s_interior_namelist
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_s_interior
+! !INTERFACE:
+
+ subroutine init_s_interior
+
+! !DESCRIPTION:
+!  Initializes salinity interior forcing by either calculating or
+!  reading in the 3D salinity.  Also performs initial book-keeping
+!  concerning when new data is needed for the temporal interpolation
+!  and when the forcing will need to be updated.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      n,                 &!
+      nml_error           ! namelist i/o error flag
+
+   character (char_len) :: &
+      forcing_filename,    &! final filename for forcing data
+      long_name             ! long name for input data
+
+   type (datafile) :: &
+      s_int_data_file  ! data file descriptor for s interior data
+
+   type (io_field_desc) :: &
+      s_int_data_in    ! io field descriptor for input salinity data
+
+   type (io_dim) :: &
+      i_dim, j_dim, &! dimension descriptors for horiz dimensions
+      k_dim          ! dimension descriptor  for vertical levels
 
 !-----------------------------------------------------------------------
 !

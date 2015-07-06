@@ -31,7 +31,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public:: init_ap,     &
+   public:: read_ap_namelist, &
+            init_ap,     &
             set_ap
 
 ! !PUBLIC DATA MEMBERS:
@@ -100,55 +101,10 @@
 
  contains
 
-!***********************************************************************
-!BOP
-! !IROUTINE: init_ap
-! !INTERFACE:
-
- subroutine init_ap(ATM_PRESS)
-
-! !DESCRIPTION:
-!  Initializes atm pressure forcing by either calculating or reading
-!  in the atm pressure.  Also does initial book-keeping concerning
-!  when new data is needed for the temporal interpolation and
-!  when the forcing will need to be updated.
-!
-! !REVISION HISTORY:
-!  same as module
-
-! !INPUT/OUTPUT PARAMETERS:
-
-   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
-      intent(inout) :: &
-      ATM_PRESS        !  surface momentum fluxes at current timestep
-
-!EOP
-!BOC
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
+subroutine read_ap_namelist
 
    integer (int_kind) ::     &
-      n, iblock, nu,         &! dummy loop index and unit number
       nml_error               ! namelist i/o error flag
-
-   character (char_len) ::   &
-      forcing_filename        ! name of file containing forcing data
-
-   type (block) :: &
-      this_block    ! block information for current block
-
-   type (io_dim) :: &
-      i_dim, j_dim, &! dimension descriptor for horiz dims
-      month_dim      ! dimension descriptor for monthly fields
-
-   real (r8), dimension(nx_block,ny_block) :: &
-      WORK
-
-   real (r8), dimension(:,:,:,:), allocatable :: &
-      TEMP_DATA   ! temp array for reading monthly data
 
    namelist /forcing_ap_nml/ ap_data_type,   ap_data_inc,    &
                              ap_interp_type, ap_interp_freq, &
@@ -199,6 +155,58 @@
    call broadcast_scalar(ap_filename,    master_task)
    call broadcast_scalar(ap_file_fmt,    master_task)
    call broadcast_array (ap_data_renorm, master_task)
+
+end subroutine read_ap_namelist
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_ap
+! !INTERFACE:
+
+ subroutine init_ap(ATM_PRESS)
+
+! !DESCRIPTION:
+!  Initializes atm pressure forcing by either calculating or reading
+!  in the atm pressure.  Also does initial book-keeping concerning
+!  when new data is needed for the temporal interpolation and
+!  when the forcing will need to be updated.
+!
+! !REVISION HISTORY:
+!  same as module
+
+! !INPUT/OUTPUT PARAMETERS:
+
+   real (r8), dimension(nx_block,ny_block,max_blocks_clinic), &
+      intent(inout) :: &
+      ATM_PRESS        !  surface momentum fluxes at current timestep
+
+!EOP
+!BOC
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) ::     &
+      n, iblock, nu,         &! dummy loop index and unit number
+      nml_error               ! namelist i/o error flag
+
+   character (char_len) ::   &
+      forcing_filename        ! name of file containing forcing data
+
+   type (block) :: &
+      this_block    ! block information for current block
+
+   type (io_dim) :: &
+      i_dim, j_dim, &! dimension descriptor for horiz dims
+      month_dim      ! dimension descriptor for monthly fields
+
+   real (r8), dimension(nx_block,ny_block) :: &
+      WORK
+
+   real (r8), dimension(:,:,:,:), allocatable :: &
+      TEMP_DATA   ! temp array for reading monthly data
 
    ap_formulation = char_blank
 

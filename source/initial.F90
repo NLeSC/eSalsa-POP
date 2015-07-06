@@ -58,7 +58,7 @@
    use ice
    use output, only: init_output
    use tavg, only: ltavg_restart, read_tavg_namelist
-   use forcing, only: init_forcing
+   use forcing, only: init_forcing, read_forcing_namelist
    use forcing_sfwf, only: sfwf_formulation, sfwf_data_type, lfw_as_salt_flx
    use forcing_shf, only: luse_cpl_ifrac, OCN_WGT, shf_formulation, shf_data_type
    use forcing_ws, only: ws_data_type
@@ -196,6 +196,7 @@ subroutine pop_init_phase0(errorCode)
       return
    endif
 
+   call read_forcing_namelist()
 
 end subroutine pop_init_phase0
 

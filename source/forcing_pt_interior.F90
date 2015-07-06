@@ -31,7 +31,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_pt_interior,      &
+   public ::  read_pt_interior_namelist, &
+              init_pt_interior,      &
               get_pt_interior_data, &
               set_pt_interior
 
@@ -79,7 +80,7 @@
       pt_interior_data_time_min_loc, &! index of the third dimension of pt_interior_data_time containing the minimum forcing time
       pt_interior_restore_max_level
 
-   character (char_len) ::     &
+   character (char_len), public ::     &
       pt_interior_data_type,   &! keyword for period of forcing data
       pt_interior_filename,    &! name of file conainting forcing data
       pt_interior_file_fmt,    &! format (bin or netcdf) of forcing file
@@ -105,46 +106,10 @@
 
  contains
 
-!***********************************************************************
-!BOP
-! !IROUTINE: init_pt_interior
-! !INTERFACE:
-
- subroutine init_pt_interior
-
-! !DESCRIPTION:
-!  Initializes potential temperature interior forcing by either
-!  calculating or reading in the 3D temperature.  Also performs
-!  initial book-keeping concerning when new data is needed for
-!  the temporal interpolation and when the forcing will need
-!  to be updated.
-!
-! !REVISION HISTORY:
-!  same as module
-
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
+subroutine read_pt_interior_namelist
 
    integer (int_kind) :: &
-      n,                 &! dummy loop index
       nml_error           ! namelist i/o error flag
-
-   character (char_len) :: &
-      forcing_filename,    &! full filename of forcing data file
-      long_name             ! long name for input data field
-
-   type (datafile) :: &
-      pt_int_data_file  ! data file descriptor for interior pot temp data
-
-   type (io_field_desc) :: &
-      pt_data_in          ! io field descriptor for input pot temp data
-
-   type (io_dim) :: &
-      i_dim, j_dim, &! dimension descriptors for horiz dims
-      k_dim          ! dimension descriptor  for depth
 
    namelist /forcing_pt_interior_nml/ pt_interior_data_type,           &
         pt_interior_data_inc,         pt_interior_interp_type,         &
@@ -210,6 +175,51 @@
    call broadcast_scalar(pt_interior_restore_filename,  master_task)
    call broadcast_scalar(pt_interior_restore_file_fmt,  master_task)
    call broadcast_array (pt_interior_data_renorm,       master_task)
+
+end subroutine read_pt_interior_namelist
+
+
+!***********************************************************************
+!BOP
+! !IROUTINE: init_pt_interior
+! !INTERFACE:
+
+ subroutine init_pt_interior
+
+! !DESCRIPTION:
+!  Initializes potential temperature interior forcing by either
+!  calculating or reading in the 3D temperature.  Also performs
+!  initial book-keeping concerning when new data is needed for
+!  the temporal interpolation and when the forcing will need
+!  to be updated.
+!
+! !REVISION HISTORY:
+!  same as module
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind) :: &
+      n,                 &! dummy loop index
+      nml_error           ! namelist i/o error flag
+
+   character (char_len) :: &
+      forcing_filename,    &! full filename of forcing data file
+      long_name             ! long name for input data field
+
+   type (datafile) :: &
+      pt_int_data_file  ! data file descriptor for interior pot temp data
+
+   type (io_field_desc) :: &
+      pt_data_in          ! io field descriptor for input pot temp data
+
+   type (io_dim) :: &
+      i_dim, j_dim, &! dimension descriptors for horiz dims
+      k_dim          ! dimension descriptor  for depth
+
 
 !-----------------------------------------------------------------------
 !

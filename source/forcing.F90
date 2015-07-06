@@ -52,7 +52,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_forcing,           &
+   public :: read_forcing_namelist,  &
+             init_forcing,           &
              set_surface_forcing,    &
              tavg_forcing,           &
              movie_forcing
@@ -86,6 +87,26 @@
 !***********************************************************************
 
  contains
+
+
+subroutine read_forcing_namelist
+
+   call read_ws_namelist
+   call read_shf_namelist
+   call read_sfwf_namelist
+   call read_pt_interior_namelist
+   call read_s_interior_namelist
+   call read_ap_namelist
+
+end subroutine read_forcing_namelist
+
+
+
+
+
+
+
+
 
 !***********************************************************************
 !BOP

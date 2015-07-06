@@ -31,7 +31,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_ws, &
+   public :: read_ws_namelist, &
+             init_ws, &
              set_ws
 
 ! !PUBLIC DATA MEMBERS:
@@ -73,7 +74,7 @@
       ws_data_time_min_loc  ! index of first time index of SMF_DATA
                             !   to use for interpolating forcing
 
-   character (char_len) :: &
+   character (char_len), public :: &
       ws_filename,     &! name of file conainting forcing data
       ws_file_fmt,     &! format (bin or nc) for forcing file
       ws_interp_type,  &!
@@ -94,6 +95,64 @@
 !***********************************************************************
 
  contains
+
+
+subroutine read_ws_namelist
+
+   integer (int_kind) :: &
+      nml_error           ! namelist i/o error flag
+
+   namelist /forcing_ws_nml/ ws_data_type,   ws_data_inc,    &
+                             ws_interp_type, ws_interp_freq, &
+                             ws_interp_inc,  ws_filename,    &
+                             ws_file_fmt,    ws_data_renorm
+
+!-----------------------------------------------------------------------
+!
+!  read wind stress namelist input after setting default values.
+!
+!-----------------------------------------------------------------------
+
+   ws_data_type   = 'analytic'
+   ws_data_inc    = 1.e20_r8
+   ws_interp_type = 'nearest'
+   ws_interp_freq = 'never'
+   ws_interp_inc  = 1.e20_r8
+   ws_filename    = 'unknown-ws'
+   ws_file_fmt    = 'bin'
+   ws_data_renorm = c1
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=forcing_ws_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+     call exit_POP(sigAbort,'ERROR reading forcing_ws_nml')
+   endif
+
+   call broadcast_scalar(ws_data_type,   master_task)
+   call broadcast_scalar(ws_data_inc,    master_task)
+   call broadcast_scalar(ws_interp_type, master_task)
+   call broadcast_scalar(ws_interp_freq, master_task)
+   call broadcast_scalar(ws_interp_inc,  master_task)
+   call broadcast_scalar(ws_filename,    master_task)
+   call broadcast_scalar(ws_file_fmt,    master_task)
+   call broadcast_array (ws_data_renorm, master_task)
+
+end subroutine read_ws_namelist
+
+
+
 
 !***********************************************************************
 !BOP
@@ -138,11 +197,6 @@
    character (char_len) :: &
       forcing_filename     ! full name of forcing input file
 
-   namelist /forcing_ws_nml/ ws_data_type,   ws_data_inc,    &
-                             ws_interp_type, ws_interp_freq, &
-                             ws_interp_inc,  ws_filename,    &
-                             ws_file_fmt,    ws_data_renorm
-
    real (r8), dimension(:,:,:,:), allocatable :: &
       TEMP_DATA        ! temp array for reading monthly data
 
@@ -158,47 +212,10 @@
       i_dim, j_dim, &! dimension descriptors for horiz dims
       month_dim      ! dimension descriptor  for monthly data
 
-!-----------------------------------------------------------------------
-!
-!  read wind stress namelist input after setting default values.
-!
-!-----------------------------------------------------------------------
 
-   ws_data_type   = 'analytic'
-   ws_data_inc    = 1.e20_r8
-   ws_interp_type = 'nearest'
-   ws_interp_freq = 'never'
-   ws_interp_inc  = 1.e20_r8
-   ws_filename    = 'unknown-ws'
-   ws_file_fmt    = 'bin'
-   ws_data_renorm = c1
 
-   if (my_task == master_task) then
-      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-      if (nml_error /= 0) then
-         nml_error = -1
-      else
-         nml_error =  1
-      endif
-      do while (nml_error > 0)
-         read(nml_in, nml=forcing_ws_nml,iostat=nml_error)
-      end do
-      if (nml_error == 0) close(nml_in)
-   endif
+! split the reading of the namelist into a different routine
 
-   call broadcast_scalar(nml_error, master_task)
-   if (nml_error /= 0) then
-     call exit_POP(sigAbort,'ERROR reading forcing_ws_nml')
-   endif
-
-   call broadcast_scalar(ws_data_type,   master_task)
-   call broadcast_scalar(ws_data_inc,    master_task)
-   call broadcast_scalar(ws_interp_type, master_task)
-   call broadcast_scalar(ws_interp_freq, master_task)
-   call broadcast_scalar(ws_interp_inc,  master_task)
-   call broadcast_scalar(ws_filename,    master_task)
-   call broadcast_scalar(ws_file_fmt,    master_task)
-   call broadcast_array (ws_data_renorm, master_task)
 
    ws_formulation = char_blank
 

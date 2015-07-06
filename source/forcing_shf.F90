@@ -33,7 +33,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public :: init_shf,      &
+   public :: read_shf_namelist, &
+             init_shf,      &
              set_shf        
 
 ! !PUBLIC DATA MEMBERS:
@@ -156,7 +157,7 @@
       shf_data_ice,      &
       shf_data_qsw
 
-   character (char_len) :: &
+   character (char_len), public :: &
       shf_interp_freq, &! keyword for period of temporal interpolation
       shf_filename,    &! file containing forcing data
       shf_file_fmt,    &! format (bin or netcdf) of shf file
@@ -209,6 +210,81 @@
 !***********************************************************************
 
  contains
+
+subroutine read_shf_namelist
+
+   integer (int_kind) ::     &
+      nml_error               ! namelist error flag
+
+   namelist /forcing_shf_nml/ shf_data_type, shf_data_inc,         &
+                              shf_interp_type, shf_interp_freq,    &
+                              shf_interp_inc, shf_restore_tau,     &
+                              shf_filename, shf_file_fmt,          &
+                              shf_data_renorm,                     &
+                              shf_formulation,                     &
+                              shf_weak_restore, shf_strong_restore,&
+                              shf_strong_restore_ms,               &
+                              luse_cpl_ifrac
+
+!-----------------------------------------------------------------------
+!
+!  read surface heat flux namelist input after setting default values.
+!
+!-----------------------------------------------------------------------
+
+   shf_formulation       = 'restoring'
+   shf_data_type         = 'analytic'
+   shf_data_inc          = 1.e20_r8
+   shf_interp_type       = 'nearest'
+   shf_interp_freq       = 'never'
+   shf_interp_inc        = 1.e20_r8
+   shf_restore_tau       = 1.e20_r8
+   shf_filename          = 'unknown-shf'
+   shf_file_fmt          = 'bin'
+   shf_data_renorm       = c1
+   shf_weak_restore      = c0
+   shf_strong_restore    = 92.64_r8
+   shf_strong_restore_ms = 92.64_r8
+   luse_cpl_ifrac        = .false.
+
+   if (my_task == master_task) then
+      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
+      if (nml_error /= 0) then
+         nml_error = -1
+      else
+         nml_error =  1
+      endif
+      do while (nml_error > 0)
+         read(nml_in, nml=forcing_shf_nml,iostat=nml_error)
+      end do
+      if (nml_error == 0) close(nml_in)
+   endif
+
+   call broadcast_scalar(nml_error, master_task)
+   if (nml_error /= 0) then
+      call exit_POP(sigAbort,'ERROR reading forcing_shf_nml')
+   endif
+
+   call broadcast_scalar(shf_formulation,       master_task)
+   call broadcast_scalar(shf_data_type,         master_task)
+   call broadcast_scalar(shf_data_inc,          master_task)
+   call broadcast_scalar(shf_interp_type,       master_task)
+   call broadcast_scalar(shf_interp_freq,       master_task)
+   call broadcast_scalar(shf_interp_inc,        master_task)
+   call broadcast_scalar(shf_restore_tau,       master_task)
+   call broadcast_scalar(shf_filename,          master_task)
+   call broadcast_scalar(shf_file_fmt,          master_task)
+   call broadcast_array (shf_data_renorm,       master_task)
+   call broadcast_scalar(shf_weak_restore,      master_task)
+   call broadcast_scalar(shf_strong_restore,    master_task)
+   call broadcast_scalar(shf_strong_restore_ms, master_task)
+   call broadcast_scalar(luse_cpl_ifrac,        master_task)
+
+end subroutine read_shf_namelist
+
+
+
+
 
 !***********************************************************************
 !BOP
@@ -274,69 +350,6 @@
       i_dim, j_dim, &! dimension descriptors for horiz dims
       month_dim      ! dimension descriptor  for monthly data
 
-   namelist /forcing_shf_nml/ shf_data_type, shf_data_inc,         &
-                              shf_interp_type, shf_interp_freq,    &
-                              shf_interp_inc, shf_restore_tau,     &
-                              shf_filename, shf_file_fmt,          &
-                              shf_data_renorm,                     &
-                              shf_formulation,                     &
-                              shf_weak_restore, shf_strong_restore,&
-                              shf_strong_restore_ms,               &
-                              luse_cpl_ifrac
-
-!-----------------------------------------------------------------------
-!
-!  read surface heat flux namelist input after setting default values.
-!
-!-----------------------------------------------------------------------
-
-   shf_formulation       = 'restoring'
-   shf_data_type         = 'analytic'
-   shf_data_inc          = 1.e20_r8
-   shf_interp_type       = 'nearest'
-   shf_interp_freq       = 'never'
-   shf_interp_inc        = 1.e20_r8
-   shf_restore_tau       = 1.e20_r8
-   shf_filename          = 'unknown-shf'
-   shf_file_fmt          = 'bin'
-   shf_data_renorm       = c1
-   shf_weak_restore      = c0
-   shf_strong_restore    = 92.64_r8
-   shf_strong_restore_ms = 92.64_r8
-   luse_cpl_ifrac        = .false.
-
-   if (my_task == master_task) then
-      open (nml_in, file=nml_filename, status='old',iostat=nml_error)
-      if (nml_error /= 0) then
-         nml_error = -1
-      else
-         nml_error =  1
-      endif
-      do while (nml_error > 0)
-         read(nml_in, nml=forcing_shf_nml,iostat=nml_error)
-      end do
-      if (nml_error == 0) close(nml_in)
-   endif
-
-   call broadcast_scalar(nml_error, master_task)
-   if (nml_error /= 0) then
-      call exit_POP(sigAbort,'ERROR reading forcing_shf_nml')
-   endif
-
-   call broadcast_scalar(shf_formulation,       master_task)
-   call broadcast_scalar(shf_data_type,         master_task)
-   call broadcast_scalar(shf_data_inc,          master_task)
-   call broadcast_scalar(shf_interp_type,       master_task)
-   call broadcast_scalar(shf_interp_freq,       master_task)
-   call broadcast_scalar(shf_interp_inc,        master_task)
-   call broadcast_scalar(shf_restore_tau,       master_task)
-   call broadcast_scalar(shf_filename,          master_task)
-   call broadcast_scalar(shf_file_fmt,          master_task)
-   call broadcast_array (shf_data_renorm,       master_task)
-   call broadcast_scalar(shf_weak_restore,      master_task)
-   call broadcast_scalar(shf_strong_restore,    master_task)
-   call broadcast_scalar(shf_strong_restore_ms, master_task)
-   call broadcast_scalar(luse_cpl_ifrac,        master_task)
 
 !-----------------------------------------------------------------------
 !
