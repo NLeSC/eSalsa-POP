@@ -2,6 +2,8 @@
 !BOP
 ! !MODULE: gather_scatter
 
+#define _USE_FLOW_CONTROL 1234
+
  module gather_scatter
 
 ! !DESCRIPTION:

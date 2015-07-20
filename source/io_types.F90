@@ -3341,7 +3341,7 @@ contains
 
 !if nml_filename not set by now, then set it to default
    if (nml_filename == '') then
-     nml_filename = 'pop_in'
+     nml_filename = 'pop_in_lowres'
    endif
 
    in_use = .false.                  ! no unit in use
