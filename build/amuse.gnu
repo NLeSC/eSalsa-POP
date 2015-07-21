@@ -8,10 +8,11 @@
 #
 #-----------------------------------------------------------------------
 
-F77 = mpif90
-F90 = mpif90
-LD = mpif90
-CC = mpicc 
+
+F77 = $(MPIFC)
+F90 = $(MPIFC)
+LD = $(MPIFC)
+CC = $(MPIFC)
 Cp = /bin/cp
 Cpp = cpp -P
 AWK = /usr/bin/gawk
@@ -24,10 +25,6 @@ MPI = yes
 
 # Adjust these to point to where netcdf is installed
 
-# These have been loaded as a module so no values necessary
-NETCDFPATH = /home/ben
-NETCDFINC = -I$(NETCDFPATH)/include
-NETCDFLIB = -L$(NETCDFPATH)/lib
 
 #  Enable trapping and traceback of floating point exceptions, yes/no.
 #  Note - Requires 'setenv TRAP_FPE "ALL=ABORT,TRACE"' for traceback.
@@ -99,8 +96,7 @@ LDFLAGS := $(LDFLAGS) $(NETCDFINC)
 LIBS = $(NETCDFLIB) -lnetcdf -lnetcdff
  
 ifeq ($(MPI),yes)
-#  LIBS := $(LIBS) $(MPI_LD_FLAGS) -L/cm/shared/apps/openmpi/intel/64/1.4.4/lib64/ -lmpi 
-  LIBS := $(LIBS) -L/home/ben/amuse/prerequisites -lmpi
+#assuming the compiler wrapper takes care of this
 endif
 
 ifeq ($(TRAP_FPE),yes)
