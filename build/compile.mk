@@ -112,7 +112,7 @@ EXEOBJS = $(filter-out $(LIBOBJ), $(OBJS))
 
 $(POPEXEDIR)/$(TARGETX): $(EXEOBJS)
 	@echo "  GNUmakefile is making target '$(TARGETX)'"
-	@$(LD) -o $(TARGETX) $(LDFLAGS) $(EXEOBJS) $(LDLIBS) 
+#	@$(LD) -o $(TARGETX) $(LDFLAGS) $(EXEOBJS) $(LDLIBS) 
 
 #----------------------------------------------------------------------------
 #
