@@ -187,6 +187,11 @@
       nocean_u, nocean_t,      &! num of ocean U,T points
       nsurface_u, nsurface_t    ! num of ocean U,T points at surface
 
+   real (POP_r8), dimension(:,:), allocatable, public :: &
+      ULAT_G, ULON_G, &     ! {latitude,longitude} of U points
+      TLAT_G, TLON_G        ! {latitude,longitude} of T points
+                            ! in global-sized array
+
 !EOP
 !BOC
 !-----------------------------------------------------------------------
@@ -204,9 +209,6 @@
       flat_bottom,        &! flag for flat-bottom topography
       lremove_points       ! flag for removing isolated points
 
-   real (POP_r8), dimension(:,:), allocatable :: &
-      ULAT_G, ULON_G        ! {latitude,longitude} of U points
-                            ! in global-sized array
 
 !-----------------------------------------------------------------------
 !
