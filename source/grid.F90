@@ -40,7 +40,8 @@
 
 ! !PUBLIC MEMBER FUNCTIONS:
 
-   public  :: read_grid_namelist, &
+   public  :: read_horiz_grid, &
+              read_grid_namelist, &
               init_grid1,     &
               init_grid2,     &
               tgrid_to_ugrid, &
