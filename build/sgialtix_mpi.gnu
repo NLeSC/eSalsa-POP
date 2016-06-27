@@ -13,7 +13,7 @@ LD = ifort
 CC = cc
 Cp = /bin/cp
 Cpp = cpp -P
-AWK = /usr/bin/gawk
+AWK = /usr/bin/awk
 ABI = 
 COMMDIR = mpi
  

@@ -15,7 +15,7 @@ LD = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpif90 -lcurl
 CC = /cm/shared/apps/openmpi/intel/64/1.4.4/bin/mpicc 
 Cp = /bin/cp
 Cpp = cpp -P
-AWK = /usr/bin/gawk
+AWK = /usr/bin/awk
 ABI = 
 COMMDIR = mpi
  
