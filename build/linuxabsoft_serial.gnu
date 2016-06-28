@@ -14,7 +14,7 @@ LD = f95
 CC = cc
 Cp = /bin/cp
 Cpp = /lib/cpp -P
-AWK = /usr/bin/gawk
+AWK = /usr/bin/awk
 ABI = 
 COMMDIR = serial
  
